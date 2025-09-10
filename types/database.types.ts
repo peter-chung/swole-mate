@@ -57,7 +57,7 @@ export type Database = {
             foreignKeyName: "exercise_sets_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -102,12 +102,12 @@ export type Database = {
             foreignKeyName: "exercises_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
       }
-      profiles: {
+      users: {
         Row: {
           avatar_url: string | null
           full_name: string | null
@@ -174,7 +174,7 @@ export type Database = {
             foreignKeyName: "workout_exercises_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -195,6 +195,7 @@ export type Database = {
           name: string | null
           notes: string | null
           started_at: string | null
+          status: string
           user_id: string
         }
         Insert: {
@@ -205,6 +206,7 @@ export type Database = {
           name?: string | null
           notes?: string | null
           started_at?: string | null
+          status?: string
           user_id: string
         }
         Update: {
@@ -215,6 +217,7 @@ export type Database = {
           name?: string | null
           notes?: string | null
           started_at?: string | null
+          status?: string
           user_id?: string
         }
         Relationships: [
@@ -222,7 +225,7 @@ export type Database = {
             foreignKeyName: "workouts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

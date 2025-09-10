@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Transparent background; renders clean in light/dark -->
+  <rect width="64" height="64" fill="none" />
+  <!-- Centered flexing bicep emoji -->
+  <text x="50%" y="56%" text-anchor="middle" dominant-baseline="middle" font-size="56">💪</text>
+</svg>
+

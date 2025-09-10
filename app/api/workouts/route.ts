@@ -41,27 +41,26 @@ export async function GET(req: Request) {
   );
 }
 
-export async function POST(req: Request) {
+export async function POST() {
   const supabase = await createClient();
-  const body = await req.json();
-
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
-
-  if (userError || !user) {
+  if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const { data, error } = await supabase
     .from("workouts")
-    .insert({ ...body, user_id: user.id })
-    .select();
+    .insert({
+      user_id: user.id,
+      status: "draft",
+      date: new Date(), // or default current_date in DB
+      // started_at: new Date(), // for a live timer
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ data }, { status: 201 });
+  return NextResponse.json({ id: data.id }, { status: 201 });
 }

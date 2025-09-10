@@ -24,3 +24,30 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Global pointer cursors for clickable controls */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"],
+button[disabled] {
+  cursor: not-allowed;
+}
+
+/* Utility for non-button clickable elements */
+.clickable,
+[data-clickable] {
+  cursor: pointer;
+}
+
+/* Disabled utility for custom elements */
+[data-disabled="true"],
+.is-disabled {
+  cursor: not-allowed;
+}
