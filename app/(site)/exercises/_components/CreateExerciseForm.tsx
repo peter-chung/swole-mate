@@ -41,9 +41,14 @@ const CreateExerciseForm = () => {
         id="exerciseName"
         label="Exercise Name"
         type="text"
-        placeholder="e.g., Barbell Bench Press"
+        placeholder="e.g., Bench Press (Barbell)"
         autoComplete="off"
-        onChange={(e) => setExercise((prev) => ({ ...prev, name: (e.target as HTMLInputElement).value }))}
+        onChange={(e) =>
+          setExercise((prev) => ({
+            ...prev,
+            name: (e.target as HTMLInputElement).value,
+          }))
+        }
       />
 
       <InputField
@@ -52,7 +57,12 @@ const CreateExerciseForm = () => {
         type="text"
         placeholder="e.g., Chest"
         autoComplete="off"
-        onChange={(e) => setExercise((prev) => ({ ...prev, primary_muscle: (e.target as HTMLInputElement).value }))}
+        onChange={(e) =>
+          setExercise((prev) => ({
+            ...prev,
+            primary_muscle: (e.target as HTMLInputElement).value,
+          }))
+        }
       />
 
       <InputField
@@ -61,7 +71,12 @@ const CreateExerciseForm = () => {
         type="text"
         placeholder="e.g., Triceps, Shoulders"
         autoComplete="off"
-        onChange={(e) => setExercise((prev) => ({ ...prev, other_muscles: (e.target as HTMLInputElement).value }))}
+        onChange={(e) =>
+          setExercise((prev) => ({
+            ...prev,
+            other_muscles: (e.target as HTMLInputElement).value,
+          }))
+        }
       />
       <p className="text-xs text-gray-500 dark:text-gray-400">
         Optional. Separate multiple muscles with commas.
@@ -71,9 +86,14 @@ const CreateExerciseForm = () => {
         id="exerciseType"
         label="Exercise Type"
         type="text"
-        placeholder="e.g., Compound, Isolation"
+        placeholder="e.g., Weight & Reps, Time & Distance"
         autoComplete="off"
-        onChange={(e) => setExercise((prev) => ({ ...prev, type: (e.target as HTMLInputElement).value }))}
+        onChange={(e) =>
+          setExercise((prev) => ({
+            ...prev,
+            type: (e.target as HTMLInputElement).value,
+          }))
+        }
       />
 
       <div className="pt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

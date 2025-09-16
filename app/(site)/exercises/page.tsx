@@ -43,7 +43,7 @@ const Page = () => {
     fetchExercises(debouncedQuery);
   }, [debouncedQuery]);
 
-  // 👇 Realtime: re-fetch when exercises change
+  // Realtime: re-fetch when exercises change
   useEffect(() => {
     const channel = supabase
       .channel("exercises-changes")
@@ -52,7 +52,6 @@ const Page = () => {
         { event: "INSERT", schema: "public", table: "exercises" },
         () => fetchExercises(debouncedQuery)
       )
-      // (optional) keep list in sync if you edit/delete from elsewhere
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "exercises" },
@@ -77,7 +76,7 @@ const Page = () => {
           Exercises
         </h1>
         <Link
-          href="/exercises/create"
+          href="/exercises/new"
           className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
         >
           + Create Exercise
@@ -103,10 +102,12 @@ const Page = () => {
         <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
           <div className="text-3xl mb-2">🕵️‍♀️</div>
           <p className="font-medium">No exercises found</p>
-          <p className="text-sm">Try a different search or create a new exercise.</p>
+          <p className="text-sm">
+            Try a different search or create a new exercise.
+          </p>
           <div className="mt-4">
             <Link
-              href="/exercises/create"
+              href="/exercises/new"
               className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
             >
               Create Exercise

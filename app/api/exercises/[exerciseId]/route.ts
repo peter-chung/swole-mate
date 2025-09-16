@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
 type RouteContext = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ exerciseId: string }>;
 };
 
 // Fetch exercise
@@ -18,12 +18,12 @@ export async function GET(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const { exerciseId } = await params;
 
   const { data, error } = await supabase
     .from("exercises")
     .select("*")
-    .eq("id", id)
+    .eq("id", exerciseId)
     .single();
 
   if (error) {
@@ -48,12 +48,12 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
     const body = await req.json();
 
-    const { id } = await params;
+    const { exerciseId } = await params;
 
     const { data, error } = await supabase
       .from("exercises")
       .update(body) // update only the changed fields
-      .eq("id", id)
+      .eq("id", exerciseId)
       .eq("user_id", user.id)
       .select()
       .single();
@@ -90,12 +90,12 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const { exerciseId } = await params;
 
   const { error } = await supabase
     .from("exercises")
     .delete()
-    .eq("id", id)
+    .eq("id", exerciseId)
     .eq("user_id", user.id);
 
   if (error) {

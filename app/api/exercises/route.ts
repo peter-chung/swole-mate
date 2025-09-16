@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   let query = supabase
     .from("exercises")
     .select("*")
-    .order("name", { ascending: false })
+    .order("name", { ascending: true })
     .range(offset, offset + limit - 1);
 
   if (search) {

@@ -12,7 +12,7 @@ type Props = {
   exercise: Exercise | null;
 };
 
-const UpdateExerciseForm = ({ exercise }: Props) => {
+const EditExerciseForm = ({ exercise }: Props) => {
   const [updatedExercise, setUpdatedExercise] = useState<Partial<Exercise>>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -54,7 +54,9 @@ const UpdateExerciseForm = ({ exercise }: Props) => {
     if (!exercise) return;
     try {
       setIsDeleting(true);
-      const res = await fetch(`/api/exercises/${exercise.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/exercises/${exercise.id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j?.error || `Request failed with ${res.status}`);
@@ -122,7 +124,7 @@ const UpdateExerciseForm = ({ exercise }: Props) => {
         label="Exercise Name"
         type="text"
         defaultValue={exercise?.name ?? ""}
-        placeholder="e.g., Barbell Bench Press"
+        placeholder="e.g., Bench Press (Barbell)"
         autoComplete="off"
         onChange={(e) =>
           setUpdatedExercise((prev) => ({
@@ -167,7 +169,7 @@ const UpdateExerciseForm = ({ exercise }: Props) => {
         label="Exercise Type"
         type="text"
         defaultValue={exercise?.type ?? ""}
-        placeholder="e.g., Compound, Isolation"
+        placeholder="e.g., Weight & Reps, Time & Distance"
         autoComplete="off"
         onChange={(e) =>
           setUpdatedExercise((prev) => ({
@@ -255,4 +257,4 @@ const UpdateExerciseForm = ({ exercise }: Props) => {
   );
 };
 
-export default UpdateExerciseForm;
+export default EditExerciseForm;

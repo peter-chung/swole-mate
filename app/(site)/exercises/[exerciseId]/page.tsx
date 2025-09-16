@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Tables } from "@/types/database.types";
-import UpdateExerciseForm from "../_components/UpdateExerciseForm";
+import EditExerciseForm from "../_components/EditExerciseForm";
 
 type Exercise = Tables<"exercises">;
 
 const Page = () => {
-  const { id: exerciseId } = useParams<{ id: string }>();
+  const { exerciseId } = useParams<{ exerciseId: string }>();
   const [exercise, setExercise] = useState<Exercise | null>(null);
 
   const router = useRouter();
@@ -49,15 +49,15 @@ const Page = () => {
       <div className="mx-auto w-full max-w-2xl px-4 sm:px-6">
         <div className="mx-auto w-full max-w-md">
           <h1 className="mt-3 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-            Update Exercise
+            Edit Exercise
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            Update the details of the exercise.
+            Edit the details of the exercise.
           </p>
         </div>
 
         <div className="mt-6">
-          <UpdateExerciseForm exercise={exercise} />
+          <EditExerciseForm exercise={exercise} />
         </div>
       </div>
     </div>
