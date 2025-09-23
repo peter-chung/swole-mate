@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import type { Tables } from "@/types/database.types";
 import EditExerciseForm from "../_components/EditExerciseForm";
 
@@ -10,11 +10,13 @@ type Exercise = Tables<"exercises">;
 const Page = () => {
   const { exerciseId } = useParams<{ exerciseId: string }>();
   const [exercise, setExercise] = useState<Exercise | null>(null);
-
-  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchExercise = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const res = await fetch(`/api/exercises/${exerciseId}`);
       const result = await res.json();
 
@@ -23,26 +25,15 @@ const Page = () => {
       setExercise(result.data);
     } catch (error) {
       console.error("Error fetching exercise:", error);
+      setError("We couldn't load this exercise. Please try again.");
+      setExercise(null);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchExercise();
-  }, []);
-
-  const handleDelete = async () => {
-    try {
-      const res = await fetch(`/api/exercises/${exerciseId}`, {
-        method: "DELETE",
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-
-      router.push("/exercises"); // redirect back to list
-    } catch (error) {
-      console.error("Error deleting exercise:", error);
-    }
-  };
+  }, [exerciseId]);
 
   return (
     <div className="py-6">
@@ -57,7 +48,18 @@ const Page = () => {
         </div>
 
         <div className="mt-6">
-          <EditExerciseForm exercise={exercise} />
+          {loading ? (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+              <span>Loading…</span>
+            </div>
+          ) : error ? (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-900/20 dark:text-amber-200">
+              {error}
+            </div>
+          ) : (
+            <EditExerciseForm exercise={exercise} />
+          )}
         </div>
       </div>
     </div>

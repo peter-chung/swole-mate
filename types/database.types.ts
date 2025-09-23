@@ -69,9 +69,49 @@ export type Database = {
           },
         ]
       }
+      exercise_types: {
+        Row: {
+          created_at: string
+          has_distance: boolean
+          has_duration: boolean
+          has_reps: boolean
+          has_weight: boolean
+          id: string
+          is_assisted: boolean
+          is_bodyweight: boolean
+          key: string
+          label: string
+        }
+        Insert: {
+          created_at?: string
+          has_distance?: boolean
+          has_duration?: boolean
+          has_reps?: boolean
+          has_weight?: boolean
+          id?: string
+          is_assisted?: boolean
+          is_bodyweight?: boolean
+          key: string
+          label: string
+        }
+        Update: {
+          created_at?: string
+          has_distance?: boolean
+          has_duration?: boolean
+          has_reps?: boolean
+          has_weight?: boolean
+          id?: string
+          is_assisted?: boolean
+          is_bodyweight?: boolean
+          key?: string
+          label?: string
+        }
+        Relationships: []
+      }
       exercises: {
         Row: {
           created_at: string
+          exercise_type_id: string
           id: number
           name: string
           other_muscles: string | null
@@ -81,6 +121,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          exercise_type_id: string
           id?: number
           name: string
           other_muscles?: string | null
@@ -90,6 +131,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          exercise_type_id?: string
           id?: number
           name?: string
           other_muscles?: string | null
@@ -98,6 +140,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "exercises_exercise_type_id_fkey"
+            columns: ["exercise_type_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "exercises_user_id_fkey"
             columns: ["user_id"]

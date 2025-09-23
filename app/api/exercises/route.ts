@@ -55,7 +55,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const supabase = await createClient();
-  const body = await req.json();
+  const body = (await req.json()) as Partial<Exercise>;
 
   const {
     data: { user },
@@ -66,9 +66,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const payload: Partial<Exercise> & { user_id: string } = {
+    ...body,
+    user_id: user.id,
+  };
+
+  if (body.exercise_type_id && !body.type) {
+    const { data: exerciseType, error: exerciseTypeError } = await supabase
+      .from("exercise_types")
+      .select("label")
+      .eq("id", body.exercise_type_id)
+      .single();
+
+    if (exerciseTypeError) {
+      return NextResponse.json(
+        { error: exerciseTypeError.message },
+        { status: 400 }
+      );
+    }
+
+    if (exerciseType?.label) {
+      payload.type = exerciseType.label;
+    }
+  }
+
   const { data, error } = await supabase
     .from("exercises")
-    .insert({ ...body, user_id: user.id })
+    .insert(payload)
     .select();
 
   if (error) {
