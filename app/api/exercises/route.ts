@@ -12,8 +12,15 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
   const search = (searchParams.get("search") || "").trim();
-  const limit = Number(searchParams.get("limit") || 25);
-  const offset = Number(searchParams.get("offset") || 0);
+  const limitParam = Number(searchParams.get("limit"));
+  const offsetParam = Number(searchParams.get("offset"));
+
+  const limit = Number.isFinite(limitParam)
+    ? Math.min(Math.max(Math.floor(limitParam), 1), 100)
+    : 25;
+  const offset = Number.isFinite(offsetParam)
+    ? Math.max(Math.floor(offsetParam), 0)
+    : 0;
 
   const {
     data: { user },
@@ -26,7 +33,7 @@ export async function GET(req: Request) {
 
   let query = supabase
     .from("available_exercises")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("source", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true })
     .range(offset, offset + limit - 1);
@@ -44,7 +51,7 @@ export async function GET(req: Request) {
     );
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
@@ -52,7 +59,12 @@ export async function GET(req: Request) {
 
   // keep the shape your page expects: { data: Exercise[] }
   return NextResponse.json(
-    { data: (data ?? []) as AvailableExercise[] },
+    {
+      data: (data ?? []) as AvailableExercise[],
+      count: count ?? 0,
+      limit,
+      offset,
+    },
     {
       status: 200,
     }
