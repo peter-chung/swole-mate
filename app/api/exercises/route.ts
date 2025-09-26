@@ -27,6 +27,7 @@ export async function GET(req: Request) {
   let query = supabase
     .from("available_exercises")
     .select("*")
+    .order("source", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true })
     .range(offset, offset + limit - 1);
 
