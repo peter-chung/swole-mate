@@ -2,21 +2,26 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
-import type { Tables } from "@/types/database.types";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { Tables, TablesUpdate } from "@/types/database.types";
 import { InputField, SelectField } from "@/app/_components/FormFields";
 import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
 
-type Exercise = Tables<"exercises">;
+type Exercise = Tables<"custom_exercises"> & {
+  exercise_type_label?: string | null;
+  exercise_type_key?: string | null;
+};
 type ExerciseType = Tables<"exercise_types">;
 
 type Props = {
   exercise: Exercise | null;
+  resourceId?: string;
 };
 
-const EditExerciseForm = ({ exercise }: Props) => {
-  const [updatedExercise, setUpdatedExercise] = useState<Partial<Exercise>>({});
+const EditExerciseForm = ({ exercise, resourceId }: Props) => {
+  const [updatedExercise, setUpdatedExercise] =
+    useState<TablesUpdate<"custom_exercises">>({});
   const [exerciseTypes, setExerciseTypes] = useState<ExerciseType[]>([]);
   const [isFetchingTypes, setIsFetchingTypes] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -30,6 +35,10 @@ const EditExerciseForm = ({ exercise }: Props) => {
   const shouldRenderFallbackOption =
     Boolean(selectedExerciseTypeId) &&
     !exerciseTypes.some((type) => type.id === selectedExerciseTypeId);
+  const fallbackExerciseTypeLabel = useMemo(
+    () => exercise?.exercise_type_label ?? null,
+    [exercise?.exercise_type_label]
+  );
 
   useEffect(() => {
     const fetchExerciseTypes = async () => {
@@ -54,12 +63,13 @@ const EditExerciseForm = ({ exercise }: Props) => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!exercise) return;
+    const targetId = resourceId ?? exercise?.id;
+    if (!exercise || !targetId) return;
 
     try {
       setIsLoading(true);
 
-      const res = await fetch(`/api/exercises/${exercise.id}`, {
+      const res = await fetch(`/api/exercises/${targetId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedExercise), // send only changed fields
@@ -79,10 +89,11 @@ const EditExerciseForm = ({ exercise }: Props) => {
   };
 
   const confirmDelete = async () => {
-    if (!exercise) return;
+    const targetId = resourceId ?? exercise?.id;
+    if (!exercise || !targetId) return;
     try {
       setIsDeleting(true);
-      const res = await fetch(`/api/exercises/${exercise.id}`, {
+      const res = await fetch(`/api/exercises/${targetId}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -156,13 +167,9 @@ const EditExerciseForm = ({ exercise }: Props) => {
         value={selectedExerciseTypeId}
         onChange={(e) => {
           const selectedId = e.target.value;
-          const selectedType = exerciseTypes.find(
-            (type) => type.id === selectedId
-          );
           setUpdatedExercise((prev) => ({
             ...prev,
             exercise_type_id: selectedId || undefined,
-            type: selectedType?.label ?? undefined,
           }));
         }}
         disabled={isFetchingTypes || exerciseTypes.length === 0}
@@ -170,7 +177,7 @@ const EditExerciseForm = ({ exercise }: Props) => {
         <option value="">
           {isFetchingTypes ? "Loading types..." : "Select an exercise type"}
         </option>
-        {shouldRenderFallbackOption && exercise?.type ? (
+        {shouldRenderFallbackOption && fallbackExerciseTypeLabel ? (
           <option
             value={selectedExerciseTypeId}
             style={{
@@ -178,7 +185,7 @@ const EditExerciseForm = ({ exercise }: Props) => {
               color: "#f8fafc",
             }}
           >
-            {exercise.type}
+            {fallbackExerciseTypeLabel}
           </option>
         ) : null}
         {exerciseTypes.map((exerciseType) => (

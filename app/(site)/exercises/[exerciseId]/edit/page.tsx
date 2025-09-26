@@ -2,8 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import EditExerciseForm from "../../_components/EditExerciseForm";
 import type { Tables } from "@/types/database.types";
-import EditExerciseForm from "../_components/EditExerciseForm";
 
 const isCustomSource = (source?: string | null) => source === "custom";
 
@@ -17,7 +17,7 @@ type EditableExercise = Tables<"custom_exercises"> & {
   exercise_type_key?: string | null;
 };
 
-const Page = () => {
+const EditExercisePage = () => {
   const { exerciseId } = useParams<{ exerciseId: string }>();
   const router = useRouter();
   const [exercise, setExercise] = useState<EditableExercise | null>(null);
@@ -62,8 +62,10 @@ const Page = () => {
 
       setExercise(mapped);
     } catch (err) {
-      console.error("Error fetching exercise:", err);
-      setError("We couldn't load this exercise. Please try again.");
+      console.error("Error loading exercise for edit:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to load exercise details."
+      );
       setExercise(null);
     } finally {
       setLoading(false);
@@ -77,12 +79,12 @@ const Page = () => {
   useEffect(() => {
     if (error && !loading && !exercise) {
       const timeout = setTimeout(() => {
-        router.replace(`/exercises`);
+        router.replace(`/exercises/${exerciseId}`);
       }, 3000);
       return () => clearTimeout(timeout);
     }
     return undefined;
-  }, [error, exercise, loading, router]);
+  }, [error, exercise, exerciseId, loading, router]);
 
   return (
     <div className="py-6">
@@ -92,7 +94,7 @@ const Page = () => {
             Edit Exercise
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            Edit the details of the exercise.
+            Update the details of your custom exercise.
           </p>
         </div>
 
@@ -115,4 +117,4 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default EditExercisePage;

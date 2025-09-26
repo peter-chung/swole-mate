@@ -6,7 +6,11 @@ type Props = {
     id: string;
     order_index: number | null;
     notes: string | null;
-    exercise: { id: string; name: string; type: string | null } | null;
+    exercise: {
+      id: string;
+      name: string;
+      exercise_type_label: string | null;
+    } | null;
     exercise_sets: Array<{
       id: string;
       set_number: number | null;
@@ -30,10 +34,10 @@ const WorkoutExerciseCard = ({ we }: Props) => {
           <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
             {we.exercise?.name ?? "Exercise"}
           </p>
-          {we.exercise?.type && (
+          {we.exercise?.exercise_type_label && (
             <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
               <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-200 dark:ring-neutral-700">
-                {we.exercise.type}
+                {we.exercise.exercise_type_label}
               </span>
             </p>
           )}

@@ -9,7 +9,7 @@ import type { Tables } from "@/types/database.types";
 import ExerciseCard from "./_components/ExerciseCard";
 import SearchBar from "./_components/SearchBar";
 
-type Exercise = Tables<"exercises">;
+type Exercise = Tables<"available_exercises">;
 
 const Page = () => {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -46,20 +46,20 @@ const Page = () => {
   // Realtime: re-fetch when exercises change
   useEffect(() => {
     const channel = supabase
-      .channel("exercises-changes")
+      .channel("custom-exercises-changes")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "exercises" },
+        { event: "INSERT", schema: "public", table: "custom_exercises" },
         () => fetchExercises(debouncedQuery)
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "exercises" },
+        { event: "UPDATE", schema: "public", table: "custom_exercises" },
         () => fetchExercises(debouncedQuery)
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "exercises" },
+        { event: "DELETE", schema: "public", table: "custom_exercises" },
         () => fetchExercises(debouncedQuery)
       )
       .subscribe();

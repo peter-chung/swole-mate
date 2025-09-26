@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import { InputField, SelectField } from "@/app/_components/FormFields";
 import type { Tables, TablesInsert } from "@/types/database.types";
 
-type ExerciseInsert = TablesInsert<"exercises">;
+type ExerciseInsert = TablesInsert<"custom_exercises">;
 type ExerciseType = Tables<"exercise_types">;
 
 type ErrorKey = "name" | "type" | "general";
@@ -196,13 +196,9 @@ const CreateExerciseForm = () => {
         aria-describedby={typeHasError ? "exercise-type-error" : undefined}
         onChange={(e) => {
           const selectedId = e.target.value;
-          const selectedType = exerciseTypes.find(
-            (type) => type.id === selectedId
-          );
           setExercise((prev) => ({
             ...prev,
             exercise_type_id: selectedId || undefined,
-            type: selectedType?.label ?? undefined,
           }));
 
           if (selectedId) {

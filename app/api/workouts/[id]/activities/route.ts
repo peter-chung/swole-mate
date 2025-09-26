@@ -37,7 +37,7 @@ export async function GET(req: Request, { params }: Params) {
     .select(
       `
       id, workout_id, exercise_id, order_index, notes,
-      exercise:exercises ( id, name, type ),
+      exercise:available_exercises ( id, name, exercise_type_label ),
       exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
     `
     )
@@ -55,11 +55,11 @@ export async function GET(req: Request, { params }: Params) {
 export async function POST(req: Request, { params }: Params) {
   const { id: workout_id } = await params;
   const body = (await req.json()) as Partial<{
-    exercise_id: number | string;
+    exercise_id: string;
     notes: string;
   }>;
-  const exerciseIdNum = Number(body.exercise_id);
-  if (!Number.isFinite(exerciseIdNum)) {
+  const exerciseId = body.exercise_id?.trim();
+  if (!exerciseId) {
     return NextResponse.json({ error: "Invalid exercise_id" }, { status: 400 });
   }
 
@@ -95,7 +95,7 @@ export async function POST(req: Request, { params }: Params) {
     .insert({
       workout_id,
       user_id: user.id,
-      exercise_id: exerciseIdNum,
+      exercise_id,
       order_index: nextOrder,
       notes: body.notes,
     })

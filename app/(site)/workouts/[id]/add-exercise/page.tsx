@@ -27,8 +27,8 @@ export default async function AddExercisePage({ params }: Params) {
   if (!workout) notFound();
 
   const { data: exercises, error: exErr } = await supabase
-    .from("exercises")
-    .select("id, name, type")
+    .from("available_exercises")
+    .select("id, name, exercise_type_label")
     .order("name", { ascending: true });
 
   if (exErr) {
@@ -58,7 +58,13 @@ export default async function AddExercisePage({ params }: Params) {
         Pick an exercise to add to this workout. You can add sets on the next
         screen.
       </p>
-      <AddExerciseForm workoutId={workoutId} exercises={exercises ?? []} />
+      <AddExerciseForm
+        workoutId={workoutId}
+        exercises={(exercises ?? []).map((exercise) => ({
+          ...exercise,
+          type: exercise.exercise_type_label,
+        }))}
+      />
       <div className="mt-6">
         <Link className="text-sm underline" href={`/workouts/${workoutId}`}>
           Cancel

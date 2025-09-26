@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useDebounce } from "react-use";
 
 type Exercise = {
-  id: number | string;
+  id: string;
   name: string;
   type: string | null;
 };
@@ -44,7 +44,12 @@ const AddWorkoutExerciseModal = ({
         const result = await res.json();
         if (!res.ok)
           throw new Error(result?.error || "Failed to load exercises");
-        setExercises(result.data ?? []);
+        const mapped: Exercise[] = (result.data ?? []).map((exercise: any) => ({
+          id: exercise.id ?? "",
+          name: exercise.name ?? "",
+          type: exercise.exercise_type_label ?? null,
+        }));
+        setExercises(mapped);
       } catch (err: unknown) {
         setError(getErrorMessage(err));
       } finally {
@@ -62,7 +67,7 @@ const AddWorkoutExerciseModal = ({
       const res = await fetch(`/api/workouts/${workoutId}/activities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exercise_id: Number(exercise.id) }),
+        body: JSON.stringify({ exercise_id: exercise.id }),
       });
       const result = await res.json().catch(() => ({}));
       if (!res.ok)

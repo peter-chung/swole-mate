@@ -4,36 +4,83 @@ import React from "react";
 import Link from "next/link";
 import type { Tables } from "@/types/database.types";
 
-type Exercise = Tables<"exercises">;
+type Exercise = Tables<"available_exercises">;
 
 const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
   const muscle = exercise.primary_muscle || "Unknown";
+  const secondaryMuscles = exercise.other_muscles?.trim();
+  const typeLabel = exercise.exercise_type_label?.trim();
+  const otherMuscleBadges = secondaryMuscles
+    ? secondaryMuscles
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : [];
+  const isCustom = exercise.source === "custom";
+  const cardBaseClasses =
+    "flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 dark:border-gray-800 dark:bg-neutral-900";
+
+  const content = (
+    <div className="flex flex-1 flex-col gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-2 text-base font-semibold text-gray-900 transition group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-300">
+            <span>{exercise.name}</span>
+            {!isCustom ? (
+              <span
+                aria-label="Official exercise"
+                className="inline-flex items-center justify-center rounded-full bg-emerald-50 px-1.5 py-0.5 text-[0.65rem] text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/30"
+              >
+                ✔
+              </span>
+            ) : null}
+          </h3>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40">
+              Primary · {muscle}
+            </span>
+            {typeLabel ? (
+              <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 font-medium text-violet-700 ring-1 ring-inset ring-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:ring-violet-500/30">
+                {typeLabel}
+              </span>
+            ) : null}
+          </div>
+          {otherMuscleBadges.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {otherMuscleBadges.map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-200 dark:ring-neutral-700"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      {isCustom ? (
+        <div className="flex flex-1 items-end justify-end">
+          <span className="inline-flex items-center text-xs font-medium text-gray-500 transition group-hover:text-blue-600 dark:text-gray-400 dark:group-hover:text-blue-300">
+            Edit →
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
     <li className="h-full">
-      <Link
-        href={`/exercises/${exercise.id}`}
-        className="group flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 dark:border-gray-800 dark:bg-neutral-900"
-      >
-        <div className="flex flex-1 flex-col gap-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-base font-semibold text-gray-900 transition group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-300">
-                {exercise.name}
-              </h3>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-200 dark:ring-neutral-700">
-                  {muscle}
-                </span>
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-1 items-end justify-end">
-            <span className="inline-flex items-center text-xs font-medium text-gray-500 transition group-hover:text-blue-600 dark:text-gray-400 dark:group-hover:text-blue-300">
-              Details →
-            </span>
-          </div>
-        </div>
-      </Link>
+      {isCustom ? (
+        <Link
+          href={`/exercises/${exercise.id}`}
+          className={`${cardBaseClasses} group transition hover:-translate-y-0.5 hover:shadow-md`}
+        >
+          {content}
+        </Link>
+      ) : (
+        <div className={`${cardBaseClasses} cursor-default`}>{content}</div>
+      )}
     </li>
   );
 };
