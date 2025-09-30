@@ -7,6 +7,7 @@ type Exercise = {
   id: string;
   name: string;
   type: string | null;
+  source: "public" | "custom" | string | null;
 };
 
 type Props = {
@@ -37,18 +38,29 @@ const AddWorkoutExerciseModal = ({
       try {
         setLoading(true);
         setError(null);
-        const url = debouncedQuery
-          ? `/api/exercises?search=${encodeURIComponent(debouncedQuery)}`
-          : "/api/exercises";
-        const res = await fetch(url);
+        const params = new URLSearchParams();
+        params.set("limit", "50");
+        params.set("offset", "0");
+        if (debouncedQuery) {
+          params.set("search", debouncedQuery);
+        }
+        const res = await fetch(`/api/exercises?${params.toString()}`);
         const result = await res.json();
         if (!res.ok)
           throw new Error(result?.error || "Failed to load exercises");
-        const mapped: Exercise[] = (result.data ?? []).map((exercise: any) => ({
-          id: exercise.id ?? "",
-          name: exercise.name ?? "",
-          type: exercise.exercise_type_label ?? null,
-        }));
+        const mapped: Exercise[] = (result.data ?? []).map(
+          (exercise: {
+            id?: string;
+            name?: string;
+            exercise_type_label?: string | null;
+            source?: string | null;
+          }) => ({
+            id: exercise.id ?? "",
+            name: exercise.name ?? "",
+            type: exercise.exercise_type_label ?? null,
+            source: exercise.source ?? null,
+          })
+        );
         setExercises(mapped);
       } catch (err: unknown) {
         setError(getErrorMessage(err));
@@ -67,7 +79,10 @@ const AddWorkoutExerciseModal = ({
       const res = await fetch(`/api/workouts/${workoutId}/activities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exercise_id: exercise.id }),
+        body: JSON.stringify({
+          exercise_id: exercise.id,
+          exercise_source: exercise.source ?? undefined,
+        }),
       });
       const result = await res.json().catch(() => ({}));
       if (!res.ok)
@@ -150,11 +165,18 @@ const AddWorkoutExerciseModal = ({
                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {ex.name}
                     </span>
-                    {ex.type && (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-200 dark:ring-neutral-700">
-                        {ex.type}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {ex.source && (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs uppercase tracking-wide text-gray-600 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:ring-neutral-700">
+                          {ex.source}
+                        </span>
+                      )}
+                      {ex.type && (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-200 dark:ring-neutral-700">
+                          {ex.type}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 </li>
               ))}

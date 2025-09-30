@@ -9,9 +9,31 @@ import AddWorkoutExerciseModal from "../../_components/AddWorkoutExerciseModal";
 import EditExerciseForm from "../../_components/EditExerciseForm";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
 import { toast } from "react-hot-toast";
-import ExerciseSetForm, { ExerciseSetFormHandle } from "../../_components/ExerciseSetForm";
+import ExerciseSetForm, {
+  ExerciseSetFormHandle,
+} from "../../_components/ExerciseSetForm";
 
-type Workout = Tables<"workouts">;
+type WorkoutRow = Tables<"workouts">;
+type WorkoutExerciseRow = Tables<"workout_exercises">;
+type ExerciseSetRow = Tables<"exercise_sets">;
+
+type Workout = WorkoutRow & {
+  workout_exercises?: Array<
+    WorkoutExerciseRow & {
+      exercise?: {
+        id: string;
+        name: string;
+        exercise_type_label: string | null;
+      } | null;
+      exercise_sets?: Array<
+        Pick<
+          ExerciseSetRow,
+          "id" | "set_number" | "reps" | "weight" | "duration" | "distance" | "notes"
+        >
+      >;
+    }
+  >;
+};
 
 const EditWorkoutPage = () => {
   const params = useParams();
@@ -22,12 +44,16 @@ const EditWorkoutPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [savingAll, setSavingAll] = useState(false);
-  const [confirmExerciseId, setConfirmExerciseId] = useState<number | null>(null);
+  const [confirmExerciseId, setConfirmExerciseId] = useState<number | null>(
+    null
+  );
 
   // Keep refs to each ExerciseSetForm by workoutExerciseId
   const formRefs = useRef<Record<number, ExerciseSetFormHandle | null>>({});
   const [dirtyMap, setDirtyMap] = useState<Record<number, boolean>>({});
-  const anyDirty = (workout?.workout_exercises ?? []).some((we) => !!dirtyMap[we.id]);
+  const anyDirty = (workout?.workout_exercises ?? []).some(
+    (we) => !!dirtyMap[we.id]
+  );
 
   const fetchWorkout = async () => {
     try {
@@ -35,7 +61,8 @@ const EditWorkoutPage = () => {
       const res = await fetch(`/api/workouts/${encodeURIComponent(workoutId)}`);
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
-      setWorkout(result.data);
+      setWorkout(result.data as Workout);
+      console.log("Fetched workout:", result.data);
       // Reset dirty indicators after a full refresh from server
       setDirtyMap({});
     } catch (err) {
@@ -48,7 +75,6 @@ const EditWorkoutPage = () => {
   useEffect(() => {
     fetchWorkout();
   }, [workoutId]);
-
 
   const handleDeleteExercise = async (workoutExerciseId: number) => {
     if (!workoutExerciseId) return;
@@ -86,7 +112,9 @@ const EditWorkoutPage = () => {
             <span>Back to workout</span>
           </Link>
         </div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Workout</h1>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+          Edit Workout
+        </h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
           {workout?.name ? (
             <span className="truncate">{workout.name}</span>
@@ -106,7 +134,9 @@ const EditWorkoutPage = () => {
       </section>
 
       <section className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-medium text-gray-900 dark:text-white">Exercises</h2>
+        <h2 className="text-base font-medium text-gray-900 dark:text-white">
+          Exercises
+        </h2>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -122,7 +152,9 @@ const EditWorkoutPage = () => {
                     } catch (e) {
                       // Bubble up but continue others
                       throw new Error(
-                        `Failed saving sets for exercise ${we.exercise?.name ?? we.id}`
+                        `Failed saving sets for exercise ${
+                          we.exercise?.name ?? we.id
+                        }`
                       );
                     }
                   }
@@ -144,7 +176,11 @@ const EditWorkoutPage = () => {
             disabled={savingAll || loading || !anyDirty}
             className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
           >
-            {savingAll ? "Saving All…" : anyDirty ? "Save All Sets" : "No Changes"}
+            {savingAll
+              ? "Saving All…"
+              : anyDirty
+              ? "Save All Sets"
+              : "No Changes"}
           </button>
           <button
             type="button"
@@ -177,7 +213,9 @@ const EditWorkoutPage = () => {
                       </span>
                     ) : null}
                   </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">ID: {we.id}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    ID: {we.id}
+                  </p>
                 </div>
                 <div className="sm:ml-auto">
                   <button
@@ -194,7 +232,7 @@ const EditWorkoutPage = () => {
                 <ExerciseSetForm
                   workoutId={workoutId}
                   workoutExerciseId={we.id}
-                  exerciseSets={we.exercise_sets}
+                  exerciseSets={we.exercise_sets ?? []}
                   onSaved={fetchWorkout}
                   onDirtyChange={(dirty) =>
                     setDirtyMap((prev) => ({ ...prev, [we.id]: dirty }))
@@ -228,7 +266,9 @@ const EditWorkoutPage = () => {
         title="Delete exercise?"
         description="This action is permanent and cannot be undone."
         destructive
-        confirmLabel={deletingId === confirmExerciseId ? "Deleting..." : "Delete"}
+        confirmLabel={
+          deletingId === confirmExerciseId ? "Deleting..." : "Delete"
+        }
         confirmLoading={deletingId === confirmExerciseId}
         onCancel={() => setConfirmExerciseId(null)}
         onConfirm={async () => {

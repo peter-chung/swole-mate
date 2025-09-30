@@ -248,7 +248,7 @@ export type Database = {
             foreignKeyName: "workout_exercises_exercise_id_fkey"
             columns: ["exercise_id"]
             isOneToOne: false
-            referencedRelation: "z_exercises"
+            referencedRelation: "public_exercises"
             referencedColumns: ["id"]
           },
           {
@@ -304,99 +304,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "workouts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      z_exercises: {
-        Row: {
-          created_at: string
-          exercise_type_id: string
-          id: number
-          name: string
-          other_muscles: string | null
-          primary_muscle: string | null
-          type: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          exercise_type_id: string
-          id?: number
-          name: string
-          other_muscles?: string | null
-          primary_muscle?: string | null
-          type?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          exercise_type_id?: string
-          id?: number
-          name?: string
-          other_muscles?: string | null
-          primary_muscle?: string | null
-          type?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "exercises_exercise_type_id_fkey"
-            columns: ["exercise_type_id"]
-            isOneToOne: false
-            referencedRelation: "exercise_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      z_public_exercises_duplicate: {
-        Row: {
-          created_at: string
-          exercise_type_id: string
-          id: number
-          name: string
-          other_muscles: string | null
-          primary_muscle: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          exercise_type_id: string
-          id?: number
-          name: string
-          other_muscles?: string | null
-          primary_muscle?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          exercise_type_id?: string
-          id?: number
-          name?: string
-          other_muscles?: string | null
-          primary_muscle?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "z_public_exercises_duplicate_exercise_type_id_fkey"
-            columns: ["exercise_type_id"]
-            isOneToOne: false
-            referencedRelation: "exercise_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "z_public_exercises_duplicate_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"

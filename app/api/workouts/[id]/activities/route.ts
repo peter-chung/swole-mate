@@ -31,13 +31,12 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Fetch activities (workout_exercises) with nested exercise + sets
+  // Fetch activities (workout_exercises) with nested sets
   const { data, error } = await supabase
     .from("workout_exercises")
     .select(
       `
       id, workout_id, exercise_id, order_index, notes,
-      exercise:available_exercises ( id, name, exercise_type_label ),
       exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
     `
     )
@@ -49,13 +48,49 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ data }, { status: 200 });
+  const workoutExercises = data ?? [];
+  const exerciseIds = Array.from(
+    new Set(
+      workoutExercises
+        .map((we) => we.exercise_id)
+        .filter((exerciseId): exerciseId is string => Boolean(exerciseId))
+    )
+  );
+
+  let exerciseLookup = new Map<string, { id: string; name: string; exercise_type_label: string | null }>();
+
+  if (exerciseIds.length > 0) {
+    const { data: exercises, error: exercisesError } = await supabase
+      .from("available_exercises")
+      .select("id, name, exercise_type_label")
+      .in("id", exerciseIds);
+
+    if (exercisesError) {
+      return NextResponse.json({ error: exercisesError.message }, { status: 400 });
+    }
+
+    exerciseLookup = new Map(
+      (exercises ?? [])
+        .filter((exercise): exercise is { id: string; name: string; exercise_type_label: string | null } =>
+          Boolean(exercise?.id)
+        )
+        .map((exercise) => [exercise.id, exercise])
+    );
+  }
+
+  const enriched = workoutExercises.map((we) => ({
+    ...we,
+    exercise: we.exercise_id ? exerciseLookup.get(we.exercise_id) ?? null : null,
+  }));
+
+  return NextResponse.json({ data: enriched }, { status: 200 });
 }
 
 export async function POST(req: Request, { params }: Params) {
   const { id: workout_id } = await params;
   const body = (await req.json()) as Partial<{
     exercise_id: string;
+    exercise_source: string;
     notes: string;
   }>;
   const exerciseId = body.exercise_id?.trim();
@@ -69,6 +104,24 @@ export async function POST(req: Request, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: exerciseMeta, error: metaError } = await supabase
+    .from("available_exercises")
+    .select("id, source, user_id")
+    .eq("id", exerciseId)
+    .maybeSingle();
+
+  if (metaError) {
+    return NextResponse.json({ error: metaError.message }, { status: 400 });
+  }
+
+  if (!exerciseMeta) {
+    return NextResponse.json({ error: "Exercise not found" }, { status: 404 });
+  }
+
+  if (exerciseMeta.source === "custom" && exerciseMeta.user_id && exerciseMeta.user_id !== user.id) {
+    return NextResponse.json({ error: "Exercise not accessible" }, { status: 403 });
+  }
 
   // ensure workout belongs to user
   const { data: w } = await supabase
@@ -95,14 +148,20 @@ export async function POST(req: Request, { params }: Params) {
     .insert({
       workout_id,
       user_id: user.id,
-      exercise_id,
+      exercise_id: exerciseId,
       order_index: nextOrder,
       notes: body.notes,
     })
     .select("id, workout_id, exercise_id, order_index")
-    .single();
+    .maybeSingle();
 
-  if (error)
+  if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  if (!data) {
+    return NextResponse.json({ error: "Failed to insert workout exercise" }, { status: 500 });
+  }
+
   return NextResponse.json(data, { status: 201 });
 }

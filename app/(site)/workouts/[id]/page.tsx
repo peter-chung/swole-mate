@@ -15,12 +15,16 @@ type WorkoutDto = WorkoutRow & {
     full_name: string | null;
   } | null;
   workout_exercises?: Array<{
-    id: string;
+    id: string | number;
     order_index: number | null;
     notes: string | null;
-    exercise: { id: string; name: string; type: string | null } | null;
+    exercise: {
+      id: string | number;
+      name: string;
+      exercise_type_label: string | null;
+    } | null;
     exercise_sets: Array<{
-      id: string;
+      id: string | number;
       set_number: number | null;
       reps: number | null;
       weight: number | null;
@@ -43,6 +47,7 @@ export default function Page() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       setWorkout(result.data as WorkoutDto);
+      console.log("Fetched workout:", result.data);
     } catch (error) {
       console.error("Error fetching workout:", error);
     } finally {

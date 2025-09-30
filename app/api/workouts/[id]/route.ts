@@ -52,7 +52,6 @@ export async function GET(req: Request, { params }: Params) {
     id, user_id, date, name, notes, status, started_at, ended_at,
     workout_exercises (
       id, exercise_id, order_index, notes,
-      exercise:exercises ( id, name, type ),
       exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
     )
   `
@@ -64,7 +63,51 @@ export async function GET(req: Request, { params }: Params) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ data }, { status: 200 });
+
+  const workoutExercises = data?.workout_exercises ?? [];
+  const exerciseIds = Array.from(
+    new Set(
+      workoutExercises
+        .map((we) => we.exercise_id)
+        .filter((exerciseId): exerciseId is string => Boolean(exerciseId))
+    )
+  );
+
+  let exerciseLookup = new Map<string, { id: string; name: string; exercise_type_label: string | null }>();
+
+  if (exerciseIds.length > 0) {
+    const { data: exercises, error: exercisesError } = await supabase
+      .from("available_exercises")
+      .select("id, name, exercise_type_label")
+      .in("id", exerciseIds);
+
+    if (exercisesError) {
+      return NextResponse.json(
+        { error: exercisesError.message },
+        { status: 500 }
+      );
+    }
+
+    exerciseLookup = new Map(
+      (exercises ?? [])
+        .filter((exercise): exercise is { id: string; name: string; exercise_type_label: string | null } =>
+          Boolean(exercise?.id)
+        )
+        .map((exercise) => [exercise.id, exercise])
+    );
+  }
+
+  const enriched = {
+    ...data,
+    workout_exercises: workoutExercises.map((we) => ({
+      ...we,
+      exercise: we.exercise_id
+        ? exerciseLookup.get(we.exercise_id) ?? null
+        : null,
+    })),
+  };
+
+  return NextResponse.json({ data: enriched }, { status: 200 });
 }
 
 // Update workout
