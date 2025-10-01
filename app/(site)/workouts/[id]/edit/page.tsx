@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import type { Tables } from "@/types/database.types";
 import EditWorkoutForm from "../../_components/EditWorkoutForm";
 import AddWorkoutExerciseModal from "../../_components/AddWorkoutExerciseModal";
-import EditExerciseForm from "../../_components/EditExerciseForm";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
 import { toast } from "react-hot-toast";
 import ExerciseSetForm, {
@@ -28,7 +27,13 @@ type Workout = WorkoutRow & {
       exercise_sets?: Array<
         Pick<
           ExerciseSetRow,
-          "id" | "set_number" | "reps" | "weight" | "duration" | "distance" | "notes"
+          | "id"
+          | "set_number"
+          | "reps"
+          | "weight"
+          | "duration"
+          | "distance"
+          | "notes"
         >
       >;
     }
@@ -39,8 +44,7 @@ const EditWorkoutPage = () => {
   const params = useParams();
   const workoutId = params.id as string;
   const [workout, setWorkout] = useState<Workout | null>(null);
-  // const [activities, setActivities] = useState<Workout | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [savingAll, setSavingAll] = useState(false);
@@ -129,126 +133,131 @@ const EditWorkoutPage = () => {
         </div>
       </header>
 
-      <section className="mb-6 rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-6">
-        <EditWorkoutForm workout={workout} />
-      </section>
-
-      <section className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-medium text-gray-900 dark:text-white">
-          Exercises
-        </h2>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={async () => {
-              if (!workout?.workout_exercises?.length) return;
-              try {
-                setSavingAll(true);
-                const saves = workout.workout_exercises.map(async (we) => {
-                  const handle = formRefs.current[we.id];
-                  if (handle?.save) {
-                    try {
-                      await handle.save({ silent: true });
-                    } catch (e) {
-                      // Bubble up but continue others
-                      throw new Error(
-                        `Failed saving sets for exercise ${
-                          we.exercise?.name ?? we.id
-                        }`
-                      );
-                    }
-                  }
-                });
-                await Promise.all(saves);
-                await fetchWorkout();
-                toast.success("All sets saved");
-              } catch (err) {
-                console.error(err);
-                toast.error(
-                  err instanceof Error
-                    ? err.message
-                    : "Failed to save some exercises"
-                );
-              } finally {
-                setSavingAll(false);
-              }
-            }}
-            disabled={savingAll || loading || !anyDirty}
-            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-          >
-            {savingAll
-              ? "Saving All…"
-              : anyDirty
-              ? "Save All Sets"
-              : "No Changes"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px cursor-pointer dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-          >
-            + Add Exercise
-          </button>
-        </div>
-      </section>
-
       {loading ? (
-        <div className="rounded-lg border border-gray-200 p-6 text-center text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
-          Loading…
-        </div>
-      ) : workout?.workout_exercises && workout.workout_exercises.length > 0 ? (
-        <div className="space-y-4">
-          {workout.workout_exercises.map((we) => (
-            <div
-              key={we.id}
-              className="rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-5"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                <div className="min-w-0">
-                  <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                    {we.exercise?.name ?? "Exercise"}
-                    {dirtyMap[we.id] ? (
-                      <span className="ml-2 inline-flex items-center rounded-full border border-amber-400 px-2 py-0.5 text-[10px] font-normal text-amber-700 dark:border-amber-500 dark:text-amber-400">
-                        Unsaved changes
-                      </span>
-                    ) : null}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    ID: {we.id}
-                  </p>
-                </div>
-                <div className="sm:ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => setConfirmExerciseId(we.id)}
-                    disabled={deletingId === we.id || loading}
-                    className="inline-flex items-center rounded-md border border-red-700 bg-transparent px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
-                  >
-                    {deletingId === we.id ? "Deleting…" : "Delete Exercise"}
-                  </button>
-                </div>
-              </div>
-              <div className="mt-3 sm:mt-4">
-                <ExerciseSetForm
-                  workoutId={workoutId}
-                  workoutExerciseId={we.id}
-                  exerciseSets={we.exercise_sets ?? []}
-                  onSaved={fetchWorkout}
-                  onDirtyChange={(dirty) =>
-                    setDirtyMap((prev) => ({ ...prev, [we.id]: dirty }))
-                  }
-                  ref={(handle) => {
-                    formRefs.current[we.id] = handle;
-                  }}
-                />
-              </div>
-            </div>
-          ))}
+        <div className="mt-6 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600 dark:border-gray-700 dark:border-t-gray-200" />
+          <span>Loading…</span>
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-600 dark:border-gray-700 dark:text-gray-400">
-          No exercises yet. Use “Add Exercise” to begin.
-        </div>
+        <>
+          <section className="mb-6 rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-6">
+            <EditWorkoutForm workout={workout} />
+          </section>
+
+          <section className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-medium text-gray-900 dark:text-white">
+              Exercises
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!workout?.workout_exercises?.length) return;
+                  try {
+                    setSavingAll(true);
+                    const saves = workout.workout_exercises.map(async (we) => {
+                      const handle = formRefs.current[we.id];
+                      if (handle?.save) {
+                        try {
+                          await handle.save({ silent: true });
+                        } catch (e) {
+                          // Bubble up but continue others
+                          throw new Error(
+                            `Failed saving sets for exercise ${
+                              we.exercise?.name ?? we.id
+                            }`
+                          );
+                        }
+                      }
+                    });
+                    await Promise.all(saves);
+                    await fetchWorkout();
+                    toast.success("All sets saved");
+                  } catch (err) {
+                    console.error(err);
+                    toast.error(
+                      err instanceof Error
+                        ? err.message
+                        : "Failed to save some exercises"
+                    );
+                  } finally {
+                    setSavingAll(false);
+                  }
+                }}
+                disabled={savingAll || loading || !anyDirty}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+              >
+                {savingAll
+                  ? "Saving All…"
+                  : anyDirty
+                  ? "Save All Sets"
+                  : "No Changes"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(true)}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px cursor-pointer dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+              >
+                + Add Exercise
+              </button>
+            </div>
+          </section>
+
+          {workout?.workout_exercises && workout.workout_exercises.length > 0 ? (
+            <div className="space-y-4">
+              {workout.workout_exercises.map((we) => (
+                <div
+                  key={we.id}
+                  className="rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-5"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                        {we.exercise?.name ?? "Exercise"}
+                        {dirtyMap[we.id] ? (
+                          <span className="ml-2 inline-flex items-center rounded-full border border-amber-400 px-2 py-0.5 text-[10px] font-normal text-amber-700 dark:border-amber-500 dark:text-amber-400">
+                            Unsaved changes
+                          </span>
+                        ) : null}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        ID: {we.id}
+                      </p>
+                    </div>
+                    <div className="sm:ml-auto">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmExerciseId(we.id)}
+                        disabled={deletingId === we.id || loading}
+                        className="inline-flex items-center rounded-md border border-red-700 bg-transparent px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
+                      >
+                        {deletingId === we.id ? "Deleting…" : "Delete Exercise"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 sm:mt-4">
+                    <ExerciseSetForm
+                      workoutId={workoutId}
+                      workoutExerciseId={we.id}
+                      exerciseSets={we.exercise_sets ?? []}
+                      onSaved={fetchWorkout}
+                      onDirtyChange={(dirty) =>
+                        setDirtyMap((prev) => ({ ...prev, [we.id]: dirty }))
+                      }
+                      ref={(handle) => {
+                        formRefs.current[we.id] = handle;
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-600 dark:border-gray-700 dark:text-gray-400">
+              No exercises yet. Use “Add Exercise” to begin.
+            </div>
+          )}
+        </>
       )}
 
       <AddWorkoutExerciseModal

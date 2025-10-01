@@ -4,6 +4,13 @@ import type { Database } from "@/types/database.types";
 
 type Workout = Database["public"]["Tables"]["workouts"]["Row"];
 type WorkoutInsert = Database["public"]["Tables"]["workouts"]["Insert"];
+type WorkoutWithOwner = Workout & {
+  user: {
+    id: string;
+    username: string | null;
+    full_name: string | null;
+  } | null;
+};
 
 export async function GET(req: Request) {
   const supabase = await createClient();
@@ -25,7 +32,12 @@ export async function GET(req: Request) {
   // base query
   const query = supabase
     .from("workouts")
-    .select("*")
+    .select(
+      `
+      id, user_id, date, name, notes, status, started_at, ended_at, created_at,
+      user:users ( id, username, full_name )
+    `
+    )
     .order("name", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -35,11 +47,25 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  type UserSummary = {
+    id: string;
+    username: string | null;
+    full_name: string | null;
+  };
+
+  const normalized: WorkoutWithOwner[] = (data ?? []).map((row) => {
+    const { user, ...rest } = row as Workout & {
+      user?: UserSummary | UserSummary[] | null;
+    };
+    const owner = Array.isArray(user) ? user[0] ?? null : user ?? null;
+    return {
+      ...rest,
+      user: owner,
+    };
+  });
+
   // keep the shape your page expects: { data: Workout[] }
-  return NextResponse.json(
-    { data: (data ?? []) as Workout[] },
-    { status: 200 }
-  );
+  return NextResponse.json({ data: normalized }, { status: 200 });
 }
 
 export async function POST(req: Request) {

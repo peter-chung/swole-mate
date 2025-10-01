@@ -50,6 +50,7 @@ export async function GET(req: Request, { params }: Params) {
     .select(
       `
     id, user_id, date, name, notes, status, started_at, ended_at,
+    user:users ( id, username, full_name ),
     workout_exercises (
       id, exercise_id, order_index, notes,
       exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
@@ -73,7 +74,10 @@ export async function GET(req: Request, { params }: Params) {
     )
   );
 
-  let exerciseLookup = new Map<string, { id: string; name: string; exercise_type_label: string | null }>();
+  let exerciseLookup = new Map<
+    string,
+    { id: string; name: string; exercise_type_label: string | null }
+  >();
 
   if (exerciseIds.length > 0) {
     const { data: exercises, error: exercisesError } = await supabase
@@ -90,8 +94,14 @@ export async function GET(req: Request, { params }: Params) {
 
     exerciseLookup = new Map(
       (exercises ?? [])
-        .filter((exercise): exercise is { id: string; name: string; exercise_type_label: string | null } =>
-          Boolean(exercise?.id)
+        .filter(
+          (
+            exercise
+          ): exercise is {
+            id: string;
+            name: string;
+            exercise_type_label: string | null;
+          } => Boolean(exercise?.id)
         )
         .map((exercise) => [exercise.id, exercise])
     );

@@ -6,11 +6,18 @@ import type { Tables } from "@/types/database.types";
 import { createClient } from "@/utils/supabase/client";
 import WorkoutCard from "./_components/WorkoutCard";
 
-type Workout = Tables<"workouts">;
+type WorkoutRow = Tables<"workouts">;
+type Workout = WorkoutRow & {
+  user?: {
+    id: string;
+    username: string | null;
+    full_name: string | null;
+  } | null;
+};
 
 const Page = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const supabase = useMemo(() => createClient(), []);
 
@@ -35,7 +42,7 @@ const Page = () => {
     fetchWorkouts();
   }, []);
 
-  // 👇 Realtime: re-fetch when workouts change
+  // Realtime: re-fetch when workouts change
   useEffect(() => {
     const channel = supabase
       .channel("workouts-changes")
@@ -44,7 +51,6 @@ const Page = () => {
         { event: "INSERT", schema: "public", table: "workouts" },
         () => fetchWorkouts()
       )
-      // (optional) keep list in sync if you edit/delete from elsewhere
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "workouts" },

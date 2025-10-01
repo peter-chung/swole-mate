@@ -27,7 +27,7 @@ const Page = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [currentQuery, setCurrentQuery] = useState("");
   const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const supabase = useMemo(() => createClient(), []);

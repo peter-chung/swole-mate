@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { Tables } from "@/types/database.types";
@@ -38,26 +38,26 @@ type WorkoutDto = WorkoutRow & {
 export default function Page() {
   const { id: workoutId } = useParams<{ id: string }>();
   const [workout, setWorkout] = useState<WorkoutDto | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  async function fetchWorkout() {
+  const fetchWorkout = useCallback(async () => {
+    if (!workoutId) return;
     try {
       setLoading(true);
       const res = await fetch(`/api/workouts/${workoutId}`);
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       setWorkout(result.data as WorkoutDto);
-      console.log("Fetched workout:", result.data);
     } catch (error) {
       console.error("Error fetching workout:", error);
     } finally {
       setLoading(false);
     }
-  }
+  }, [workoutId]);
 
   useEffect(() => {
     fetchWorkout();
-  }, []);
+  }, [fetchWorkout]);
 
   const ownerName =
     workout?.user?.username ?? workout?.user?.full_name ?? "Unknown";
