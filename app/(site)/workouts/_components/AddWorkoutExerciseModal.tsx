@@ -76,14 +76,17 @@ const AddWorkoutExerciseModal = ({
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/workouts/${workoutId}/activities`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          exercise_id: exercise.id,
-          exercise_source: exercise.source ?? undefined,
-        }),
-      });
+      const res = await fetch(
+        `/api/workouts/${workoutId}/workout-exercises`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            exercise_id: exercise.id,
+            exercise_source: exercise.source ?? undefined,
+          }),
+        }
+      );
       const result = await res.json().catch(() => ({}));
       if (!res.ok)
         throw new Error(result?.error || `Failed with ${res.status}`);

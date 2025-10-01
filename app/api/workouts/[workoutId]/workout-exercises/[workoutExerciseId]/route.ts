@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
 type Params = {
-  params: Promise<{ id: string; workoutExerciseId: string }>;
+  params: Promise<{ workoutId: string; workoutExerciseId: string }>;
 };
 
 export async function DELETE(req: Request, { params }: Params) {
@@ -16,7 +16,7 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: workoutId, workoutExerciseId } = await params;
+  const { workoutId, workoutExerciseId } = await params;
   const workoutExerciseIdNum = Number(workoutExerciseId);
   if (!Number.isFinite(workoutExerciseIdNum)) {
     return NextResponse.json(

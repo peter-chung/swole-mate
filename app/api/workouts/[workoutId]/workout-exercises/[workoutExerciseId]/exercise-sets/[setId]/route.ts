@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
 type Params = {
-  params: Promise<{ id: string; workoutExerciseId: string; setId: string }>;
+  params: Promise<{ workoutId: string; workoutExerciseId: string; setId: string }>;
 };
 
 // Helper to verify ownership and relationships
@@ -32,7 +32,7 @@ export async function POST(req: Request, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id: workoutId, workoutExerciseId, setId } = await params;
+  const { workoutId, workoutExerciseId, setId } = await params;
   if (setId !== "new")
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
@@ -89,7 +89,7 @@ export async function PATCH(req: Request, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id: workoutId, workoutExerciseId, setId } = await params;
+  const { workoutId, workoutExerciseId, setId } = await params;
   const workoutExerciseIdNum = Number(workoutExerciseId);
   const setIdNum = Number(setId);
   if (!Number.isFinite(workoutExerciseIdNum) || !Number.isFinite(setIdNum))
@@ -135,7 +135,7 @@ export async function DELETE(req: Request, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id: workoutId, workoutExerciseId, setId } = await params;
+  const { workoutId, workoutExerciseId, setId } = await params;
   const workoutExerciseIdNum = Number(workoutExerciseId);
   const setIdNum = Number(setId);
   if (!Number.isFinite(workoutExerciseIdNum) || !Number.isFinite(setIdNum))

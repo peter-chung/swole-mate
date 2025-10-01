@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
 // type RouteContext = {
-//   params: Promise<{ id: string }>;
+//   params: Promise<{ workoutId: string }>;
 // };
 
-type Params = { params: Promise<{ id: string }> };
+type Params = { params: Promise<{ workoutId: string }> };
 
 // Fetch workout
 // export async function GET(req: Request, { params }: Params) {
-//   const { id } = await params;
+//   const { workoutId } = await params;
 //   const supabase = await createClient();
 
 //   const {
@@ -24,7 +24,7 @@ type Params = { params: Promise<{ id: string }> };
 //   const { data, error } = await supabase
 //     .from("workouts")
 //     .select("*")
-//     .eq("id", id)
+//     .eq("id", workoutId)
 //     .single();
 
 //   if (error) {
@@ -33,7 +33,7 @@ type Params = { params: Promise<{ id: string }> };
 //   return NextResponse.json({ data }, { status: 200 });
 // }
 export async function GET(req: Request, { params }: Params) {
-  const { id } = await params;
+  const { workoutId } = await params;
   const supabase = await createClient();
 
   const {
@@ -57,7 +57,7 @@ export async function GET(req: Request, { params }: Params) {
     )
   `
     )
-    .eq("id", id)
+    .eq("id", workoutId)
     .eq("user_id", user.id)
     .single();
 
@@ -136,7 +136,7 @@ export async function GET(req: Request, { params }: Params) {
 
 //     const body = await req.json();
 
-//     const { id } = await params;
+//     const { workoutId } = await params;
 
 //     const { data, error } = await supabase
 //       .from("workouts")
@@ -166,7 +166,7 @@ export async function GET(req: Request, { params }: Params) {
 // }
 
 export async function PATCH(req: Request, { params }: Params) {
-  const { id } = await params;
+  const { workoutId } = await params;
   const payload = (await req.json()) as Partial<{
     name: string;
     status: "draft" | "complete";
@@ -194,7 +194,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const { data, error } = await supabase
     .from("workouts")
     .update(updates)
-    .eq("id", id)
+    .eq("id", workoutId)
     .eq("user_id", user.id)
     .select("id, name, status, date, notes, ended_at")
     .single();
@@ -216,12 +216,12 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const { workoutId } = await params;
 
   const { error } = await supabase
     .from("workouts")
     .delete()
-    .eq("id", id)
+    .eq("id", workoutId)
     .eq("user_id", user.id);
 
   if (error) {

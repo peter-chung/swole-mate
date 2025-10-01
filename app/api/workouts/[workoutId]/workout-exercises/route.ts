@@ -1,8 +1,8 @@
-// app/api/workouts/[id]/activities/route.ts
+// app/api/workouts/[workoutId]/workout-exercises/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
-type Params = { params: Promise<{ id: string }> };
+type Params = { params: Promise<{ workoutId: string }> };
 // type Workout = Database["public"]["Tables"]["workouts"]["Row"];
 
 export async function GET(req: Request, { params }: Params) {
@@ -17,7 +17,7 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: workoutId } = await params;
+  const { workoutId } = await params;
 
   // Ensure the workout exists and belongs to the user
   const { data: workout } = await supabase
@@ -31,7 +31,7 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Fetch activities (workout_exercises) with nested sets
+  // Fetch workout exercises with nested sets
   const { data, error } = await supabase
     .from("workout_exercises")
     .select(
@@ -87,7 +87,7 @@ export async function GET(req: Request, { params }: Params) {
 }
 
 export async function POST(req: Request, { params }: Params) {
-  const { id: workout_id } = await params;
+  const { workoutId } = await params;
   const body = (await req.json()) as Partial<{
     exercise_id: string;
     exercise_source: string;
@@ -127,7 +127,7 @@ export async function POST(req: Request, { params }: Params) {
   const { data: w } = await supabase
     .from("workouts")
     .select("id")
-    .eq("id", workout_id)
+    .eq("id", workoutId)
     .eq("user_id", user.id)
     .single();
   if (!w) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -136,7 +136,7 @@ export async function POST(req: Request, { params }: Params) {
   const { data: maxRow } = await supabase
     .from("workout_exercises")
     .select("order_index")
-    .eq("workout_id", workout_id)
+    .eq("workout_id", workoutId)
     .order("order_index", { ascending: false })
     .limit(1)
     .single();
@@ -146,7 +146,7 @@ export async function POST(req: Request, { params }: Params) {
   const { data, error } = await supabase
     .from("workout_exercises")
     .insert({
-      workout_id,
+      workout_id: workoutId,
       user_id: user.id,
       exercise_id: exerciseId,
       order_index: nextOrder,
