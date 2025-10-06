@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Tables } from "@/types/database.types";
 import WorkoutDetailCard from "../_components/WorkoutDetailCard";
 import ExerciseContainer from "../_components/ExerciseContainer";
+import LoadingSpinner from "@/app/_components/LoadingSpinner";
 
 type WorkoutRow = Tables<"workouts">;
 type WorkoutDto = WorkoutRow & {
@@ -74,10 +75,7 @@ export default function Page() {
         </Link>
 
         {loading ? (
-          <div className="mt-6 flex items-center gap-2 text-gray-500">
-            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-            <span>Loading…</span>
-          </div>
+          <LoadingSpinner className="mt-6" />
         ) : workout ? (
           <div className="mt-3 space-y-6">
             <WorkoutDetailCard workout={workout} ownerName={ownerName} />

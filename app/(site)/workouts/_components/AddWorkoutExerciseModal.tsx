@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useDebounce } from "react-use";
+import LoadingSpinner from "@/app/_components/LoadingSpinner";
 
 type Exercise = {
   id: string;
@@ -148,10 +149,7 @@ const AddWorkoutExerciseModal = ({
 
         <div className="mt-3">
           {loading ? (
-            <div className="flex items-center gap-2 text-gray-500">
-              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-              <span>Loading…</span>
-            </div>
+            <LoadingSpinner />
           ) : error ? (
             <p className="text-sm text-red-600">{error}</p>
           ) : exercises.length === 0 ? (

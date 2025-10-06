@@ -34,7 +34,19 @@ const CreateWorkoutForm = () => {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
 
-      router.push("/workouts");
+      const createdId: string | number | undefined =
+        (result && typeof result === "object" && "id" in result
+          ? (result as { id?: string | number }).id
+          : undefined) ??
+        (result && typeof result === "object" && "data" in result
+          ? (result as { data?: { id?: string | number } }).data?.id
+          : undefined);
+
+      if (createdId) {
+        router.push(`/workouts/${createdId}/edit`);
+      } else {
+        router.push("/workouts");
+      }
     } catch (err) {
       console.error("Error creating workout:", err);
     } finally {

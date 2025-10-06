@@ -12,6 +12,7 @@ import { useDebounce } from "react-use";
 
 import { createClient } from "@/utils/supabase/client";
 import type { Tables } from "@/types/database.types";
+import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import ExerciseCard from "./_components/ExerciseCard";
 import SearchBar from "./_components/SearchBar";
 
@@ -199,10 +200,7 @@ const Page = () => {
       </div>
 
       {loading ? (
-        <div className="mt-6 flex items-center gap-2 text-gray-500">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-          <span>Loading…</span>
-        </div>
+        <LoadingSpinner className="mt-6" />
       ) : exercises.length > 0 ? (
         <>
           <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
@@ -220,12 +218,7 @@ const Page = () => {
               className="h-10 w-full max-w-sm rounded-lg border border-dashed border-transparent"
               aria-hidden="true"
             />
-            {loadingMore && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-                <span>Loading more…</span>
-              </div>
-            )}
+            {loadingMore && <LoadingSpinner label="Loading more…" />}
             {!hasMore && !loadingMore && (
               <div className="flex flex-col items-center gap-2 text-center">
                 <p className="text-xs text-gray-400 dark:text-gray-500">

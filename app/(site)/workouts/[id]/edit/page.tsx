@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { Tables } from "@/types/database.types";
@@ -11,6 +11,7 @@ import { toast } from "react-hot-toast";
 import ExerciseSetForm, {
   ExerciseSetFormHandle,
 } from "../../_components/ExerciseSetForm";
+import LoadingSpinner from "@/app/_components/LoadingSpinner";
 
 type WorkoutRow = Tables<"workouts">;
 type WorkoutExerciseRow = Tables<"workout_exercises">;
@@ -59,26 +60,31 @@ const EditWorkoutPage = () => {
     (we) => !!dirtyMap[we.id]
   );
 
-  const fetchWorkout = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/workouts/${encodeURIComponent(workoutId)}`);
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-      setWorkout(result.data as Workout);
-      console.log("Fetched workout:", result.data);
-      // Reset dirty indicators after a full refresh from server
-      setDirtyMap({});
-    } catch (err) {
-      console.error("Error fetching workout:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchWorkout = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!workoutId) return;
+      const silent = opts?.silent ?? false;
+      try {
+        if (!silent) setLoading(true);
+        const res = await fetch(`/api/workouts/${encodeURIComponent(workoutId)}`);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error);
+        setWorkout(result.data as Workout);
+        console.log("Fetched workout:", result.data);
+        // Reset dirty indicators after a full refresh from server
+        setDirtyMap({});
+      } catch (err) {
+        console.error("Error fetching workout:", err);
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [workoutId]
+  );
 
   useEffect(() => {
-    fetchWorkout();
-  }, [workoutId]);
+    void fetchWorkout();
+  }, [fetchWorkout]);
 
   const handleDeleteExercise = async (workoutExerciseId: number) => {
     if (!workoutExerciseId) return;
@@ -93,7 +99,7 @@ const EditWorkoutPage = () => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Failed to delete");
       // Refresh workout details after deletion
-      await fetchWorkout();
+      await fetchWorkout({ silent: true });
     } catch (err) {
       console.error("Error deleting workout exercise:", err);
       toast.error(
@@ -134,10 +140,7 @@ const EditWorkoutPage = () => {
       </header>
 
       {loading ? (
-        <div className="mt-6 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600 dark:border-gray-700 dark:border-t-gray-200" />
-          <span>Loading…</span>
-        </div>
+        <LoadingSpinner className="mt-6" />
       ) : (
         <>
           <section className="mb-6 rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-6">
@@ -171,7 +174,7 @@ const EditWorkoutPage = () => {
                       }
                     });
                     await Promise.all(saves);
-                    await fetchWorkout();
+                    await fetchWorkout({ silent: true });
                     toast.success("All sets saved");
                   } catch (err) {
                     console.error(err);
@@ -240,7 +243,9 @@ const EditWorkoutPage = () => {
                       workoutId={workoutId}
                       workoutExerciseId={we.id}
                       exerciseSets={we.exercise_sets ?? []}
-                      onSaved={fetchWorkout}
+                      onSaved={() => {
+                        void fetchWorkout({ silent: true });
+                      }}
                       onDirtyChange={(dirty) =>
                         setDirtyMap((prev) => ({ ...prev, [we.id]: dirty }))
                       }
@@ -266,7 +271,7 @@ const EditWorkoutPage = () => {
         onClose={() => setIsAddModalOpen(false)}
         onAdded={() => {
           // refresh workout details after adding an exercise
-          fetchWorkout();
+          void fetchWorkout({ silent: true });
         }}
       />
 

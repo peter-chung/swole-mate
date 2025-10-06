@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Tables } from "@/types/database.types";
 import { createClient } from "@/utils/supabase/client";
+import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import WorkoutCard from "./_components/WorkoutCard";
 
 type WorkoutRow = Tables<"workouts">;
@@ -83,10 +84,7 @@ const Page = () => {
       </div>
 
       {loading ? (
-        <div className="mt-6 flex items-center gap-2 text-gray-500">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-          <span>Loading…</span>
-        </div>
+        <LoadingSpinner className="mt-6" />
       ) : workouts.length > 0 ? (
         <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
           {workouts.map((workout) => (

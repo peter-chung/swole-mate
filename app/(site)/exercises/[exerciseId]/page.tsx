@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Tables } from "@/types/database.types";
+import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import EditExerciseForm from "../_components/EditExerciseForm";
 
 const isCustomSource = (source?: string | null) => source === "custom";
@@ -98,10 +99,7 @@ const Page = () => {
 
         <div className="mt-6">
           {loading ? (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-              <span>Loading…</span>
-            </div>
+            <LoadingSpinner />
           ) : error ? (
             <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-900/20 dark:text-amber-200">
               {error}

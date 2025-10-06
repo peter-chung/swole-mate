@@ -191,6 +191,25 @@ export async function PATCH(req: Request, { params }: Params) {
     ...(payload.ended_at !== undefined && { ended_at: payload.ended_at }),
   };
 
+  const hasUpdates = Object.keys(updates).length > 0;
+
+  if (!hasUpdates) {
+    const { data: existing, error: existingError } = await supabase
+      .from("workouts")
+      .select("id, name, status, date, notes, ended_at")
+      .eq("id", workoutId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (existingError)
+      return NextResponse.json(
+        { error: existingError.message },
+        { status: 400 }
+      );
+
+    return NextResponse.json(existing, { status: 200 });
+  }
+
   const { data, error } = await supabase
     .from("workouts")
     .update(updates)

@@ -158,6 +158,136 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       });
     };
 
+    const hasMeaningfulValue = (set: LocalSet) => {
+      const durationValue =
+        typeof set.duration === "string" ? set.duration.trim() : null;
+      const notesValue =
+        typeof set.notes === "string" ? set.notes.trim() : null;
+      return (
+        set.reps !== null ||
+        set.weight !== null ||
+        set.distance !== null ||
+        (durationValue && durationValue.length > 0) ||
+        (notesValue && notesValue.length > 0)
+      );
+    };
+
+    const normalizeApiSet = (apiSet: ApiExerciseSet): LocalSet => ({
+      id: apiSet.id,
+      set_number: apiSet.set_number,
+      reps: apiSet.reps ?? null,
+      weight: apiSet.weight ?? null,
+      duration:
+        apiSet.duration == null
+          ? null
+          : typeof apiSet.duration === "string"
+          ? apiSet.duration
+          : String(apiSet.duration),
+      distance: apiSet.distance ?? null,
+      notes: apiSet.notes ?? null,
+      _status: "clean",
+    });
+
+    const buildPayload = (set: LocalSet) => ({
+      reps: set.reps,
+      weight: set.weight,
+      duration: set.duration,
+      distance: set.distance,
+      notes: set.notes,
+    });
+
+    const syncSet = async (set: LocalSet): Promise<ApiExerciseSet> => {
+      const payload = buildPayload(set);
+
+      if (typeof set.id === "string") {
+        const res = await fetch(
+          `/api/workouts/${encodeURIComponent(
+            workoutId
+          )}/workout-exercises/${workoutExerciseId}/exercise-sets/new`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok)
+          throw new Error(data?.error || "Failed to create exercise set");
+        return data as ApiExerciseSet;
+      }
+
+      const res = await fetch(
+        `/api/workouts/${encodeURIComponent(
+          workoutId
+        )}/workout-exercises/${workoutExerciseId}/exercise-sets/${set.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(data?.error || "Failed to update exercise set");
+      return data as ApiExerciseSet;
+    };
+
+    const persistSet = async (idx: number, opts?: { silent?: boolean }) => {
+      const target = sets[idx];
+      if (!target) return;
+      if (target._status === "saving" || target._status === "deleting") return;
+      if (target._status !== "dirty" && target._status !== "new") return;
+
+      if (typeof target.id === "string" && !hasMeaningfulValue(target)) {
+        return;
+      }
+
+      setSets((prev) =>
+        prev.map((s, i) => (i === idx ? { ...s, _status: "saving" } : s))
+      );
+
+      try {
+        const apiSet = await syncSet(target);
+        const normalized = normalizeApiSet(apiSet);
+
+        setSets((prev) => {
+          const out = [...prev];
+          const originalId = target.id;
+          const matchIndex = out.findIndex((s) => s.id === originalId);
+
+          if (matchIndex >= 0) {
+            out[matchIndex] = normalized;
+          } else {
+            out[idx] = normalized;
+          }
+
+          out.sort((a, b) => a.set_number - b.set_number);
+          return out;
+        });
+
+        if (!opts?.silent) {
+          toast.success("Set saved");
+          onSaved?.();
+        }
+      } catch (err) {
+        console.error(err);
+        const message =
+          err instanceof Error ? err.message : "Failed to save exercise set";
+        toast.error(message);
+
+        setSets((prev) =>
+          prev.map((s, i) =>
+            i === idx
+              ? {
+                  ...s,
+                  _status: typeof target.id === "string" ? "new" : "dirty",
+                }
+              : s
+          )
+        );
+      }
+    };
+
     const addSet = () => {
       setSets((prev) => [
         ...prev,
@@ -214,113 +344,36 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       try {
         setSaving(true);
 
-        type Result =
-          | { kind: "created"; tempId: string; data: ApiExerciseSet }
-          | { kind: "updated"; id: number; data: ApiExerciseSet };
-
-        const actions: Array<Promise<Result>> = [];
-        sets.forEach((s) => {
-          // Create new
-          if (typeof s.id === "string") {
-            actions.push(
-              (async (): Promise<Result> => {
-                const res = await fetch(
-                  `/api/workouts/${encodeURIComponent(
-                    workoutId
-                  )}/workout-exercises/${workoutExerciseId}/exercise-sets/new`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      reps: s.reps,
-                      weight: s.weight,
-                      notes: s.notes,
-                    }),
-                  }
-                );
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok)
-                  throw new Error(data?.error || "Failed to create set");
-                return { kind: "created", tempId: s.id as string, data };
-              })()
-            );
-            return;
+        const indicesToPersist = sets.reduce<Array<number>>((acc, set, idx) => {
+          if (typeof set.id === "string" || set._status === "dirty") {
+            if (typeof set.id === "string" && !hasMeaningfulValue(set)) {
+              return acc;
+            }
+            acc.push(idx);
           }
-          // Update existing only if dirty
-          if (s._status === "dirty") {
-            actions.push(
-              (async (): Promise<Result> => {
-                const res = await fetch(
-                  `/api/workouts/${encodeURIComponent(
-                    workoutId
-                  )}/workout-exercises/${workoutExerciseId}/exercise-sets/${
-                    s.id
-                  }`,
-                  {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      reps: s.reps,
-                      weight: s.weight,
-                      notes: s.notes,
-                    }),
-                  }
-                );
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok)
-                  throw new Error(data?.error || "Failed to update set");
-                return { kind: "updated", id: s.id as number, data };
-              })()
-            );
-          }
-        });
+          return acc;
+        }, []);
 
-        const results = await Promise.all(actions);
+        const results = await Promise.all(
+          indicesToPersist.map(async (idx) => {
+            const data = await syncSet(sets[idx]);
+            return { idx, data };
+          })
+        );
 
-        // Merge results back into local state
         setSets((prev) => {
           const out = [...prev];
-          for (const r of results) {
-            if (r.kind === "created") {
-              const i = out.findIndex((x) => x.id === r.tempId);
-              if (i >= 0) {
-                out[i] = {
-                  id: r.data.id,
-                  set_number: r.data.set_number,
-                  reps: r.data.reps ?? null,
-                  weight: r.data.weight ?? null,
-                  duration:
-                    typeof r.data.duration === "string"
-                      ? r.data.duration
-                      : r.data.duration != null
-                      ? String(r.data.duration)
-                      : null,
-                  distance: r.data.distance ?? null,
-                  notes: r.data.notes ?? null,
-                  _status: "clean",
-                };
-              }
-            } else if (r.kind === "updated") {
-              const i = out.findIndex((x) => x.id === r.id);
-              if (i >= 0) {
-                out[i] = {
-                  ...out[i],
-                  reps: r.data.reps ?? out[i].reps ?? null,
-                  weight: r.data.weight ?? out[i].weight ?? null,
-                  duration:
-                    typeof r.data.duration === "string"
-                      ? r.data.duration
-                      : r.data.duration != null
-                      ? String(r.data.duration)
-                      : out[i].duration ?? null,
-                  distance: r.data.distance ?? out[i].distance ?? null,
-                  notes: r.data.notes ?? out[i].notes ?? null,
-                  _status: "clean",
-                };
-              }
+          for (const { idx, data } of results) {
+            const normalized = normalizeApiSet(data);
+            const originalId = prev[idx]?.id;
+            const matchIndex = out.findIndex((s) => s.id === originalId);
+
+            if (matchIndex >= 0) {
+              out[matchIndex] = normalized;
+            } else {
+              out[idx] = normalized;
             }
           }
-          // Ensure natural ordering by set_number
           out.sort((a, b) => a.set_number - b.set_number);
           return out;
         });
@@ -335,10 +388,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         if (!opts?.silent) onSaved?.();
       } catch (err) {
         console.error(err);
-        if (!opts?.silent)
-          toast.error(
-            err instanceof Error ? err.message : "Failed to save sets"
-          );
+        toast.error(err instanceof Error ? err.message : "Failed to save sets");
       } finally {
         setSaving(false);
       }
@@ -349,7 +399,15 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
     return (
       <div className="mb-4 space-y-3">
         {sets.map((set, idx) => (
-          <div key={set.id} className="flex items-end gap-3">
+          <div
+            key={set.id}
+            className="flex items-end gap-3"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                void persistSet(idx, { silent: true });
+              }
+            }}
+          >
             <div className="text-sm text-gray-600 dark:text-gray-400 w-14">
               Set {set.set_number}
             </div>
@@ -360,6 +418,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
                 inputMode="numeric"
                 value={set.reps ?? ""}
                 onChange={(e) => onChangeField(idx, "reps", e.target.value)}
+                disabled={set._status === "saving"}
                 className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
               />
             </label>
@@ -370,6 +429,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
                 inputMode="decimal"
                 value={set.weight ?? ""}
                 onChange={(e) => onChangeField(idx, "weight", e.target.value)}
+                disabled={set._status === "saving"}
                 className="w-24 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
               />
             </label>
@@ -377,11 +437,15 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
               type="button"
               onClick={() => deleteSet(idx)}
               className="ml-auto inline-flex items-center justify-center rounded-md border border-gray-300 px-2 py-1 text-sm hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-900/40"
-              disabled={set._status === "deleting"}
+              disabled={set._status === "deleting" || set._status === "saving"}
               aria-label="Delete set"
               title="Delete set"
             >
-              {set._status === "deleting" ? "Deleting…" : "✕"}
+              {set._status === "deleting"
+                ? "Deleting…"
+                : set._status === "saving"
+                ? "Saving…"
+                : "✕"}
             </button>
           </div>
         ))}
