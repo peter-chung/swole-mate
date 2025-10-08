@@ -1,67 +1,21 @@
-"use client";
-
-import React, { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
-import type { Tables } from "@/types/database.types";
+import { notFound } from "next/navigation";
 import WorkoutDetailCard from "../_components/WorkoutDetailCard";
 import ExerciseContainer from "../_components/ExerciseContainer";
-import LoadingSpinner from "@/app/_components/LoadingSpinner";
+import { getWorkoutWithRelations } from "../_lib/getWorkout";
 
-type WorkoutRow = Tables<"workouts">;
-type WorkoutDto = WorkoutRow & {
-  user?: {
-    id: string;
-    username: string | null;
-    full_name: string | null;
-  } | null;
-  workout_exercises?: Array<{
-    id: string | number;
-    order_index: number | null;
-    notes: string | null;
-    exercise: {
-      id: string | number;
-      name: string;
-      exercise_type_label: string | null;
-    } | null;
-    exercise_sets: Array<{
-      id: string | number;
-      set_number: number | null;
-      reps: number | null;
-      weight: number | null;
-      duration: number | null;
-      distance: number | null;
-      notes: string | null;
-    }>;
-  }>;
+type PageProps = {
+  params: { id: string };
 };
 
-export default function Page() {
-  const { id: workoutId } = useParams<{ id: string }>();
-  const [workout, setWorkout] = useState<WorkoutDto | null>(null);
-  const [loading, setLoading] = useState(true);
+export default async function WorkoutPage({ params }: PageProps) {
+  const { id } = params;
+  const workout = await getWorkoutWithRelations(id);
 
-  const fetchWorkout = useCallback(async () => {
-    if (!workoutId) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/workouts/${workoutId}`);
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-      setWorkout(result.data as WorkoutDto);
-    } catch (error) {
-      console.error("Error fetching workout:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [workoutId]);
-
-  useEffect(() => {
-    fetchWorkout();
-  }, [fetchWorkout]);
+  if (!workout) notFound();
 
   const ownerName =
-    workout?.user?.username ?? workout?.user?.full_name ?? "Unknown";
+    workout.user?.username ?? workout.user?.full_name ?? "Unknown";
 
   return (
     <div className="py-6">
@@ -74,16 +28,10 @@ export default function Page() {
           <span>Back to workouts</span>
         </Link>
 
-        {loading ? (
-          <LoadingSpinner className="mt-6" />
-        ) : workout ? (
-          <div className="mt-3 space-y-6">
-            <WorkoutDetailCard workout={workout} ownerName={ownerName} />
-            <ExerciseContainer workout={workout} />
-          </div>
-        ) : (
-          <p className="mt-6 text-gray-500">Workout not found.</p>
-        )}
+        <div className="mt-3 space-y-6">
+          <WorkoutDetailCard workout={workout} ownerName={ownerName} />
+          <ExerciseContainer workout={workout} />
+        </div>
       </div>
     </div>
   );

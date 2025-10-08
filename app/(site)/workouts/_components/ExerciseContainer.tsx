@@ -1,31 +1,8 @@
 import React from "react";
 import Link from "next/link";
-import type { Tables } from "@/types/database.types";
+import type { WorkoutWithRelations } from "../_lib/getWorkout";
 
-type WorkoutRow = Tables<"workouts">;
-type WorkoutExerciseDto = {
-  id: string | number;
-  order_index: number | null;
-  notes: string | null;
-  exercise: {
-    id: string | number;
-    name: string;
-    exercise_type_label: string | null;
-  } | null;
-  exercise_sets: Array<{
-    id: string | number;
-    set_number: number | null;
-    reps: number | null;
-    weight: number | null;
-    duration: number | null;
-    distance: number | null;
-    notes: string | null;
-  }>;
-};
-type WorkoutWithExercises = WorkoutRow & {
-  workout_exercises?: WorkoutExerciseDto[];
-};
-type Props = { workout: WorkoutWithExercises };
+type Props = { workout: WorkoutWithRelations };
 
 const WorkoutExercisesDetails = ({ workout }: Props) => {
   return (
