@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
 type Params = {
-  params: { workoutId: string; workoutExerciseId: string };
+  params: Promise<{ workoutId: string; workoutExerciseId: string }>;
 };
 
 export const dynamic = "force-dynamic";

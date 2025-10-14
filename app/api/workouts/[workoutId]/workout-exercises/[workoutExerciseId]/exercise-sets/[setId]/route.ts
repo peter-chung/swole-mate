@@ -3,7 +3,11 @@ import { createClient } from "@/utils/supabase/server";
 import { assertWorkoutExerciseOwnership } from "@/app/(site)/workouts/_lib/ownership";
 
 type Params = {
-  params: { workoutId: string; workoutExerciseId: string; setId: string };
+  params: Promise<{
+    workoutId: string;
+    workoutExerciseId: string;
+    setId: string;
+  }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -17,7 +21,7 @@ export async function POST(req: Request, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { workoutId, workoutExerciseId, setId } = params;
+  const { workoutId, workoutExerciseId, setId } = await params;
   if (setId !== "new")
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
@@ -79,7 +83,7 @@ export async function PATCH(req: Request, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { workoutId, workoutExerciseId, setId } = params;
+  const { workoutId, workoutExerciseId, setId } = await params;
   const workoutExerciseIdNum = Number(workoutExerciseId);
   const setIdNum = Number(setId);
   if (!Number.isFinite(workoutExerciseIdNum) || !Number.isFinite(setIdNum))
@@ -130,7 +134,7 @@ export async function DELETE(req: Request, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { workoutId, workoutExerciseId, setId } = params;
+  const { workoutId, workoutExerciseId, setId } = await params;
   const workoutExerciseIdNum = Number(workoutExerciseId);
   const setIdNum = Number(setId);
   if (!Number.isFinite(workoutExerciseIdNum) || !Number.isFinite(setIdNum))

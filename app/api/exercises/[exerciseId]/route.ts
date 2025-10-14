@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import type { Database } from "@/types/database.types";
 
 type RouteContext = {
-  params: { exerciseId: string };
+  params: Promise<{ exerciseId: string }>;
 };
 type CustomExerciseUpdate =
   Database["public"]["Tables"]["custom_exercises"]["Update"];
@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { exerciseId } = params;
+  const { exerciseId } = await params;
 
   const { data, error } = await supabase
     .from("available_exercises")
@@ -61,7 +61,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       }
     >;
 
-    const { exerciseId } = params;
+    const { exerciseId } = await params;
 
     const updatePayload: CustomExerciseUpdate = {};
 
@@ -148,7 +148,7 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { exerciseId } = params;
+  const { exerciseId } = await params;
 
   const { error } = await supabase
     .from("custom_exercises")

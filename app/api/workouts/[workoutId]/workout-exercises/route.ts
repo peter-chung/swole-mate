@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
-type Params = { params: { workoutId: string } };
+type Params = { params: Promise<{ workoutId: string }> };
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,7 +20,7 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { workoutId } = params;
+  const { workoutId } = await params;
 
   // Ensure the workout exists and belongs to the user
   const { data: workout } = await supabase
@@ -90,7 +90,7 @@ export async function GET(req: Request, { params }: Params) {
 }
 
 export async function POST(req: Request, { params }: Params) {
-  const { workoutId } = params;
+  const { workoutId } = await params;
   const body = (await req.json()) as Partial<{
     exercise_id: string;
     exercise_source: string;

@@ -234,7 +234,7 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { workoutId } = params;
+  const { workoutId } = await params;
 
   const { error } = await supabase
     .from("workouts")
