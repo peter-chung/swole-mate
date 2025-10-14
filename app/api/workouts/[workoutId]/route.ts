@@ -51,7 +51,7 @@ export async function GET(req: Request, { params }: Params) {
     id, user_id, date, name, notes, status, started_at, ended_at,
     user:users ( id, username, full_name ),
     workout_exercises (
-      id, exercise_id, order_index, notes,
+      id, public_exercise_id, custom_exercise_id, order_index, notes,
       exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
     )
   `
@@ -65,10 +65,15 @@ export async function GET(req: Request, { params }: Params) {
   }
 
   const workoutExercises = data?.workout_exercises ?? [];
+  const resolveExerciseId = (we: {
+    public_exercise_id?: string | null;
+    custom_exercise_id?: string | null;
+  }) => we.public_exercise_id ?? we.custom_exercise_id ?? null;
+
   const exerciseIds = Array.from(
     new Set(
       workoutExercises
-        .map((we) => we.exercise_id)
+        .map((we) => resolveExerciseId(we))
         .filter((exerciseId): exerciseId is string => Boolean(exerciseId))
     )
   );
@@ -108,12 +113,13 @@ export async function GET(req: Request, { params }: Params) {
 
   const enriched = {
     ...data,
-    workout_exercises: workoutExercises.map((we) => ({
-      ...we,
-      exercise: we.exercise_id
-        ? exerciseLookup.get(we.exercise_id) ?? null
-        : null,
-    })),
+    workout_exercises: workoutExercises.map((we) => {
+      const exerciseId = resolveExerciseId(we);
+      return {
+        ...we,
+        exercise: exerciseId ? exerciseLookup.get(exerciseId) ?? null : null,
+      };
+    }),
   };
 
   return NextResponse.json({ data: enriched }, { status: 200 });

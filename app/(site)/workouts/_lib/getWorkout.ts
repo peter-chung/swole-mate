@@ -56,7 +56,7 @@ export async function getWorkoutWithRelations(
         id, user_id, date, name, notes, status, started_at, ended_at, created_at,
         user:users ( id, username, full_name ),
         workout_exercises (
-          id, exercise_id, order_index, notes,
+          id, public_exercise_id, custom_exercise_id, order_index, notes,
           exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
         )
       `
@@ -85,15 +85,18 @@ export async function getWorkoutWithRelations(
   const baseWorkout = rest as WorkoutRow;
 
   const workoutExercises: Array<
-    (WorkoutExerciseRow & {
+    WorkoutExerciseRow & {
       exercise_sets?: Array<ExerciseSetRow>;
-    }) & { exercise_id?: string | null }
+    }
   > = Array.isArray(rawWorkoutExercises) ? rawWorkoutExercises : [];
+
+  const resolveExerciseId = (we: WorkoutExerciseRow) =>
+    we.public_exercise_id ?? we.custom_exercise_id ?? null;
 
   const exerciseIds = Array.from(
     new Set(
       workoutExercises
-        .map((we) => we.exercise_id)
+        .map((we) => resolveExerciseId(we))
         .filter((exerciseId): exerciseId is string => Boolean(exerciseId))
     )
   );
@@ -126,12 +129,13 @@ export async function getWorkoutWithRelations(
     }
   }
 
-  const enrichedExercises = workoutExercises.map((we) => ({
-    ...we,
-    exercise: we.exercise_id
-      ? exerciseLookup.get(we.exercise_id) ?? null
-      : null,
-  }));
+  const enrichedExercises = workoutExercises.map((we) => {
+    const exerciseId = resolveExerciseId(we);
+    return {
+      ...we,
+      exercise: exerciseId ? exerciseLookup.get(exerciseId) ?? null : null,
+    };
+  });
 
   const normalizedUser = Array.isArray(rawUser)
     ? rawUser[0] ?? null

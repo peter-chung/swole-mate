@@ -146,13 +146,19 @@ export async function addWorkoutExerciseAction({
 
   const { data: meta, error: metaError } = await supabase
     .from("available_exercises")
-    .select("id")
+    .select("id, source, user_id")
     .eq("id", exerciseId)
     .maybeSingle();
 
   if (metaError || !meta?.id) {
     throw new Error(metaError?.message ?? "Exercise not found");
   }
+
+  if (meta.source === "custom" && meta.user_id && meta.user_id !== user.id) {
+    throw new Error("Exercise not accessible");
+  }
+
+  const isCustomExercise = meta.source === "custom";
 
   const { data: workout } = await supabase
     .from("workouts")
@@ -180,11 +186,14 @@ export async function addWorkoutExerciseAction({
     .insert({
       workout_id: workoutId,
       user_id: user.id,
-      exercise_id: exerciseId,
+      public_exercise_id: isCustomExercise ? null : exerciseId,
+      custom_exercise_id: isCustomExercise ? exerciseId : null,
       order_index: nextOrder,
       notes: notes ?? null,
     })
-    .select("id, workout_id, exercise_id, order_index")
+    .select(
+      "id, workout_id, public_exercise_id, custom_exercise_id, order_index"
+    )
     .maybeSingle();
 
   if (error || !data) {
@@ -195,7 +204,10 @@ export async function addWorkoutExerciseAction({
   const { data: previousWorkoutExercise } = await supabase
     .from("workout_exercises")
     .select("id")
-    .eq("exercise_id", exerciseId)
+    .eq(
+      isCustomExercise ? "custom_exercise_id" : "public_exercise_id",
+      exerciseId
+    )
     .eq("user_id", user.id)
     .neq("id", data.id)
     .order("created_at", { ascending: false })
@@ -238,7 +250,11 @@ export async function addWorkoutExerciseAction({
 
   return data as Pick<
     WorkoutExerciseRow,
-    "id" | "workout_id" | "exercise_id" | "order_index"
+    | "id"
+    | "workout_id"
+    | "public_exercise_id"
+    | "custom_exercise_id"
+    | "order_index"
   >;
 }
 

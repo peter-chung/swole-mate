@@ -218,35 +218,45 @@ export type Database = {
       workout_exercises: {
         Row: {
           created_at: string
-          exercise_id: string | null
+          custom_exercise_id: string | null
           id: number
           notes: string | null
           order_index: number
+          public_exercise_id: string | null
           user_id: string | null
           workout_id: string | null
         }
         Insert: {
           created_at?: string
-          exercise_id?: string | null
+          custom_exercise_id?: string | null
           id?: number
           notes?: string | null
           order_index?: number
+          public_exercise_id?: string | null
           user_id?: string | null
           workout_id?: string | null
         }
         Update: {
           created_at?: string
-          exercise_id?: string | null
+          custom_exercise_id?: string | null
           id?: number
           notes?: string | null
           order_index?: number
+          public_exercise_id?: string | null
           user_id?: string | null
           workout_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "workout_exercises_exercise_id_fkey"
-            columns: ["exercise_id"]
+            foreignKeyName: "workout_exercises_custom_exercise_id_fkey"
+            columns: ["custom_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "custom_exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_exercises_public_exercise_id_fkey"
+            columns: ["public_exercise_id"]
             isOneToOne: false
             referencedRelation: "public_exercises"
             referencedColumns: ["id"]
