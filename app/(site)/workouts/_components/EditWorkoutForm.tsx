@@ -1,10 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import type { Tables, TablesUpdate } from "@/types/database.types";
 import { InputField, TextAreaField } from "@/app/_components/FormFields";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
+import {
+  deleteWorkoutAction,
+  updateWorkoutAction,
+} from "../actions";
 
 type Workout = Tables<"workouts">;
 type WorkoutUpdate = TablesUpdate<"workouts">;
@@ -15,9 +19,9 @@ type Props = {
 
 const UpdateWorkoutForm = ({ workout }: Props) => {
   const [updatedWorkout, setUpdatedWorkout] = useState<WorkoutUpdate>({});
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [confirmOpen, setConfirmOpen] = useState<boolean>(false);
+  const [isUpdating, startUpdate] = useTransition();
+  const [isDeleting, startDelete] = useTransition();
 
   const router = useRouter();
 
@@ -25,42 +29,63 @@ const UpdateWorkoutForm = ({ workout }: Props) => {
     e.preventDefault();
     if (!workout) return;
 
-    try {
-      setIsLoading(true);
-
-      const res = await fetch(`/api/workouts/${workout.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedWorkout),
-      });
-
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-
+    const payloadEntries = Object.entries(updatedWorkout);
+    if (payloadEntries.length === 0) {
       router.push(`/workouts/${workout.id}`);
-    } catch (err) {
-      console.error("Error updating workout:", err);
-    } finally {
-      setIsLoading(false);
+      return;
     }
+
+    const sanitized: Partial<WorkoutUpdate> = {};
+
+    if (updatedWorkout.name !== undefined) {
+      sanitized.name =
+        typeof updatedWorkout.name === "string"
+          ? updatedWorkout.name.trim()
+          : updatedWorkout.name;
+    }
+    if (updatedWorkout.date !== undefined) {
+      sanitized.date =
+        typeof updatedWorkout.date === "string"
+          ? updatedWorkout.date
+          : updatedWorkout.date;
+    }
+    if (updatedWorkout.notes !== undefined) {
+      sanitized.notes =
+        typeof updatedWorkout.notes === "string"
+          ? updatedWorkout.notes
+          : updatedWorkout.notes;
+    }
+    if (updatedWorkout.status !== undefined) {
+      sanitized.status = updatedWorkout.status;
+    }
+    if (updatedWorkout.ended_at !== undefined) {
+      sanitized.ended_at = updatedWorkout.ended_at;
+    }
+    if (updatedWorkout.started_at !== undefined) {
+      sanitized.started_at = updatedWorkout.started_at;
+    }
+
+    startUpdate(async () => {
+      try {
+        await updateWorkoutAction(String(workout.id), sanitized);
+        router.push(`/workouts/${workout.id}`);
+      } catch (err) {
+        console.error("Error updating workout:", err);
+      }
+    });
   };
 
   const handleDelete = async () => {
     if (!workout) return;
-    try {
-      setIsDeleting(true);
-      const res = await fetch(`/api/workouts/${workout.id}`, {
-        method: "DELETE",
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-      setConfirmOpen(false);
-      router.push("/workouts");
-    } catch (err) {
-      console.error("Error deleting workout:", err);
-    } finally {
-      setIsDeleting(false);
-    }
+    startDelete(async () => {
+      try {
+        await deleteWorkoutAction(String(workout.id));
+        setConfirmOpen(false);
+        router.push("/workouts");
+      } catch (err) {
+        console.error("Error deleting workout:", err);
+      }
+    });
   };
 
   return (
@@ -129,10 +154,10 @@ const UpdateWorkoutForm = ({ workout }: Props) => {
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isUpdating}
           className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 active:translate-y-px disabled:opacity-60"
         >
-          {isLoading ? "Saving..." : "Save Changes"}
+          {isUpdating ? "Saving..." : "Save Changes"}
         </button>
       </div>
       <ConfirmDialog

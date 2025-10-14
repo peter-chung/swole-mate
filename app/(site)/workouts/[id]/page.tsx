@@ -5,11 +5,11 @@ import ExerciseContainer from "../_components/ExerciseContainer";
 import { getWorkoutWithRelations } from "../_lib/getWorkout";
 
 type PageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function WorkoutPage({ params }: PageProps) {
-  const { id } = params;
+  const { id } = await params;
   const workout = await getWorkoutWithRelations(id);
 
   if (!workout) notFound();

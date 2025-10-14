@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
 type Params = {
-  params: Promise<{ workoutId: string; workoutExerciseId: string }>;
+  params: { workoutId: string; workoutExerciseId: string };
 };
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function DELETE(req: Request, { params }: Params) {
   const supabase = await createClient();

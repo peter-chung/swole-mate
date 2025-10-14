@@ -7,6 +7,9 @@ type AvailableExercise =
 type CustomExerciseInsert =
   Database["public"]["Tables"]["custom_exercises"]["Insert"];
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(req: Request) {
   const supabase = await createClient();
   const { searchParams } = new URL(req.url);

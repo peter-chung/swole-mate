@@ -1,5 +1,3 @@
-"use client";
-
 import CreateWorkoutForm from "../_components/CreateWorkoutForm";
 
 const Page = () => {

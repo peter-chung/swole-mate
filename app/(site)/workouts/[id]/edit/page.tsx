@@ -4,11 +4,12 @@ import EditWorkoutForm from "../../_components/EditWorkoutForm";
 import { getWorkoutWithRelations } from "../../_lib/getWorkout";
 
 type PageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function EditWorkoutPage({ params }: PageProps) {
-  const workout = await getWorkoutWithRelations(params.id);
+  const { id } = await params;
+  const workout = await getWorkoutWithRelations(id);
 
   if (!workout) notFound();
 

@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import type { TablesInsert } from "@/types/database.types";
 import { InputField, TextAreaField } from "@/app/_components/FormFields";
+import { createWorkoutAction } from "../actions";
 
 type NewWorkout = TablesInsert<"workouts">;
 
 const CreateWorkoutForm = () => {
-  const [workout, setWorkout] = useState<Partial<NewWorkout>>({});
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   // Default date to today in local time (YYYY-MM-DD). Avoid UTC offset issues.
@@ -20,38 +20,42 @@ const CreateWorkoutForm = () => {
     .toISOString()
     .slice(0, 10);
 
+  const [workout, setWorkout] = useState<Partial<NewWorkout>>({
+    date: today,
+  });
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      setIsLoading(true);
+    const name =
+      typeof workout.name === "string" ? workout.name.trim() : "";
+    if (!name) return;
 
-      const res = await fetch("/api/workouts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(workout),
-      });
+    const date =
+      typeof workout.date === "string" && workout.date
+        ? workout.date
+        : today;
+    const notes =
+      typeof workout.notes === "string" && workout.notes.length > 0
+        ? workout.notes
+        : null;
 
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
+    startTransition(async () => {
+      try {
+        const result = await createWorkoutAction({
+          name,
+          date,
+          notes,
+        });
 
-      const createdId: string | number | undefined =
-        (result && typeof result === "object" && "id" in result
-          ? (result as { id?: string | number }).id
-          : undefined) ??
-        (result && typeof result === "object" && "data" in result
-          ? (result as { data?: { id?: string | number } }).data?.id
-          : undefined);
-
-      if (createdId) {
-        router.push(`/workouts/${createdId}/edit`);
-      } else {
-        router.push("/workouts");
+        if (result?.id) {
+          router.push(`/workouts/${result.id}/edit`);
+        } else {
+          router.push("/workouts");
+        }
+      } catch (err) {
+        console.error("Error creating workout:", err);
       }
-    } catch (err) {
-      console.error("Error creating workout:", err);
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   return (
@@ -99,10 +103,10 @@ const CreateWorkoutForm = () => {
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isPending}
           className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isLoading ? "Saving..." : "Create Workout"}
+          {isPending ? "Saving..." : "Create Workout"}
         </button>
       </div>
     </form>

@@ -2,7 +2,6 @@
 
 import React, {
   useEffect,
-  useMemo,
   useRef,
   useState,
   forwardRef,
@@ -10,6 +9,10 @@ import React, {
 } from "react";
 import type { Tables } from "@/types/database.types";
 import { toast } from "react-hot-toast";
+import {
+  deleteExerciseSetAction,
+  saveExerciseSetAction,
+} from "../actions";
 
 type ExerciseSet = Tables<"exercise_sets">;
 
@@ -64,8 +67,12 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
     ref
   ) => {
     const [sets, setSets] = useState<LocalSet[]>([]);
-    const [saving, setSaving] = useState(false);
     const lastDirtyRef = useRef<boolean>(false);
+    const dirtyCallbackRef = useRef<Props["onDirtyChange"]>();
+
+    useEffect(() => {
+      dirtyCallbackRef.current = onDirtyChange;
+    }, [onDirtyChange]);
 
     useEffect(() => {
       const normalized: LocalSet[] = (exerciseSets ?? [])
@@ -87,30 +94,33 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
           _status: "clean",
         }));
 
-      const sameLength = sets.length === normalized.length;
-      const isSame =
-        sameLength &&
-        sets.every((cur, i) => {
-          const next = normalized[i];
-          return (
-            cur.id === next.id &&
-            cur.set_number === next.set_number &&
-            cur.reps === next.reps &&
-            cur.weight === next.weight &&
-            cur.duration === next.duration &&
-            cur.distance === next.distance &&
-            cur.notes === next.notes
-          );
-        });
+      setSets((prev) => {
+        const sameLength = prev.length === normalized.length;
+        const isSame =
+          sameLength &&
+          prev.every((cur, i) => {
+            const next = normalized[i];
+            return (
+              cur.id === next.id &&
+              cur.set_number === next.set_number &&
+              cur.reps === next.reps &&
+              cur.weight === next.weight &&
+              cur.duration === next.duration &&
+              cur.distance === next.distance &&
+              cur.notes === next.notes
+            );
+          });
 
-      if (!isSame) {
-        setSets(normalized);
-        // Reset dirty state when server-provided sets change
+        if (isSame) return prev;
+
         if (lastDirtyRef.current) {
           lastDirtyRef.current = false;
-          if (typeof onDirtyChange === "function") onDirtyChange(false);
+          const callback = dirtyCallbackRef.current;
+          if (typeof callback === "function") callback(false);
         }
-      }
+
+        return normalized;
+      });
     }, [exerciseSets]);
 
     // Report dirty-state to parent when it changes
@@ -120,15 +130,10 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       );
       if (lastDirtyRef.current !== hasDirty) {
         lastDirtyRef.current = hasDirty;
-        if (typeof onDirtyChange === "function") onDirtyChange(hasDirty);
+        const callback = dirtyCallbackRef.current;
+        if (typeof callback === "function") callback(hasDirty);
       }
     }, [sets]);
-
-    const nextSetNumber = useMemo(
-      () =>
-        sets.length > 0 ? Math.max(...sets.map((s) => s.set_number)) + 1 : 1,
-      [sets]
-    );
 
     const onChangeField = (
       idx: number,
@@ -199,36 +204,13 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
     const syncSet = async (set: LocalSet): Promise<ApiExerciseSet> => {
       const payload = buildPayload(set);
 
-      if (typeof set.id === "string") {
-        const res = await fetch(
-          `/api/workouts/${encodeURIComponent(
-            workoutId
-          )}/workout-exercises/${workoutExerciseId}/exercise-sets/new`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok)
-          throw new Error(data?.error || "Failed to create exercise set");
-        return data as ApiExerciseSet;
-      }
+      const data = await saveExerciseSetAction({
+        workoutId,
+        workoutExerciseId,
+        setId: typeof set.id === "number" ? set.id : undefined,
+        payload,
+      });
 
-      const res = await fetch(
-        `/api/workouts/${encodeURIComponent(
-          workoutId
-        )}/workout-exercises/${workoutExerciseId}/exercise-sets/${set.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok)
-        throw new Error(data?.error || "Failed to update exercise set");
       return data as ApiExerciseSet;
     };
 
@@ -289,19 +271,37 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
     };
 
     const addSet = () => {
-      setSets((prev) => [
-        ...prev,
-        {
-          id: `new-${Date.now()}`,
-          set_number: nextSetNumber,
-          reps: null,
-          weight: null,
-          duration: null,
-          distance: null,
-          notes: null,
-          _status: "new",
-        },
-      ]);
+      setSets((prev) => {
+        const sortedByNumber = [...prev].sort(
+          (a, b) => a.set_number - b.set_number
+        );
+        const nextSetNumber =
+          sortedByNumber.length > 0
+            ? sortedByNumber[sortedByNumber.length - 1].set_number + 1
+            : 1;
+
+        const lastNonDeleting = sortedByNumber.filter(
+          (set) => set._status !== "deleting"
+        );
+        const previousSet =
+          lastNonDeleting.length > 0
+            ? lastNonDeleting[lastNonDeleting.length - 1]
+            : undefined;
+
+        return [
+          ...prev,
+          {
+            id: `new-${Date.now()}`,
+            set_number: nextSetNumber,
+            reps: previousSet?.reps ?? null,
+            weight: previousSet?.weight ?? null,
+            duration: null,
+            distance: null,
+            notes: null,
+            _status: "new",
+          },
+        ];
+      });
     };
 
     const deleteSet = async (idx: number) => {
@@ -319,14 +319,11 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         setSets((prev) =>
           prev.map((s, i) => (i === idx ? { ...s, _status: "deleting" } : s))
         );
-        const res = await fetch(
-          `/api/workouts/${encodeURIComponent(
-            workoutId
-          )}/workout-exercises/${workoutExerciseId}/exercise-sets/${target.id}`,
-          { method: "DELETE" }
-        );
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body?.error || "Failed to delete set");
+        await deleteExerciseSetAction({
+          workoutId,
+          workoutExerciseId,
+          setId: Number(target.id),
+        });
         setSets((prev) => prev.filter((_, i) => i !== idx));
         onSaved?.();
       } catch (err) {
@@ -342,8 +339,6 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
     const save = async (opts?: { silent?: boolean }) => {
       try {
-        setSaving(true);
-
         const indicesToPersist = sets.reduce<Array<number>>((acc, set, idx) => {
           if (typeof set.id === "string" || set._status === "dirty") {
             if (typeof set.id === "string" && !hasMeaningfulValue(set)) {
@@ -356,7 +351,13 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
         const results = await Promise.all(
           indicesToPersist.map(async (idx) => {
-            const data = await syncSet(sets[idx]);
+            const target = sets[idx];
+            const data = await saveExerciseSetAction({
+              workoutId,
+              workoutExerciseId,
+              setId: typeof target.id === "number" ? target.id : undefined,
+              payload: buildPayload(target),
+            });
             return { idx, data };
           })
         );
@@ -389,8 +390,6 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       } catch (err) {
         console.error(err);
         toast.error(err instanceof Error ? err.message : "Failed to save sets");
-      } finally {
-        setSaving(false);
       }
     };
 

@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
-// type RouteContext = {
-//   params: Promise<{ workoutId: string }>;
-// };
-
 type Params = { params: Promise<{ workoutId: string }> };
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 // Fetch workout
 // export async function GET(req: Request, { params }: Params) {
@@ -235,7 +234,7 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { workoutId } = await params;
+  const { workoutId } = params;
 
   const { error } = await supabase
     .from("workouts")

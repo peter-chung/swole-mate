@@ -1,28 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { assertWorkoutExerciseOwnership } from "@/app/(site)/workouts/_lib/ownership";
 
 type Params = {
-  params: Promise<{ workoutId: string; workoutExerciseId: string; setId: string }>;
+  params: { workoutId: string; workoutExerciseId: string; setId: string };
 };
 
-// Helper to verify ownership and relationships
-async function assertOwnership(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  workoutId: string,
-  workoutExerciseId: number
-) {
-  const { data: we } = await supabase
-    .from("workout_exercises")
-    .select("id, workout_id, workout:workouts!inner(user_id)")
-    .eq("id", workoutExerciseId)
-    .single();
-
-  if (!we || (we as any).workout.user_id !== userId || we.workout_id !== workoutId) {
-    return false;
-  }
-  return true;
-}
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 // Create a new exercise set (use setId="new")
 export async function POST(req: Request, { params }: Params) {
@@ -32,7 +17,7 @@ export async function POST(req: Request, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { workoutId, workoutExerciseId, setId } = await params;
+  const { workoutId, workoutExerciseId, setId } = params;
   if (setId !== "new")
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
@@ -40,7 +25,12 @@ export async function POST(req: Request, { params }: Params) {
   if (!Number.isFinite(workoutExerciseIdNum))
     return NextResponse.json({ error: "Invalid workoutExerciseId" }, { status: 400 });
 
-  const owns = await assertOwnership(supabase, user.id, workoutId, workoutExerciseIdNum);
+  const owns = await assertWorkoutExerciseOwnership(
+    supabase,
+    user.id,
+    workoutId,
+    workoutExerciseIdNum
+  );
   if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = (await req.json()) as Partial<{
@@ -89,13 +79,18 @@ export async function PATCH(req: Request, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { workoutId, workoutExerciseId, setId } = await params;
+  const { workoutId, workoutExerciseId, setId } = params;
   const workoutExerciseIdNum = Number(workoutExerciseId);
   const setIdNum = Number(setId);
   if (!Number.isFinite(workoutExerciseIdNum) || !Number.isFinite(setIdNum))
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
-  const owns = await assertOwnership(supabase, user.id, workoutId, workoutExerciseIdNum);
+  const owns = await assertWorkoutExerciseOwnership(
+    supabase,
+    user.id,
+    workoutId,
+    workoutExerciseIdNum
+  );
   if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const payload = (await req.json()) as Partial<{
@@ -135,13 +130,18 @@ export async function DELETE(req: Request, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { workoutId, workoutExerciseId, setId } = await params;
+  const { workoutId, workoutExerciseId, setId } = params;
   const workoutExerciseIdNum = Number(workoutExerciseId);
   const setIdNum = Number(setId);
   if (!Number.isFinite(workoutExerciseIdNum) || !Number.isFinite(setIdNum))
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
-  const owns = await assertOwnership(supabase, user.id, workoutId, workoutExerciseIdNum);
+  const owns = await assertWorkoutExerciseOwnership(
+    supabase,
+    user.id,
+    workoutId,
+    workoutExerciseIdNum
+  );
   if (!owns) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { error } = await supabase

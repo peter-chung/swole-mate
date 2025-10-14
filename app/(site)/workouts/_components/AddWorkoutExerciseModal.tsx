@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import { useDebounce } from "react-use";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
+import { addWorkoutExerciseAction } from "../actions";
 
 type Exercise = {
   id: string;
@@ -29,6 +30,7 @@ const AddWorkoutExerciseModal = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [isAdding, startAdd] = useTransition();
 
   useDebounce(() => setDebouncedQuery(query), 500, [query]);
 
@@ -74,30 +76,19 @@ const AddWorkoutExerciseModal = ({
   }, [open, debouncedQuery]);
 
   const handleSelect = async (exercise: Exercise) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetch(
-        `/api/workouts/${workoutId}/workout-exercises`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            exercise_id: exercise.id,
-            exercise_source: exercise.source ?? undefined,
-          }),
-        }
-      );
-      const result = await res.json().catch(() => ({}));
-      if (!res.ok)
-        throw new Error(result?.error || `Failed with ${res.status}`);
-      onAdded?.();
-      onClose();
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
+    setError(null);
+    startAdd(async () => {
+      try {
+        await addWorkoutExerciseAction({
+          workoutId,
+          exerciseId: exercise.id,
+        });
+        onAdded?.();
+        onClose();
+      } catch (err: unknown) {
+        setError(getErrorMessage(err));
+      }
+    });
   };
 
   function getErrorMessage(err: unknown): string {
@@ -148,7 +139,7 @@ const AddWorkoutExerciseModal = ({
         </div>
 
         <div className="mt-3">
-          {loading ? (
+          {loading || isAdding ? (
             <LoadingSpinner />
           ) : error ? (
             <p className="text-sm text-red-600">{error}</p>

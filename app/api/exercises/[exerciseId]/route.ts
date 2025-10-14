@@ -3,10 +3,13 @@ import { createClient } from "@/utils/supabase/server";
 import type { Database } from "@/types/database.types";
 
 type RouteContext = {
-  params: Promise<{ exerciseId: string }>;
+  params: { exerciseId: string };
 };
 type CustomExerciseUpdate =
   Database["public"]["Tables"]["custom_exercises"]["Update"];
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 // Fetch exercise
 export async function GET(req: Request, { params }: RouteContext) {
@@ -21,7 +24,7 @@ export async function GET(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { exerciseId } = await params;
+  const { exerciseId } = params;
 
   const { data, error } = await supabase
     .from("available_exercises")
@@ -58,7 +61,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       }
     >;
 
-    const { exerciseId } = await params;
+    const { exerciseId } = params;
 
     const updatePayload: CustomExerciseUpdate = {};
 
@@ -145,7 +148,7 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { exerciseId } = await params;
+  const { exerciseId } = params;
 
   const { error } = await supabase
     .from("custom_exercises")
