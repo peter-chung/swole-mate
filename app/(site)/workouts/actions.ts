@@ -14,6 +14,17 @@ type WorkoutInsert = TablesInsert<"workouts">;
 type WorkoutUpdate = TablesUpdate<"workouts">;
 type WorkoutExerciseRow = Tables<"workout_exercises">;
 type ExerciseSetRow = Tables<"exercise_sets">;
+type WorkoutExerciseWithSets = WorkoutExerciseRow & {
+  exercise_sets?: Array<
+    Pick<
+      ExerciseSetRow,
+      "set_number" | "reps" | "weight" | "duration" | "distance" | "notes"
+    >
+  > | null;
+};
+type WorkoutWithRelations = WorkoutRow & {
+  workout_exercises?: WorkoutExerciseWithSets[] | null;
+};
 
 const WORKOUTS_PATH = "/workouts";
 
@@ -127,6 +138,123 @@ export async function deleteWorkoutAction(workoutId: string) {
   revalidatePath(`${WORKOUTS_PATH}/${workoutId}/edit`);
 
   return { success: true };
+}
+
+export async function copyWorkoutAction(workoutId: string) {
+  const { supabase, user } = await ensureUser();
+
+  if (!workoutId) {
+    throw new Error("Missing workout id");
+  }
+
+  const { data: source, error: fetchError } = await supabase
+    .from("workouts")
+    .select(
+      `
+        id, name, date, notes,
+        workout_exercises (
+          id, notes, order_index, public_exercise_id, custom_exercise_id, user_id,
+          exercise_sets ( set_number, reps, weight, duration, distance, notes )
+        )
+      `
+    )
+    .eq("id", workoutId)
+    .maybeSingle();
+
+  if (fetchError) {
+    throw new Error(fetchError.message);
+  }
+
+  if (!source) {
+    throw new Error("Workout not found");
+  }
+
+  const workoutSource = source as WorkoutWithRelations;
+
+  const { data: created, error: insertWorkoutError } = await supabase
+    .from("workouts")
+    .insert({
+      user_id: user.id,
+      status: "draft",
+      name: workoutSource.name
+        ? `${workoutSource.name} (Copy)`
+        : "Copied workout",
+      notes: workoutSource.notes ?? null,
+      date: new Date().toISOString().slice(0, 10),
+    })
+    .select("id")
+    .single();
+
+  if (insertWorkoutError || !created?.id) {
+    throw new Error(insertWorkoutError?.message ?? "Failed to copy workout");
+  }
+
+  const workoutExercises = workoutSource.workout_exercises ?? [];
+  let skippedExercises = 0;
+
+  for (const workoutExercise of workoutExercises) {
+    const ownsCustomExercise =
+      workoutExercise.custom_exercise_id === null ||
+      workoutExercise.user_id === null ||
+      workoutExercise.user_id === user.id;
+
+    if (!ownsCustomExercise) {
+      skippedExercises += 1;
+      continue;
+    }
+
+    const { data: createdExercise, error: insertExerciseError } =
+      await supabase
+        .from("workout_exercises")
+        .insert({
+          workout_id: created.id,
+          user_id: user.id,
+          public_exercise_id: workoutExercise.public_exercise_id,
+          custom_exercise_id: ownsCustomExercise
+            ? workoutExercise.custom_exercise_id
+            : null,
+          notes: workoutExercise.notes ?? null,
+          order_index: workoutExercise.order_index,
+        })
+        .select("id")
+        .single();
+
+    if (insertExerciseError || !createdExercise?.id) {
+      throw new Error(
+        insertExerciseError?.message ?? "Failed to copy workout exercise"
+      );
+    }
+
+    const sets = workoutExercise.exercise_sets ?? [];
+    if (!sets || sets.length === 0) {
+      continue;
+    }
+
+    const setsPayload = sets.map((set) => ({
+      workout_exercise_id: createdExercise.id,
+      user_id: user.id,
+      set_number: set.set_number,
+      reps: set.reps ?? null,
+      weight: set.weight ?? null,
+      duration: set.duration ?? null,
+      distance: set.distance ?? null,
+      notes: set.notes ?? null,
+    }));
+
+    const { error: insertSetsError } = await supabase
+      .from("exercise_sets")
+      .insert(setsPayload);
+
+    if (insertSetsError) {
+      throw new Error(insertSetsError.message);
+    }
+  }
+
+  revalidatePath(WORKOUTS_PATH);
+  revalidatePath(`${WORKOUTS_PATH}/${created.id}`);
+  revalidatePath(`${WORKOUTS_PATH}/${created.id}/edit`);
+
+  return { id: created.id, skippedExercises };
 }
 
 export async function addWorkoutExerciseAction({
