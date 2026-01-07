@@ -196,8 +196,8 @@ export type Database = {
           notes: string | null
           order_index: number
           public_exercise_id: string | null
+          routine_id: string | null
           user_id: string | null
-          workout_id: string | null
         }
         Insert: {
           created_at?: string
@@ -206,8 +206,8 @@ export type Database = {
           notes?: string | null
           order_index?: number
           public_exercise_id?: string | null
+          routine_id?: string | null
           user_id?: string | null
-          workout_id?: string | null
         }
         Update: {
           created_at?: string
@@ -216,8 +216,8 @@ export type Database = {
           notes?: string | null
           order_index?: number
           public_exercise_id?: string | null
+          routine_id?: string | null
           user_id?: string | null
-          workout_id?: string | null
         }
         Relationships: [
           {
@@ -235,17 +235,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "routine_exercises_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "routine_exercises_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "routine_exercises_workout_id_fkey"
-            columns: ["workout_id"]
-            isOneToOne: false
-            referencedRelation: "workouts"
             referencedColumns: ["id"]
           },
         ]
@@ -258,10 +258,10 @@ export type Database = {
           id: number
           notes: string | null
           reps: number | null
+          routine_exercise_id: number | null
           set_number: number
           user_id: string | null
           weight: number | null
-          workout_exercise_id: number | null
         }
         Insert: {
           created_at?: string
@@ -270,10 +270,10 @@ export type Database = {
           id?: number
           notes?: string | null
           reps?: number | null
+          routine_exercise_id?: number | null
           set_number: number
           user_id?: string | null
           weight?: number | null
-          workout_exercise_id?: number | null
         }
         Update: {
           created_at?: string
@@ -282,24 +282,24 @@ export type Database = {
           id?: number
           notes?: string | null
           reps?: number | null
+          routine_exercise_id?: number | null
           set_number?: number
           user_id?: string | null
           weight?: number | null
-          workout_exercise_id?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "routine_sets_routine_exercise_id_fkey"
+            columns: ["routine_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "routine_exercises"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "routine_sets_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "routine_sets_workout_exercise_id_fkey"
-            columns: ["workout_exercise_id"]
-            isOneToOne: false
-            referencedRelation: "workout_exercises"
             referencedColumns: ["id"]
           },
         ]
