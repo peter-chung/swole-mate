@@ -1,12 +1,38 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { prettyDate } from "@/utils/format";
 import type { Tables } from "@/types/database.types";
 import SaveAsRoutineButton from "./SaveAsRoutineButton";
+import { copyWorkoutAction } from "../actions";
 
 type Workout = Tables<"workouts">;
 type Props = { workout: Workout; ownerName: string };
 
 const WorkoutDetailCard = ({ workout, ownerName }: Props) => {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const handleCopy = () => {
+    startTransition(async () => {
+      try {
+        const result = await copyWorkoutAction(workout.id);
+        if (result?.skippedExercises && result.skippedExercises > 0) {
+          console.info(
+            `Skipped ${result.skippedExercises} exercise(s) that could not be copied.`
+          );
+        }
+
+        if (result?.id) {
+          router.push(`/workouts/${result.id}/edit`);
+        }
+      } catch (error) {
+        console.error("Error copying workout:", error);
+      }
+    });
+  };
   return (
     <>
       <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -33,6 +59,26 @@ const WorkoutDetailCard = ({ workout, ownerName }: Props) => {
             </svg>
             <span>Edit workout</span>
           </Link>
+          <button
+            type="button"
+            onClick={handleCopy}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 rounded-md bg-gray-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-gray-700 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-gray-500/40 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="M8 16H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2m-6 12h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z" />
+            </svg>
+            <span>{isPending ? "Copying..." : "Copy workout"}</span>
+          </button>
           {/* Save as routine button (client component) */}
           <SaveAsRoutineButton
             workoutId={workout.id}

@@ -46,14 +46,7 @@ export default function RoutineCard({ routine }: { routine: Routine }) {
           </div>
         </Link>
 
-        <div className="mt-3 flex items-center justify-end">
-          <Link
-            href={`/routines/${routine.id}`}
-            className="inline-flex items-center rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-gray-800 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-          >
-            View routine
-          </Link>
-        </div>
+        <div className="mt-3" />
       </div>
     </li>
   );
