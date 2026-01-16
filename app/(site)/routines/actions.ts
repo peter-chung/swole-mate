@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import type { Tables, TablesInsert } from "@/types/database.types";
-import { assertRoutineExerciseOwnership } from "./_lib/ownership";
+import {
+  assertRoutineOwnership,
+  assertRoutineExerciseOwnership,
+} from "./_lib/ownership";
 
 type RoutineRow = Tables<"routines">;
 type RoutineInsert = TablesInsert<"routines">;
@@ -55,6 +58,94 @@ export async function createRoutineAction(payload: {
   return { id: data.id };
 }
 
+export async function updateRoutineAction(
+  routineId: string,
+  payload: Partial<{
+    name: string;
+    status: string;
+    date: string;
+    notes: string;
+    ended_at: string | null;
+  }>
+) {
+  const { supabase, user } = await ensureUser();
+
+  // Verify user owns this routine
+  const ownsRoutine = await assertRoutineOwnership(
+    supabase,
+    user.id,
+    routineId
+  );
+  if (!ownsRoutine) {
+    throw new Error("Routine not found");
+  }
+
+  const updates: any = {
+    ...(payload.name !== undefined && { name: payload.name }),
+    ...(payload.status !== undefined && { status: payload.status }),
+    ...(payload.date !== undefined && { date: payload.date }),
+    ...(payload.notes !== undefined && { notes: payload.notes }),
+    ...(payload.ended_at !== undefined && { ended_at: payload.ended_at }),
+  };
+
+  const hasUpdates = Object.keys(updates).length > 0;
+
+  if (!hasUpdates) {
+    const { data: existing } = await supabase
+      .from("routines")
+      .select("id, name, status, date, notes, ended_at")
+      .eq("id", routineId)
+      .eq("user_id", user.id)
+      .single();
+
+    return existing;
+  }
+
+  const { data, error } = await supabase
+    .from("routines")
+    .update(updates)
+    .eq("id", routineId)
+    .eq("user_id", user.id)
+    .select("id, name, status, date, notes, ended_at")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`${ROUTINES_PATH}/${routineId}`);
+  revalidatePath(`${ROUTINES_PATH}/${routineId}/edit`);
+
+  return data;
+}
+
+export async function deleteRoutineAction(routineId: string) {
+  const { supabase, user } = await ensureUser();
+
+  // Verify user owns this routine
+  const ownsRoutine = await assertRoutineOwnership(
+    supabase,
+    user.id,
+    routineId
+  );
+  if (!ownsRoutine) {
+    throw new Error("Routine not found");
+  }
+
+  const { error } = await supabase
+    .from("routines")
+    .delete()
+    .eq("id", routineId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(ROUTINES_PATH);
+  return { success: true };
+}
+
 export async function addRoutineExerciseAction({
   routineId,
   exerciseId,
@@ -68,6 +159,16 @@ export async function addRoutineExerciseAction({
 
   if (!routineId || !exerciseId) {
     throw new Error("Invalid payload");
+  }
+
+  // Verify user owns this routine
+  const ownsRoutine = await assertRoutineOwnership(
+    supabase,
+    user.id,
+    routineId
+  );
+  if (!ownsRoutine) {
+    throw new Error("Routine not found");
   }
 
   const { data: meta, error: metaError } = await supabase
@@ -85,17 +186,6 @@ export async function addRoutineExerciseAction({
   }
 
   const isCustomExercise = meta.source === "custom";
-
-  const { data: routine } = await supabase
-    .from("routines")
-    .select("id")
-    .eq("id", routineId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!routine) {
-    throw new Error("Routine not found");
-  }
 
   const { data: maxRow } = await supabase
     .from("routine_exercises")
