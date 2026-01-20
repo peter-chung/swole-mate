@@ -48,25 +48,9 @@ CREATE TABLE IF NOT EXISTS public.routine_sets (
 );
 
 -- Enable RLS (Row Level Security)
-ALTER TABLE IF EXISTS public.routines ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.routine_exercises ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.routine_sets ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies if they exist (for clean re-application)
-DROP POLICY IF EXISTS "Users can view their own routines" ON public.routines;
-DROP POLICY IF EXISTS "Users can create routines" ON public.routines;
-DROP POLICY IF EXISTS "Users can update their own routines" ON public.routines;
-DROP POLICY IF EXISTS "Users can delete their own routines" ON public.routines;
-
-DROP POLICY IF EXISTS "Users can view routine exercises for their routines" ON public.routine_exercises;
-DROP POLICY IF EXISTS "Users can create routine exercises" ON public.routine_exercises;
-DROP POLICY IF EXISTS "Users can update their routine exercises" ON public.routine_exercises;
-DROP POLICY IF EXISTS "Users can delete their routine exercises" ON public.routine_exercises;
-
-DROP POLICY IF EXISTS "Users can view routine sets for their exercises" ON public.routine_sets;
-DROP POLICY IF EXISTS "Users can create routine sets" ON public.routine_sets;
-DROP POLICY IF EXISTS "Users can update their routine sets" ON public.routine_sets;
-DROP POLICY IF EXISTS "Users can delete their routine sets" ON public.routine_sets;
+ALTER TABLE public.routines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.routine_exercises ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.routine_sets ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for routines table
 CREATE POLICY "Users can view their own routines" 
@@ -122,9 +106,9 @@ CREATE POLICY "Users can delete their routine sets"
   ON public.routine_sets FOR DELETE
   USING (auth.uid() = user_id);
 
--- Create indexes for better query performance (idempotent)
-CREATE INDEX IF NOT EXISTS idx_routines_user_id ON public.routines(user_id);
-CREATE INDEX IF NOT EXISTS idx_routine_exercises_routine_id ON public.routine_exercises(routine_id);
-CREATE INDEX IF NOT EXISTS idx_routine_exercises_user_id ON public.routine_exercises(user_id);
-CREATE INDEX IF NOT EXISTS idx_routine_sets_routine_exercise_id ON public.routine_sets(routine_exercise_id);
-CREATE INDEX IF NOT EXISTS idx_routine_sets_user_id ON public.routine_sets(user_id);
+-- Create indexes for better query performance
+CREATE INDEX idx_routines_user_id ON public.routines(user_id);
+CREATE INDEX idx_routine_exercises_routine_id ON public.routine_exercises(routine_id);
+CREATE INDEX idx_routine_exercises_user_id ON public.routine_exercises(user_id);
+CREATE INDEX idx_routine_sets_routine_exercise_id ON public.routine_sets(routine_exercise_id);
+CREATE INDEX idx_routine_sets_user_id ON public.routine_sets(user_id);

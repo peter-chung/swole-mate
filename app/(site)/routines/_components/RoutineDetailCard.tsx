@@ -1,10 +1,36 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { prettyDate } from "@/utils/format";
 import type { RoutineWithRelations } from "../_lib/getRoutine";
+import { startWorkoutFromRoutineAction } from "../actions";
 
 type Props = { routine: RoutineWithRelations; ownerName: string };
 
 export default function RoutineDetailCard({ routine, ownerName }: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const handleStartWorkout = () => {
+    startTransition(async () => {
+      try {
+        const result = await startWorkoutFromRoutineAction(routine.id);
+        if (result?.skippedExercises && result.skippedExercises > 0) {
+          console.info(
+            `Skipped ${result.skippedExercises} exercise(s) that could not be added.`
+          );
+        }
+
+        if (result?.id) {
+          router.push(`/workouts/${result.id}/exercises/edit`);
+        }
+      } catch (error) {
+        console.error("Error starting workout from routine:", error);
+      }
+    });
+  };
   return (
     <>
       <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -31,6 +57,27 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
             </svg>
             <span>Edit routine</span>
           </Link>
+          <button
+            type="button"
+            onClick={handleStartWorkout}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-green-700 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-green-500/40 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <polygon points="10 8 16 12 10 16 10 8" />
+            </svg>
+            <span>{isPending ? "Starting..." : "Start Workout"}</span>
+          </button>
         </div>
       </div>
 

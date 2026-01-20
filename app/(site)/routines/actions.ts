@@ -436,3 +436,120 @@ export async function deleteRoutineExerciseAction({
 
   return { success: true };
 }
+
+export async function startWorkoutFromRoutineAction(routineId: string) {
+  const { supabase, user } = await ensureUser();
+
+  if (!routineId) {
+    throw new Error("Missing routine id");
+  }
+
+  // Verify user owns this routine
+  const ownsRoutine = await assertRoutineOwnership(
+    supabase,
+    user.id,
+    routineId
+  );
+  if (!ownsRoutine) {
+    throw new Error("Routine not found");
+  }
+
+  const { data: routine, error: routineError } = await supabase
+    .from("routines")
+    .select(
+      `
+        id, name, date, notes,
+        routine_exercises (
+          id, notes, order_index, public_exercise_id, custom_exercise_id, user_id,
+          routine_sets ( set_number, reps, weight, duration, distance, notes )
+        )
+      `
+    )
+    .eq("id", routineId)
+    .single();
+
+  if (routineError || !routine) {
+    throw new Error(routineError?.message ?? "Routine not found");
+  }
+
+  const routineData = routine as any;
+
+  // Create workout from routine
+  const { data: createdWorkout, error: workoutError } = await supabase
+    .from("workouts")
+    .insert({
+      user_id: user.id,
+      status: "draft",
+      name: routineData.name || "Workout from routine",
+      notes: routineData.notes ?? null,
+      date: new Date().toISOString().slice(0, 10),
+    })
+    .select("id")
+    .single();
+
+  if (workoutError || !createdWorkout?.id) {
+    throw new Error(workoutError?.message ?? "Failed to create workout");
+  }
+
+  const workoutId = (createdWorkout as any).id;
+  const routineExercises = routineData.routine_exercises ?? [];
+  let skippedExercises = 0;
+
+  for (const routineExercise of routineExercises) {
+    const ownsCustomExercise =
+      routineExercise.custom_exercise_id === null ||
+      routineExercise.user_id === null ||
+      routineExercise.user_id === user.id;
+
+    if (!ownsCustomExercise) {
+      skippedExercises += 1;
+      continue;
+    }
+
+    const { data: createdExercise, error: exerciseError } = await supabase
+      .from("workout_exercises")
+      .insert({
+        workout_id: workoutId,
+        user_id: user.id,
+        public_exercise_id: routineExercise.public_exercise_id,
+        custom_exercise_id: ownsCustomExercise
+          ? routineExercise.custom_exercise_id
+          : null,
+        notes: routineExercise.notes ?? null,
+        order_index: routineExercise.order_index,
+      })
+      .select("id")
+      .single();
+
+    if (exerciseError || !createdExercise?.id) {
+      throw new Error(
+        exerciseError?.message ?? "Failed to add exercise to workout"
+      );
+    }
+
+    const sets = routineExercise.routine_sets ?? [];
+    if (!sets || sets.length === 0) {
+      continue;
+    }
+
+    for (const set of sets) {
+      const { error: setError } = await supabase.from("exercise_sets").insert({
+        workout_exercise_id: (createdExercise as any).id,
+        user_id: user.id,
+        set_number: set.set_number,
+        reps: set.reps ?? null,
+        weight: set.weight ?? null,
+        duration: set.duration ?? null,
+        distance: set.distance ?? null,
+        notes: set.notes ?? null,
+      });
+
+      if (setError) {
+        throw new Error(setError.message ?? "Failed to add set to workout");
+      }
+    }
+  }
+
+  revalidatePath("/workouts");
+  return { id: workoutId, skippedExercises };
+}
