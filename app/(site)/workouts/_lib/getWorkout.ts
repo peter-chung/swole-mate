@@ -54,7 +54,7 @@ export async function getWorkoutWithRelations(
     .select(
       `
         id, user_id, date, name, notes, status, started_at, ended_at, created_at,
-        user:users ( id, username, full_name ),
+        user:profiles ( id, username, full_name ),
         workout_exercises (
           id, public_exercise_id, custom_exercise_id, order_index, notes,
           exercise_sets ( id, set_number, reps, weight, duration, distance, notes )

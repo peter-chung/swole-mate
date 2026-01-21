@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     .select(
       `
       id, user_id, date, name, notes, status, started_at, ended_at, created_at,
-      user:users ( id, username, full_name )
+      user:profiles ( id, username, full_name )
     `
     )
     .eq("user_id", user.id)

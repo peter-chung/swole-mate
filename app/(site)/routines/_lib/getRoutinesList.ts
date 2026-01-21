@@ -28,7 +28,7 @@ export async function getRoutinesList(): Promise<RoutineWithOwner[]> {
     .select(
       `
         id, user_id, date, name, notes, status, created_at,
-        user:users ( id, username, full_name )
+        user:profiles ( id, username, full_name )
       `
     )
     .eq("user_id", user.id)
