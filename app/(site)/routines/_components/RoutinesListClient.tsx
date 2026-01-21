@@ -25,7 +25,11 @@ export default function RoutinesListClient({ initialRoutines = [] }: Props) {
       setLoading(true);
       const res = await fetch("/api/routines", { method: "GET" });
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
+      if (res.status === 401) {
+        setRoutines([]);
+        return;
+      }
+      if (!res.ok) throw new Error(result?.error || "Failed to fetch routines");
       setRoutines(result.data ?? []);
     } catch (error) {
       console.error("Error fetching routines:", error);
