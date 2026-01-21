@@ -23,15 +23,6 @@ export async function GET(req: Request) {
   const limit = Number(searchParams.get("limit") || 25);
   const offset = Number(searchParams.get("offset") || 0);
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   // base query
   const query = supabase
     .from("workouts")
@@ -41,7 +32,6 @@ export async function GET(req: Request) {
       user:profiles ( id, username, full_name )
     `
     )
-    .eq("user_id", user.id)
     .order("date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false, nullsFirst: false })
     .range(offset, offset + limit - 1);

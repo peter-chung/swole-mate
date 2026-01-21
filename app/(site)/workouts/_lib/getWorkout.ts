@@ -42,13 +42,6 @@ export async function getWorkoutWithRelations(
   if (!workoutId) return null;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) return null;
-
   const { data, error } = await supabase
     .from("workouts")
     .select(
@@ -62,7 +55,6 @@ export async function getWorkoutWithRelations(
       `
     )
     .eq("id", workoutId)
-    .eq("user_id", user.id)
     .single();
 
   if (error || !data) return null;

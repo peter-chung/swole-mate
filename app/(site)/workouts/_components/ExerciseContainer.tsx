@@ -2,35 +2,40 @@ import React from "react";
 import Link from "next/link";
 import type { WorkoutWithRelations } from "../_lib/getWorkout";
 
-type Props = { workout: WorkoutWithRelations };
+type Props = {
+  workout: WorkoutWithRelations;
+  canManageExercises: boolean;
+};
 
-const WorkoutExercisesDetails = ({ workout }: Props) => {
+const WorkoutExercisesDetails = ({ workout, canManageExercises }: Props) => {
   return (
     <div>
       <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
           Exercises
         </h2>
-        <Link
-          href={`/workouts/${workout.id}/exercises/edit`}
-          className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4"
+        {canManageExercises && (
+          <Link
+            href={`/workouts/${workout.id}/exercises/edit`}
+            className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
           >
-            <path d="M4.5 9.75v4.5M19.5 9.75v4.5" />
-            <path d="M7.5 6.75v10.5M16.5 6.75v10.5" />
-            <path d="M9.75 12h4.5" />
-          </svg>
-          <span>Manage exercises</span>
-        </Link>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="M4.5 9.75v4.5M19.5 9.75v4.5" />
+              <path d="M7.5 6.75v10.5M16.5 6.75v10.5" />
+              <path d="M9.75 12h4.5" />
+            </svg>
+            <span>Manage exercises</span>
+          </Link>
+        )}
       </div>
       {workout.workout_exercises && workout.workout_exercises.length > 0 ? (
         <ul className="grid grid-cols-1 gap-3">
@@ -106,28 +111,30 @@ const WorkoutExercisesDetails = ({ workout }: Props) => {
         <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
           <p className="font-medium">No exercises yet</p>
           <p className="text-sm">Add your first exercise to this workout.</p>
-          <div className="mt-4">
-            <Link
-              href={`/workouts/${workout.id}/exercises/edit`}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
+          {canManageExercises && (
+            <div className="mt-4">
+              <Link
+                href={`/workouts/${workout.id}/exercises/edit`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
               >
-                <path d="M4.5 9.75v4.5M19.5 9.75v4.5" />
-                <path d="M7.5 6.75v10.5M16.5 6.75v10.5" />
-                <path d="M9.75 12h4.5" />
-              </svg>
-              <span>Manage exercises</span>
-            </Link>
-          </div>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <path d="M4.5 9.75v4.5M19.5 9.75v4.5" />
+                  <path d="M7.5 6.75v10.5M16.5 6.75v10.5" />
+                  <path d="M9.75 12h4.5" />
+                </svg>
+                <span>Manage exercises</span>
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>

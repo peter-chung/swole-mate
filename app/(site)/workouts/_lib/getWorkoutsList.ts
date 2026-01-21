@@ -16,15 +16,6 @@ export type WorkoutWithOwner = WorkoutRow & {
 export async function getWorkoutsList(): Promise<WorkoutWithOwner[]> {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return [];
-  }
-
   const { data, error } = await supabase
     .from("workouts")
     .select(
@@ -33,7 +24,6 @@ export async function getWorkoutsList(): Promise<WorkoutWithOwner[]> {
         user:profiles ( id, username, full_name )
       `
     )
-    .eq("user_id", user.id)
     .order("date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false, nullsFirst: false });
 
