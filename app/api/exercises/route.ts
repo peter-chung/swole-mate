@@ -27,12 +27,7 @@ export async function GET(req: Request) {
 
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   let query = supabase
     .from("available_exercises")
@@ -40,6 +35,10 @@ export async function GET(req: Request) {
     .order("source", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true })
     .range(offset, offset + limit - 1);
+
+  if (!user) {
+    query = query.eq("source", "public");
+  }
 
   if (search) {
     const term = search.replace(/,/g, ""); // avoid comma breaking the OR filter

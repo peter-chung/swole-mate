@@ -10,12 +10,7 @@ export async function getInitialExercises(searchTerm = ""): Promise<{
 
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return { items: [], count: 0 };
-  }
 
   let query = supabase
     .from("available_exercises")
@@ -23,6 +18,10 @@ export async function getInitialExercises(searchTerm = ""): Promise<{
     .order("source", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true })
     .range(0, EXERCISES_PAGE_SIZE - 1);
+
+  if (!user) {
+    query = query.eq("source", "public");
+  }
 
   if (searchTerm) {
     const term = searchTerm.replace(/,/g, "");
