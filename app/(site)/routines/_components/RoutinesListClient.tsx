@@ -12,9 +12,15 @@ type Routine = Tables<"routines"> & {
   user?: { id: string; username?: string | null; full_name?: string | null };
 };
 
-type Props = { initialRoutines?: RoutineWithOwner[] };
+type Props = {
+  initialRoutines?: RoutineWithOwner[];
+  isAuthenticated: boolean;
+};
 
-export default function RoutinesListClient({ initialRoutines = [] }: Props) {
+export default function RoutinesListClient({
+  initialRoutines = [],
+  isAuthenticated,
+}: Props) {
   const [routines, setRoutines] = useState<Routine[]>(initialRoutines);
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +45,8 @@ export default function RoutinesListClient({ initialRoutines = [] }: Props) {
   };
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const channel = supabase
       .channel("routines-changes")
       .on(
@@ -64,7 +72,7 @@ export default function RoutinesListClient({ initialRoutines = [] }: Props) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [isAuthenticated, supabase]);
 
   return (
     <div className="py-6">
@@ -72,15 +80,30 @@ export default function RoutinesListClient({ initialRoutines = [] }: Props) {
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
           Routines
         </h1>
-        <Link
-          href="/routines/new"
-          className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-        >
-          + Create Routine
-        </Link>
+        {isAuthenticated ? (
+          <Link
+            href="/routines/new"
+            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+          >
+            + Create Routine
+          </Link>
+        ) : null}
       </div>
 
-      {loading ? (
+      {!isAuthenticated ? (
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
+          <p className="font-medium">🔐 Log in or create an account to create routines.</p>
+          <p className="text-sm">💾 Your routines are saved to your account.</p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/login"
+              className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+            >
+              Log in
+            </Link>
+          </div>
+        </div>
+      ) : loading ? (
         <LoadingSpinner className="mt-6" />
       ) : routines.length > 0 ? (
         <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
