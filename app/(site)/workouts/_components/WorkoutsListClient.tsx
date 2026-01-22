@@ -9,9 +9,10 @@ import type { WorkoutWithOwner } from "../_lib/getWorkoutsList";
 
 type Props = {
   initialWorkouts: WorkoutWithOwner[];
+  isAuthenticated: boolean;
 };
 
-const WorkoutsListClient = ({ initialWorkouts }: Props) => {
+const WorkoutsListClient = ({ initialWorkouts, isAuthenticated }: Props) => {
   const [workouts, setWorkouts] = useState(initialWorkouts);
   const [loading, setLoading] = useState(false);
 
@@ -63,12 +64,21 @@ const WorkoutsListClient = ({ initialWorkouts }: Props) => {
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
           Workouts
         </h1>
-        <Link
-          href="/workouts/new"
-          className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-        >
-          + Create Workout
-        </Link>
+        {isAuthenticated ? (
+          <Link
+            href="/workouts/new"
+            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+          >
+            + Create Workout
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+          >
+            🔑 Log In to Create a Workout
+          </Link>
+        )}
       </div>
 
       {loading ? (
@@ -79,7 +89,7 @@ const WorkoutsListClient = ({ initialWorkouts }: Props) => {
             <WorkoutCard workout={workout} key={workout.id} />
           ))}
         </ul>
-      ) : (
+      ) : isAuthenticated ? (
         <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
           <div className="text-3xl mb-2">🗓️</div>
           <p className="font-medium">No workouts yet</p>
@@ -90,6 +100,23 @@ const WorkoutsListClient = ({ initialWorkouts }: Props) => {
               className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
             >
               Create Workout
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
+          <p className="font-medium">
+            Log in or create an account to build your workouts.
+          </p>
+          <p className="text-sm">
+            Your workouts are saved to your account and available anywhere.
+          </p>
+          <div className="mt-4">
+            <Link
+              href="/login"
+              className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+            >
+              Log In
             </Link>
           </div>
         </div>
