@@ -39,17 +39,17 @@ const WorkoutsListClient = ({ initialWorkouts, isAuthenticated }: Props) => {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "workouts" },
-        () => fetchWorkouts()
+        () => fetchWorkouts(),
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "workouts" },
-        () => fetchWorkouts()
+        () => fetchWorkouts(),
       )
       .on(
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "workouts" },
-        () => fetchWorkouts()
+        () => fetchWorkouts(),
       )
       .subscribe();
 
@@ -76,7 +76,7 @@ const WorkoutsListClient = ({ initialWorkouts, isAuthenticated }: Props) => {
             href="/login"
             className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
           >
-            🔑 Log In to Create a Workout
+            🔐 Log In to Create a Workout
           </Link>
         )}
       </div>
