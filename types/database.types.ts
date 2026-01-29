@@ -441,34 +441,25 @@ export type Database = {
         Row: {
           created_at: string
           date: string
-          ended_at: string | null
           id: string
           name: string | null
           notes: string | null
-          started_at: string | null
-          status: string
           user_id: string
         }
         Insert: {
           created_at?: string
           date?: string
-          ended_at?: string | null
           id?: string
           name?: string | null
           notes?: string | null
-          started_at?: string | null
-          status?: string
           user_id: string
         }
         Update: {
           created_at?: string
           date?: string
-          ended_at?: string | null
           id?: string
           name?: string | null
           notes?: string | null
-          started_at?: string | null
-          status?: string
           user_id?: string
         }
         Relationships: [

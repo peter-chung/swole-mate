@@ -42,11 +42,6 @@ export default async function EditWorkoutPage({ params }: PageProps) {
           ) : (
             workout.date && <span className="truncate">{workout.date}</span>
           )}
-          {workout.status && (
-            <span className="inline-flex items-center rounded-md border border-gray-300 px-2 py-0.5 text-xs text-gray-700 dark:border-gray-700 dark:text-gray-300">
-              {workout.status}
-            </span>
-          )}
         </div>
       </header>
 

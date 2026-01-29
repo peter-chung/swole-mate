@@ -55,15 +55,6 @@ const UpdateWorkoutForm = ({ workout }: Props) => {
           ? updatedWorkout.notes
           : updatedWorkout.notes;
     }
-    if (updatedWorkout.status !== undefined) {
-      sanitized.status = updatedWorkout.status;
-    }
-    if (updatedWorkout.ended_at !== undefined) {
-      sanitized.ended_at = updatedWorkout.ended_at;
-    }
-    if (updatedWorkout.started_at !== undefined) {
-      sanitized.started_at = updatedWorkout.started_at;
-    }
 
     startUpdate(async () => {
       try {

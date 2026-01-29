@@ -51,7 +51,6 @@ export async function createWorkoutAction(payload: {
 
   const insertPayload: WorkoutInsert = {
     user_id: user.id,
-    status: "draft",
     name: payload.name?.trim() || null,
     notes: payload.notes?.trim() || null,
     date: payload.date || new Date().toISOString().slice(0, 10),
@@ -83,11 +82,8 @@ export async function updateWorkoutAction(
 
   const updates = {
     ...(payload.name !== undefined && { name: payload.name }),
-    ...(payload.status !== undefined && { status: payload.status }),
     ...(payload.date !== undefined && { date: payload.date }),
     ...(payload.notes !== undefined && { notes: payload.notes }),
-    ...(payload.started_at !== undefined && { started_at: payload.started_at }),
-    ...(payload.ended_at !== undefined && { ended_at: payload.ended_at }),
   };
 
   if (Object.keys(updates).length === 0) {
@@ -99,7 +95,7 @@ export async function updateWorkoutAction(
     .update(updates)
     .eq("id", workoutId)
     .eq("user_id", user.id)
-    .select("id, name, status, date, notes, ended_at")
+    .select("id, name, date, notes")
     .single();
 
   if (error) {
@@ -110,10 +106,7 @@ export async function updateWorkoutAction(
   revalidatePath(`${WORKOUTS_PATH}/${workoutId}`);
   revalidatePath(`${WORKOUTS_PATH}/${workoutId}/edit`);
 
-  return data as Pick<
-    WorkoutRow,
-    "id" | "name" | "status" | "date" | "notes" | "ended_at"
-  >;
+  return data as Pick<WorkoutRow, "id" | "name" | "date" | "notes">;
 }
 
 export async function deleteWorkoutAction(workoutId: string) {
@@ -175,7 +168,6 @@ export async function copyWorkoutAction(workoutId: string) {
     .from("workouts")
     .insert({
       user_id: user.id,
-      status: "draft",
       name: workoutSource.name
         ? `${workoutSource.name} (Copy)`
         : "Copied workout",

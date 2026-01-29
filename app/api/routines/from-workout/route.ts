@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const { data: workoutData, error: workoutError } = await supabase
       .from("workouts")
       .select(
-        `id, user_id, date, name, notes, status,
+        `id, user_id, date, name, notes,
         workout_exercises ( id, public_exercise_id, custom_exercise_id, order_index, notes,
           exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
         )`

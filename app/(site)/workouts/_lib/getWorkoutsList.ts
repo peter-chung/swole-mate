@@ -20,7 +20,7 @@ export async function getWorkoutsList(): Promise<WorkoutWithOwner[]> {
     .from("workouts")
     .select(
       `
-        id, user_id, date, name, notes, status, started_at, ended_at, created_at,
+        id, user_id, date, name, notes, created_at,
         user:profiles ( id, username, full_name )
       `
     )

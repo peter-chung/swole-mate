@@ -28,7 +28,7 @@ export async function GET(req: Request) {
     .from("workouts")
     .select(
       `
-      id, user_id, date, name, notes, status, started_at, ended_at, created_at,
+      id, user_id, date, name, notes, created_at,
       user:profiles ( id, username, full_name )
     `
     )
@@ -78,7 +78,6 @@ export async function POST(req: Request) {
 
   const payload: WorkoutInsert = {
     user_id: user.id,
-    status: "draft",
     name: body.name?.trim() || null,
     notes: body.notes?.trim() || null,
     date: body.date || new Date().toISOString().slice(0, 10),
