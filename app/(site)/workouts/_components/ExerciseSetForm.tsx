@@ -6,6 +6,7 @@ import React, {
   useState,
   forwardRef,
   useImperativeHandle,
+  useCallback,
 } from "react";
 import type { Tables } from "@/types/database.types";
 import { toast } from "react-hot-toast";
@@ -67,12 +68,29 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
     ref
   ) => {
     const [sets, setSets] = useState<LocalSet[]>([]);
+    const setsRef = useRef<LocalSet[]>([]);
+    const debounceTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+      {}
+    );
     const lastDirtyRef = useRef<boolean>(false);
     const dirtyCallbackRef = useRef<Props["onDirtyChange"]>();
 
     useEffect(() => {
       dirtyCallbackRef.current = onDirtyChange;
     }, [onDirtyChange]);
+
+    useEffect(() => {
+      setsRef.current = sets;
+    }, [sets]);
+
+    useEffect(() => {
+      return () => {
+        Object.values(debounceTimersRef.current).forEach((timer) =>
+          clearTimeout(timer)
+        );
+        debounceTimersRef.current = {};
+      };
+    }, []);
 
     useEffect(() => {
       const normalized: LocalSet[] = (exerciseSets ?? [])
@@ -140,6 +158,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       field: keyof Pick<LocalSet, "reps" | "weight" | "notes">,
       value: string
     ) => {
+      const currentId = setsRef.current[idx]?.id;
       setSets((prev) => {
         const copy = [...prev];
         const current = copy[idx];
@@ -161,6 +180,10 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         }
         return copy;
       });
+
+      if (currentId != null) {
+        scheduleAutoSave(currentId);
+      }
     };
 
     const hasMeaningfulValue = (set: LocalSet) => {
@@ -214,8 +237,12 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       return data as ApiExerciseSet;
     };
 
-    const persistSet = async (idx: number, opts?: { silent?: boolean }) => {
-      const target = sets[idx];
+    const persistSetById = useCallback(
+      async (setId: LocalSet["id"], opts?: { silent?: boolean }) => {
+        const currentSets = setsRef.current;
+        const idx = currentSets.findIndex((s) => s.id === setId);
+        if (idx < 0) return;
+        const target = currentSets[idx];
       if (!target) return;
       if (target._status === "saving" || target._status === "deleting") return;
       if (target._status !== "dirty" && target._status !== "new") return;
@@ -225,7 +252,9 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       }
 
       setSets((prev) =>
-        prev.map((s, i) => (i === idx ? { ...s, _status: "saving" } : s))
+        prev.map((s) =>
+          s.id === target.id ? { ...s, _status: "saving" } : s
+        )
       );
 
       try {
@@ -258,8 +287,8 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         toast.error(message);
 
         setSets((prev) =>
-          prev.map((s, i) =>
-            i === idx
+          prev.map((s) =>
+            s.id === target.id
               ? {
                   ...s,
                   _status: typeof target.id === "string" ? "new" : "dirty",
@@ -268,9 +297,24 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
           )
         );
       }
-    };
+      },
+      [hasMeaningfulValue, normalizeApiSet, onSaved, syncSet]
+    );
+
+    const scheduleAutoSave = useCallback(
+      (setId: LocalSet["id"]) => {
+        const key = String(setId);
+        const existing = debounceTimersRef.current[key];
+        if (existing) clearTimeout(existing);
+        debounceTimersRef.current[key] = setTimeout(() => {
+          void persistSetById(setId, { silent: true });
+        }, 800);
+      },
+      [persistSetById]
+    );
 
     const addSet = () => {
+      const newId = `new-${Date.now()}`;
       setSets((prev) => {
         const sortedByNumber = [...prev].sort(
           (a, b) => a.set_number - b.set_number
@@ -291,7 +335,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         return [
           ...prev,
           {
-            id: `new-${Date.now()}`,
+            id: newId,
             set_number: nextSetNumber,
             reps: previousSet?.reps ?? null,
             weight: previousSet?.weight ?? null,
@@ -302,6 +346,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
           },
         ];
       });
+      scheduleAutoSave(newId);
     };
 
     const deleteSet = async (idx: number) => {
@@ -403,7 +448,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
             className="flex items-end gap-3"
             onBlur={(event) => {
               if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                void persistSet(idx, { silent: true });
+                void persistSetById(set.id, { silent: true });
               }
             }}
           >

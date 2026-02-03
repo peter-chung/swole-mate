@@ -3,6 +3,7 @@
 ## Now (Priority Items)
 
 - [] Auto save logic for routines & workouts
+  - [] Revisit this not sure if i like this
 - [] Redirect and back buttons
 
 - [] Improve flow
