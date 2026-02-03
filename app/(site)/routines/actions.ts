@@ -479,7 +479,6 @@ export async function startWorkoutFromRoutineAction(routineId: string) {
     .from("workouts")
     .insert({
       user_id: user.id,
-      status: "draft",
       name: routineData.name || "Workout from routine",
       notes: routineData.notes ?? null,
       date: new Date().toISOString().slice(0, 10),

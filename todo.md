@@ -2,15 +2,19 @@
 
 ## Now (Priority Items)
 
+- [] Auto save issues?
+- [] Redirect and back buttons
+
 - [] Improve flow
 - [] Exercise type logic
-- [] Exercise naming standard
-  - [] Machine / plate loaded / bodyweight
-  - [] Equipment brands
 
 ## Next
 
-- [] Example
+- [] Publish to vercel
+
+- [] Exercise naming standard
+  - [] Machine / plate loaded / bodyweight
+  - [] Equipment brands
 
 ## Later (Nice to Have)
 
