@@ -411,17 +411,6 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
               Set {set.set_number}
             </div>
             <label className="flex items-center gap-2">
-              <span className="text-sm">Reps</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={set.reps ?? ""}
-                onChange={(e) => onChangeField(idx, "reps", e.target.value)}
-                disabled={set._status === "saving"}
-                className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-              />
-            </label>
-            <label className="flex items-center gap-2">
               <span className="text-sm">Weight</span>
               <input
                 type="number"
@@ -430,6 +419,17 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
                 onChange={(e) => onChangeField(idx, "weight", e.target.value)}
                 disabled={set._status === "saving"}
                 className="w-24 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="text-sm">Reps</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={set.reps ?? ""}
+                onChange={(e) => onChangeField(idx, "reps", e.target.value)}
+                disabled={set._status === "saving"}
+                className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
               />
             </label>
             <button
