@@ -53,7 +53,7 @@ export async function getRoutineWithRelations(
     .from("routines")
     .select(
       `
-        id, user_id, date, name, notes, status, started_at, ended_at, created_at,
+        id, user_id, date, name, notes, started_at, ended_at, created_at,
         user:profiles ( id, username, full_name ),
         routine_exercises (
           id, public_exercise_id, custom_exercise_id, order_index, notes,

@@ -23,7 +23,7 @@ export async function GET(req: Request, { params }: Params) {
     .from("routines")
     .select(
       `
-    id, user_id, date, name, notes, status, started_at, ended_at,
+    id, user_id, date, name, notes, started_at, ended_at,
     user:profiles ( id, username, full_name ),
     routine_exercises (
       id, public_exercise_id, custom_exercise_id, order_index, notes,
@@ -94,7 +94,6 @@ export async function PATCH(req: Request, { params }: Params) {
   const { routineId } = await params;
   const payload = (await req.json()) as Partial<{
     name: string;
-    status: string;
     date: string;
     notes: string;
     ended_at: string | null;
@@ -109,7 +108,6 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const updates: any = {
     ...(payload.name !== undefined && { name: payload.name }),
-    ...(payload.status !== undefined && { status: payload.status }),
     ...(payload.date !== undefined && { date: payload.date }),
     ...(payload.notes !== undefined && { notes: payload.notes }),
     ...(payload.ended_at !== undefined && { ended_at: payload.ended_at }),
@@ -120,7 +118,7 @@ export async function PATCH(req: Request, { params }: Params) {
   if (!hasUpdates) {
     const { data: existing, error: existingError } = await supabase
       .from("routines")
-      .select("id, name, status, date, notes, ended_at")
+      .select("id, name, date, notes, ended_at")
       .eq("id", routineId)
       .eq("user_id", user.id)
       .single();
@@ -139,7 +137,7 @@ export async function PATCH(req: Request, { params }: Params) {
     .update(updates)
     .eq("id", routineId)
     .eq("user_id", user.id)
-    .select("id, name, status, date, notes, ended_at")
+    .select("id, name, date, notes, ended_at")
     .single();
 
   if (error)

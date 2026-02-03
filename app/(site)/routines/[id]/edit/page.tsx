@@ -34,11 +34,6 @@ export default async function EditRoutinePage({ params }: PageProps) {
           ) : (
             routine.date && <span className="truncate">{routine.date}</span>
           )}
-          {routine.status && (
-            <span className="inline-flex items-center rounded-md border border-gray-300 px-2 py-0.5 text-xs text-gray-700 dark:border-gray-700 dark:text-gray-300">
-              {routine.status}
-            </span>
-          )}
         </div>
       </header>
 

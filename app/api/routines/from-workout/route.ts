@@ -48,7 +48,6 @@ export async function POST(req: Request) {
       user_id: user.id,
       name: title?.trim() ?? workout?.name ?? null,
       notes: workout?.notes ?? null,
-      status: "draft",
       date: workout?.date || new Date().toISOString().slice(0, 10),
     };
 

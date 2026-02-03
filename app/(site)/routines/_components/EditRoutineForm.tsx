@@ -47,8 +47,6 @@ export default function EditRoutineForm({ routine }: Props) {
         typeof updatedRoutine.notes === "string"
           ? updatedRoutine.notes
           : updatedRoutine.notes;
-    if (updatedRoutine.status !== undefined)
-      sanitized.status = updatedRoutine.status;
 
     startUpdate(async () => {
       try {

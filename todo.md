@@ -2,7 +2,7 @@
 
 ## Now (Priority Items)
 
-- [] Auto save issues?
+- [] Auto save logic for routines & workouts
 - [] Redirect and back buttons
 
 - [] Improve flow

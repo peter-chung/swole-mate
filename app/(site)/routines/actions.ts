@@ -38,7 +38,6 @@ export async function createRoutineAction(payload: {
 
   const insertPayload: RoutineInsert = {
     user_id: user.id,
-    status: "draft",
     name: payload.name?.trim() || null,
     notes: payload.notes?.trim() || null,
     date: payload.date || new Date().toISOString().slice(0, 10),
@@ -62,7 +61,6 @@ export async function updateRoutineAction(
   routineId: string,
   payload: Partial<{
     name: string;
-    status: string;
     date: string;
     notes: string;
     ended_at: string | null;
@@ -82,7 +80,6 @@ export async function updateRoutineAction(
 
   const updates: any = {
     ...(payload.name !== undefined && { name: payload.name }),
-    ...(payload.status !== undefined && { status: payload.status }),
     ...(payload.date !== undefined && { date: payload.date }),
     ...(payload.notes !== undefined && { notes: payload.notes }),
     ...(payload.ended_at !== undefined && { ended_at: payload.ended_at }),
@@ -93,7 +90,7 @@ export async function updateRoutineAction(
   if (!hasUpdates) {
     const { data: existing } = await supabase
       .from("routines")
-      .select("id, name, status, date, notes, ended_at")
+      .select("id, name, date, notes, ended_at")
       .eq("id", routineId)
       .eq("user_id", user.id)
       .single();
@@ -106,7 +103,7 @@ export async function updateRoutineAction(
     .update(updates)
     .eq("id", routineId)
     .eq("user_id", user.id)
-    .select("id, name, status, date, notes, ended_at")
+    .select("id, name, date, notes, ended_at")
     .single();
 
   if (error) {

@@ -27,7 +27,7 @@ export async function getRoutinesList(): Promise<RoutineWithOwner[]> {
     .from("routines")
     .select(
       `
-        id, user_id, date, name, notes, status, created_at,
+        id, user_id, date, name, notes, created_at,
         user:profiles ( id, username, full_name )
       `
     )

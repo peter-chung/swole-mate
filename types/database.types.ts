@@ -340,7 +340,6 @@ export type Database = {
           name: string | null
           notes: string | null
           started_at: string | null
-          status: string
           user_id: string
         }
         Insert: {
@@ -351,7 +350,6 @@ export type Database = {
           name?: string | null
           notes?: string | null
           started_at?: string | null
-          status?: string
           user_id: string
         }
         Update: {
@@ -362,7 +360,6 @@ export type Database = {
           name?: string | null
           notes?: string | null
           started_at?: string | null
-          status?: string
           user_id?: string
         }
         Relationships: [
