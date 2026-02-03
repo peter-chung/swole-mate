@@ -63,11 +63,17 @@ export default function RoutineExerciseContainer({ routine }: Props) {
                 </div>
 
                 {re.routine_sets && re.routine_sets.length > 0 && (
-                  <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {re.routine_sets
-                      .slice()
-                      .sort((a, b) => (a.set_number ?? 0) - (b.set_number ?? 0))
-                      .map((set) => (
+                  <div className="mt-1">
+                    <div className="mb-1">
+                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-200 dark:ring-neutral-700">
+                        Weight & Reps
+                      </span>
+                    </div>
+                    <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {re.routine_sets
+                        .slice()
+                        .sort((a, b) => (a.set_number ?? 0) - (b.set_number ?? 0))
+                        .map((set) => (
                         <li
                           key={set.id}
                           className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-neutral-900"
@@ -100,7 +106,8 @@ export default function RoutineExerciseContainer({ routine }: Props) {
                           )}
                         </li>
                       ))}
-                  </ul>
+                    </ul>
+                  </div>
                 )}
               </li>
             ))}
@@ -136,3 +143,4 @@ export default function RoutineExerciseContainer({ routine }: Props) {
     </div>
   );
 }
+

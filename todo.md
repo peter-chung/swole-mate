@@ -18,6 +18,8 @@
 
 ## Later (Nice to Have)
 
+- [] Create exercise button on exercise search bar under /workouts or maybe /routines
+  - [] handle redirect
 - [] Add loading skeletons to main list views
 - [] Add "favorite workouts" filter
 - [] Add filter buttons in exercise / workouts
