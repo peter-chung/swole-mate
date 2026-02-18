@@ -42,19 +42,12 @@ export async function getWorkoutWithRelations(
   if (!workoutId) return null;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) return null;
-
   const { data, error } = await supabase
     .from("workouts")
     .select(
       `
-        id, user_id, date, name, notes, status, started_at, ended_at, created_at,
-        user:users ( id, username, full_name ),
+        id, user_id, date, name, notes, created_at,
+        user:profiles ( id, username, full_name ),
         workout_exercises (
           id, public_exercise_id, custom_exercise_id, order_index, notes,
           exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
@@ -62,7 +55,6 @@ export async function getWorkoutWithRelations(
       `
     )
     .eq("id", workoutId)
-    .eq("user_id", user.id)
     .single();
 
   if (error || !data) return null;

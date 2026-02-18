@@ -14,9 +14,7 @@ const CreateWorkoutForm = () => {
   const router = useRouter();
 
   // Default date to today in local time (YYYY-MM-DD). Avoid UTC offset issues.
-  const today = new Date(
-    Date.now() - new Date().getTimezoneOffset() * 60000
-  )
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 10);
 
@@ -26,14 +24,11 @@ const CreateWorkoutForm = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const name =
-      typeof workout.name === "string" ? workout.name.trim() : "";
+    const name = typeof workout.name === "string" ? workout.name.trim() : "";
     if (!name) return;
 
     const date =
-      typeof workout.date === "string" && workout.date
-        ? workout.date
-        : today;
+      typeof workout.date === "string" && workout.date ? workout.date : today;
     const notes =
       typeof workout.notes === "string" && workout.notes.length > 0
         ? workout.notes
@@ -48,7 +43,7 @@ const CreateWorkoutForm = () => {
         });
 
         if (result?.id) {
-          router.push(`/workouts/${result.id}/edit`);
+          router.push(`/workouts/${result.id}/exercises/edit`);
         } else {
           router.push("/workouts");
         }
@@ -70,7 +65,12 @@ const CreateWorkoutForm = () => {
         placeholder="e.g., Push day!"
         name="name"
         autoComplete="off"
-        onChange={(e) => setWorkout((prev) => ({ ...prev, name: (e.target as HTMLInputElement).value }))}
+        onChange={(e) =>
+          setWorkout((prev) => ({
+            ...prev,
+            name: (e.target as HTMLInputElement).value,
+          }))
+        }
         required
       />
 
@@ -80,7 +80,12 @@ const CreateWorkoutForm = () => {
         type="date"
         name="date"
         defaultValue={today}
-        onChange={(e) => setWorkout((prev) => ({ ...prev, date: (e.target as HTMLInputElement).value }))}
+        onChange={(e) =>
+          setWorkout((prev) => ({
+            ...prev,
+            date: (e.target as HTMLInputElement).value,
+          }))
+        }
         required
       />
 
@@ -89,7 +94,12 @@ const CreateWorkoutForm = () => {
         label="Notes"
         name="notes"
         placeholder="Optional notes about this workout"
-        onChange={(e) => setWorkout((prev) => ({ ...prev, notes: (e.target as HTMLTextAreaElement).value }))}
+        onChange={(e) =>
+          setWorkout((prev) => ({
+            ...prev,
+            notes: (e.target as HTMLTextAreaElement).value,
+          }))
+        }
       />
 
       <div className="pt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

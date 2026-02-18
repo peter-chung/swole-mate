@@ -21,12 +21,14 @@ type Props = {
   initialExercises: AvailableExercise[];
   initialCount: number;
   initialQuery?: string;
+  isAuthenticated: boolean;
 };
 
 const ExercisesListClient = ({
   initialExercises,
   initialCount,
   initialQuery = "",
+  isAuthenticated,
 }: Props) => {
   const [exercises, setExercises] = useState<AvailableExercise[]>(
     initialExercises
@@ -205,12 +207,21 @@ const ExercisesListClient = ({
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
           Exercises
         </h1>
-        <Link
-          href="/exercises/new"
-          className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-        >
-          + Create Exercise
-        </Link>
+        {isAuthenticated ? (
+          <Link
+            href="/exercises/new"
+            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+          >
+            + Create Exercise
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+          >
+            🔐 Log In to Create an Exercise
+          </Link>
+        )}
       </div>
 
       <div className="mt-4">
@@ -258,15 +269,25 @@ const ExercisesListClient = ({
           <div className="text-3xl mb-2">🕵️‍♀️</div>
           <p className="font-medium">No exercises found</p>
           <p className="text-sm">
-            Try a different search or create a new exercise.
+            Try a different search or{" "}
+            {isAuthenticated ? "create a new exercise." : "log in to create one."}
           </p>
           <div className="mt-4">
-            <Link
-              href="/exercises/new"
-              className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-            >
-              Create Exercise
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/exercises/new"
+                className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+              >
+                Create Exercise
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+              >
+                🔐 Log In to Create an Exercise
+              </Link>
+            )}
           </div>
         </div>
       )}

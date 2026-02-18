@@ -2,6 +2,7 @@
 
 import React, { useCallback, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
@@ -24,6 +25,7 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
   const [savingAll, setSavingAll] = useState(false);
   const [confirmExerciseId, setConfirmExerciseId] = useState<number | null>(null);
 
+  const router = useRouter();
   const formRefs = useRef<Record<number, ExerciseSetFormHandle | null>>({});
   const [dirtyMap, setDirtyMap] = useState<Record<number, boolean>>({});
 
@@ -80,6 +82,37 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
     [fetchWorkout, workoutId]
   );
 
+  const handleSaveAll = useCallback(async () => {
+    if (!workout.workout_exercises?.length) return true;
+    try {
+      setSavingAll(true);
+      const saves = workout.workout_exercises.map(async (we) => {
+        const handle = formRefs.current[we.id];
+        if (handle?.save) {
+          try {
+            await handle.save({ silent: true });
+          } catch (e) {
+            throw new Error(
+              `Failed saving sets for exercise ${we.exercise?.name ?? we.id}`
+            );
+          }
+        }
+      });
+      await Promise.all(saves);
+      await fetchWorkout({ silent: true });
+      toast.success("All sets saved");
+      return true;
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to save some exercises"
+      );
+      return false;
+    } finally {
+      setSavingAll(false);
+    }
+  }, [fetchWorkout, workout.workout_exercises]);
+
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
       <header className="mb-4 sm:mb-6">
@@ -101,11 +134,6 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
           ) : (
             workout.date && <span className="truncate">{workout.date}</span>
           )}
-          {workout.status && (
-            <span className="inline-flex items-center rounded-md border border-gray-300 px-2 py-0.5 text-xs text-gray-700 dark:border-gray-700 dark:text-gray-300">
-              {workout.status}
-            </span>
-          )}
         </div>
       </header>
 
@@ -121,11 +149,6 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
                 </h2>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                   {workout.date && <span>{prettyDate(workout.date)}</span>}
-                  {workout.status && (
-                    <span className="inline-flex items-center rounded-md border border-gray-300 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-gray-700 dark:border-gray-700 dark:text-gray-300">
-                      {workout.status}
-                    </span>
-                  )}
                 </div>
               </div>
               <Link
@@ -149,37 +172,8 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={async () => {
-                  if (!workout.workout_exercises?.length) return;
-                  try {
-                    setSavingAll(true);
-                    const saves = workout.workout_exercises.map(async (we) => {
-                      const handle = formRefs.current[we.id];
-                      if (handle?.save) {
-                        try {
-                          await handle.save({ silent: true });
-                        } catch (e) {
-                          throw new Error(
-                            `Failed saving sets for exercise ${
-                              we.exercise?.name ?? we.id
-                            }`
-                          );
-                        }
-                      }
-                    });
-                    await Promise.all(saves);
-                    await fetchWorkout({ silent: true });
-                    toast.success("All sets saved");
-                  } catch (err) {
-                    console.error(err);
-                    toast.error(
-                      err instanceof Error
-                        ? err.message
-                        : "Failed to save some exercises"
-                    );
-                  } finally {
-                    setSavingAll(false);
-                  }
+                onClick={() => {
+                  void handleSaveAll();
                 }}
                 disabled={savingAll || loading || !anyDirty}
                 className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
@@ -189,6 +183,23 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
                   : anyDirty
                   ? "Save All Sets"
                   : "No Changes"}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!anyDirty) {
+                    router.push(`/workouts/${String(workout.id)}`);
+                    return;
+                  }
+                  const ok = await handleSaveAll();
+                  if (ok) {
+                    router.push(`/workouts/${String(workout.id)}`);
+                  }
+                }}
+                disabled={savingAll || loading}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+              >
+                {anyDirty ? "Save & Exit" : "Exit"}
               </button>
               <button
                 type="button"

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
 import WorkoutDetailCard from "../_components/WorkoutDetailCard";
 import ExerciseContainer from "../_components/ExerciseContainer";
 import { getWorkoutWithRelations } from "../_lib/getWorkout";
@@ -13,6 +14,14 @@ export default async function WorkoutPage({ params }: PageProps) {
   const workout = await getWorkoutWithRelations(id);
 
   if (!workout) notFound();
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isAuthenticated = Boolean(user);
+  const isOwner = Boolean(user && workout.user_id && workout.user_id === user.id);
 
   const ownerName =
     workout.user?.username ?? workout.user?.full_name ?? "Unknown";
@@ -29,8 +38,17 @@ export default async function WorkoutPage({ params }: PageProps) {
         </Link>
 
         <div className="mt-3 space-y-6">
-          <WorkoutDetailCard workout={workout} ownerName={ownerName} />
-          <ExerciseContainer workout={workout} />
+          <WorkoutDetailCard
+            workout={workout}
+            ownerName={ownerName}
+            canEdit={isAuthenticated && isOwner}
+            canCopy={isAuthenticated}
+            canSaveAsRoutine={isAuthenticated}
+          />
+          <ExerciseContainer
+            workout={workout}
+            canManageExercises={isAuthenticated && isOwner}
+          />
         </div>
       </div>
     </div>
