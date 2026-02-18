@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
@@ -31,6 +31,9 @@ const ManageExercisesClient = ({
     number[]
   >([]);
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
+  const [openActionsExerciseId, setOpenActionsExerciseId] = useState<
+    number | null
+  >(null);
 
   const router = useRouter();
   const formRefs = useRef<Record<number, ExerciseSetFormHandle | null>>({});
@@ -178,6 +181,30 @@ const ManageExercisesClient = ({
     }
   }, [anyDirty, handleSaveAll, router, workout.id]);
 
+  useEffect(() => {
+    if (openActionsExerciseId == null) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (!target?.closest("[data-exercise-actions-menu]")) {
+        setOpenActionsExerciseId(null);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenActionsExerciseId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openActionsExerciseId]);
+
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
       <header className="mb-4 sm:mb-6">
@@ -257,16 +284,41 @@ const ManageExercisesClient = ({
                         ID: {we.id}
                       </p>
                     </div>
-                    <div className="ml-auto shrink-0">
+                    <div className="relative ml-auto shrink-0" data-exercise-actions-menu>
                       <button
                         type="button"
-                        onClick={() => setConfirmExerciseId(we.id)}
+                        onClick={() =>
+                          setOpenActionsExerciseId((prev) =>
+                            prev === we.id ? null : we.id,
+                          )
+                        }
                         disabled={loading}
-                        className="inline-flex h-9 items-center justify-center rounded-md border border-red-700 bg-transparent px-3 text-sm font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
-                        aria-label="Remove exercise"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-lg leading-none text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-900/40"
+                        aria-label="Exercise actions"
+                        aria-haspopup="menu"
+                        aria-expanded={openActionsExerciseId === we.id}
+                        title="Exercise actions"
                       >
-                        Remove Exercise
+                        ⋮
                       </button>
+                      {openActionsExerciseId === we.id ? (
+                        <div
+                          className="absolute right-0 top-10 z-20 min-w-40 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-neutral-900"
+                          role="menu"
+                        >
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setOpenActionsExerciseId(null);
+                              setConfirmExerciseId(we.id);
+                            }}
+                            className="flex w-full items-center rounded px-2 py-1.5 text-left text-sm text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                          >
+                            Remove exercise
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   <div className="mt-3 sm:mt-4">
