@@ -24,9 +24,6 @@ const ManageExercisesClient = ({
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [savingAll, setSavingAll] = useState(false);
-  const [confirmExerciseId, setConfirmExerciseId] = useState<number | null>(
-    null,
-  );
   const [pendingDeletedExerciseIds, setPendingDeletedExerciseIds] = useState<
     number[]
   >([]);
@@ -311,7 +308,7 @@ const ManageExercisesClient = ({
                             role="menuitem"
                             onClick={() => {
                               setOpenActionsExerciseId(null);
-                              setConfirmExerciseId(we.id);
+                              stageDeleteExercise(we.id);
                             }}
                             className="flex w-full items-center rounded px-2 py-1.5 text-left text-sm text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
                           >
@@ -386,20 +383,6 @@ const ManageExercisesClient = ({
         }}
       />
 
-      <ConfirmDialog
-        open={!!confirmExerciseId}
-        title="Delete exercise?"
-        description="This exercise will be removed when you save changes."
-        destructive
-        confirmLabel="Delete"
-        confirmLoading={false}
-        onCancel={() => setConfirmExerciseId(null)}
-        onConfirm={() => {
-          if (!confirmExerciseId) return;
-          stageDeleteExercise(confirmExerciseId);
-          setConfirmExerciseId(null);
-        }}
-      />
       <ConfirmDialog
         open={confirmDiscardOpen}
         title="Discard unsaved changes?"
