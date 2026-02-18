@@ -64,7 +64,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
   ) => {
     const [sets, setSets] = useState<LocalSet[]>([]);
     const lastDirtyRef = useRef<boolean>(false);
-    const dirtyCallbackRef = useRef<Props["onDirtyChange"]>();
+    const dirtyCallbackRef = useRef<Props["onDirtyChange"]>(undefined);
 
     useEffect(() => {
       dirtyCallbackRef.current = onDirtyChange;

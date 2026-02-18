@@ -73,7 +73,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       {}
     );
     const lastDirtyRef = useRef<boolean>(false);
-    const dirtyCallbackRef = useRef<Props["onDirtyChange"]>();
+    const dirtyCallbackRef = useRef<Props["onDirtyChange"]>(undefined);
 
     useEffect(() => {
       dirtyCallbackRef.current = onDirtyChange;

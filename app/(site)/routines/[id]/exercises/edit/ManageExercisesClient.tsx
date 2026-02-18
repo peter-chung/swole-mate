@@ -10,7 +10,7 @@ import RoutineSetForm, {
   RoutineSetFormHandle,
 } from "../../../_components/RoutineSetForm";
 import { prettyDate } from "@/utils/format";
-import type { RoutineWithRelations } from "../../_lib/getRoutine";
+import type { RoutineWithRelations } from "../../../_lib/getRoutine";
 import { deleteRoutineExerciseAction } from "../../../actions";
 
 type ManageExercisesClientProps = {

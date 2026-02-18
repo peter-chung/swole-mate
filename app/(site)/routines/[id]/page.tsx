@@ -35,3 +35,4 @@ export default async function RoutineDetailPage({ params }: Props) {
       </div>
     </div>
   );
+}
