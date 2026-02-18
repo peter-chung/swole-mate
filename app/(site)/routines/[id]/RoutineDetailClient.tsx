@@ -38,7 +38,9 @@ export default function RoutineDetailClient({
       }
     }
     load();
-    return () => (cancelled = true);
+    return () => {
+      cancelled = true;
+    };
   }, [routineId]);
 
   if (loading) return <p>Loading...</p>;

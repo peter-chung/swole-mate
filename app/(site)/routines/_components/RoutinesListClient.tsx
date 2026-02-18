@@ -5,12 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import RoutineCard from "./RoutineCard";
-import type { Tables } from "@/types/database.types";
 import type { RoutineWithOwner } from "../_lib/getRoutinesList";
-
-type Routine = Tables<"routines"> & {
-  user?: { id: string; username?: string | null; full_name?: string | null };
-};
 
 type Props = {
   initialRoutines?: RoutineWithOwner[];
@@ -21,7 +16,7 @@ export default function RoutinesListClient({
   initialRoutines = [],
   isAuthenticated,
 }: Props) {
-  const [routines, setRoutines] = useState<Routine[]>(initialRoutines);
+  const [routines, setRoutines] = useState<RoutineWithOwner[]>(initialRoutines);
   const [loading, setLoading] = useState(false);
 
   const supabase = useMemo(() => createClient(), []);
