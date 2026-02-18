@@ -6,7 +6,6 @@ import React, {
   useState,
   forwardRef,
   useImperativeHandle,
-  useCallback,
 } from "react";
 import type { Tables } from "@/types/database.types";
 import { toast } from "react-hot-toast";
@@ -49,7 +48,7 @@ type LocalSet = {
   duration: string | null;
   distance: number | null;
   notes: string | null;
-  _status?: "clean" | "dirty" | "new" | "deleting" | "saving";
+  _status?: "clean" | "dirty" | "new" | "saving";
 };
 
 type ApiExerciseSet = {
@@ -68,29 +67,13 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
     ref
   ) => {
     const [sets, setSets] = useState<LocalSet[]>([]);
-    const setsRef = useRef<LocalSet[]>([]);
-    const debounceTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
-      {}
-    );
+    const [deletedSetIds, setDeletedSetIds] = useState<number[]>([]);
     const lastDirtyRef = useRef<boolean>(false);
     const dirtyCallbackRef = useRef<Props["onDirtyChange"]>(undefined);
 
     useEffect(() => {
       dirtyCallbackRef.current = onDirtyChange;
     }, [onDirtyChange]);
-
-    useEffect(() => {
-      setsRef.current = sets;
-    }, [sets]);
-
-    useEffect(() => {
-      return () => {
-        Object.values(debounceTimersRef.current).forEach((timer) =>
-          clearTimeout(timer)
-        );
-        debounceTimersRef.current = {};
-      };
-    }, []);
 
     useEffect(() => {
       const normalized: LocalSet[] = (exerciseSets ?? [])
@@ -139,26 +122,26 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
         return normalized;
       });
+      setDeletedSetIds([]);
     }, [exerciseSets]);
 
     // Report dirty-state to parent when it changes
     useEffect(() => {
-      const hasDirty = sets.some(
-        (s) => s._status === "dirty" || s._status === "new"
-      );
+      const hasDirty =
+        sets.some((s) => s._status === "dirty" || s._status === "new") ||
+        deletedSetIds.length > 0;
       if (lastDirtyRef.current !== hasDirty) {
         lastDirtyRef.current = hasDirty;
         const callback = dirtyCallbackRef.current;
         if (typeof callback === "function") callback(hasDirty);
       }
-    }, [sets]);
+    }, [deletedSetIds.length, sets]);
 
     const onChangeField = (
       idx: number,
       field: keyof Pick<LocalSet, "reps" | "weight" | "notes">,
       value: string
     ) => {
-      const currentId = setsRef.current[idx]?.id;
       setSets((prev) => {
         const copy = [...prev];
         const current = copy[idx];
@@ -180,10 +163,6 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         }
         return copy;
       });
-
-      if (currentId != null) {
-        scheduleAutoSave(currentId);
-      }
     };
 
     const hasMeaningfulValue = (set: LocalSet) => {
@@ -224,95 +203,6 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       notes: set.notes,
     });
 
-    const syncSet = async (set: LocalSet): Promise<ApiExerciseSet> => {
-      const payload = buildPayload(set);
-
-      const data = await saveExerciseSetAction({
-        workoutId,
-        workoutExerciseId,
-        setId: typeof set.id === "number" ? set.id : undefined,
-        payload,
-      });
-
-      return data as ApiExerciseSet;
-    };
-
-    const persistSetById = useCallback(
-      async (setId: LocalSet["id"], opts?: { silent?: boolean }) => {
-        const currentSets = setsRef.current;
-        const idx = currentSets.findIndex((s) => s.id === setId);
-        if (idx < 0) return;
-        const target = currentSets[idx];
-      if (!target) return;
-      if (target._status === "saving" || target._status === "deleting") return;
-      if (target._status !== "dirty" && target._status !== "new") return;
-
-      if (typeof target.id === "string" && !hasMeaningfulValue(target)) {
-        return;
-      }
-
-      setSets((prev) =>
-        prev.map((s) =>
-          s.id === target.id ? { ...s, _status: "saving" } : s
-        )
-      );
-
-      try {
-        const apiSet = await syncSet(target);
-        const normalized = normalizeApiSet(apiSet);
-
-        setSets((prev) => {
-          const out = [...prev];
-          const originalId = target.id;
-          const matchIndex = out.findIndex((s) => s.id === originalId);
-
-          if (matchIndex >= 0) {
-            out[matchIndex] = normalized;
-          } else {
-            out[idx] = normalized;
-          }
-
-          out.sort((a, b) => a.set_number - b.set_number);
-          return out;
-        });
-
-        if (!opts?.silent) {
-          toast.success("Set saved");
-          onSaved?.();
-        }
-      } catch (err) {
-        console.error(err);
-        const message =
-          err instanceof Error ? err.message : "Failed to save exercise set";
-        toast.error(message);
-
-        setSets((prev) =>
-          prev.map((s) =>
-            s.id === target.id
-              ? {
-                  ...s,
-                  _status: typeof target.id === "string" ? "new" : "dirty",
-                }
-              : s
-          )
-        );
-      }
-      },
-      [hasMeaningfulValue, normalizeApiSet, onSaved, syncSet]
-    );
-
-    const scheduleAutoSave = useCallback(
-      (setId: LocalSet["id"]) => {
-        const key = String(setId);
-        const existing = debounceTimersRef.current[key];
-        if (existing) clearTimeout(existing);
-        debounceTimersRef.current[key] = setTimeout(() => {
-          void persistSetById(setId, { silent: true });
-        }, 800);
-      },
-      [persistSetById]
-    );
-
     const addSet = () => {
       const newId = `new-${Date.now()}`;
       setSets((prev) => {
@@ -324,12 +214,9 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
             ? sortedByNumber[sortedByNumber.length - 1].set_number + 1
             : 1;
 
-        const lastNonDeleting = sortedByNumber.filter(
-          (set) => set._status !== "deleting"
-        );
         const previousSet =
-          lastNonDeleting.length > 0
-            ? lastNonDeleting[lastNonDeleting.length - 1]
+          sortedByNumber.length > 0
+            ? sortedByNumber[sortedByNumber.length - 1]
             : undefined;
 
         return [
@@ -346,44 +233,27 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
           },
         ];
       });
-      scheduleAutoSave(newId);
     };
 
-    const deleteSet = async (idx: number) => {
+    const deleteSet = (idx: number) => {
       const target = sets[idx];
       if (!target) return;
 
       // If the set is not yet persisted, just drop it locally
       if (typeof target.id === "string") {
         setSets((prev) => prev.filter((_, i) => i !== idx));
-        onSaved?.();
         return;
       }
 
-      try {
-        setSets((prev) =>
-          prev.map((s, i) => (i === idx ? { ...s, _status: "deleting" } : s))
-        );
-        await deleteExerciseSetAction({
-          workoutId,
-          workoutExerciseId,
-          setId: Number(target.id),
-        });
-        setSets((prev) => prev.filter((_, i) => i !== idx));
-        onSaved?.();
-      } catch (err) {
-        console.error(err);
-        toast.error(
-          err instanceof Error ? err.message : "Failed to delete set"
-        );
-        setSets((prev) =>
-          prev.map((s, i) => (i === idx ? { ...s, _status: "clean" } : s))
-        );
-      }
+      setDeletedSetIds((prev) =>
+        prev.includes(Number(target.id)) ? prev : [...prev, Number(target.id)]
+      );
+      setSets((prev) => prev.filter((_, i) => i !== idx));
     };
 
     const save = async (opts?: { silent?: boolean }) => {
       try {
+        const deletedSetIdsToPersist = [...deletedSetIds];
         const indicesToPersist = sets.reduce<Array<number>>((acc, set, idx) => {
           if (typeof set.id === "string" || set._status === "dirty") {
             if (typeof set.id === "string" && !hasMeaningfulValue(set)) {
@@ -394,7 +264,27 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
           return acc;
         }, []);
 
-        const results = await Promise.all(
+        const deleteResults = await Promise.allSettled(
+          deletedSetIdsToPersist.map(async (setId) => {
+            await deleteExerciseSetAction({
+              workoutId,
+              workoutExerciseId,
+              setId,
+            });
+            return setId;
+          })
+        );
+
+        const deletedSucceeded = new Set<number>(
+          deleteResults.flatMap((result) =>
+            result.status === "fulfilled" ? [result.value] : []
+          )
+        );
+        const deleteFailed = deleteResults.some(
+          (result) => result.status === "rejected"
+        );
+
+        const saveResults = await Promise.allSettled(
           indicesToPersist.map(async (idx) => {
             const target = sets[idx];
             const data = await saveExerciseSetAction({
@@ -407,9 +297,16 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
           })
         );
 
+        const saveSucceeded = saveResults.flatMap((result) =>
+          result.status === "fulfilled" ? [result.value] : []
+        );
+        const saveFailed = saveResults.some(
+          (result) => result.status === "rejected"
+        );
+
         setSets((prev) => {
           const out = [...prev];
-          for (const { idx, data } of results) {
+          for (const { idx, data } of saveSucceeded) {
             const normalized = normalizeApiSet(data);
             const originalId = prev[idx]?.id;
             const matchIndex = out.findIndex((s) => s.id === originalId);
@@ -423,6 +320,11 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
           out.sort((a, b) => a.set_number - b.set_number);
           return out;
         });
+        setDeletedSetIds((prev) => prev.filter((id) => !deletedSucceeded.has(id)));
+
+        if (deleteFailed || saveFailed) {
+          throw new Error("Failed to save some set changes");
+        }
 
         // Ensure parent clears dirty state immediately after a successful save
         if (lastDirtyRef.current) {
@@ -446,11 +348,6 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
           <div
             key={set.id}
             className="flex items-end gap-3"
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                void persistSetById(set.id, { silent: true });
-              }
-            }}
           >
             <div className="text-sm text-gray-600 dark:text-gray-400 w-14">
               Set {set.set_number}
@@ -481,15 +378,11 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
               type="button"
               onClick={() => deleteSet(idx)}
               className="ml-auto inline-flex items-center justify-center rounded-md border border-gray-300 px-2 py-1 text-sm hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-900/40"
-              disabled={set._status === "deleting" || set._status === "saving"}
+              disabled={set._status === "saving"}
               aria-label="Delete set"
               title="Delete set"
             >
-              {set._status === "deleting"
-                ? "Deleting…"
-                : set._status === "saving"
-                ? "Saving…"
-                : "✕"}
+              {set._status === "saving" ? "Saving..." : "X"}
             </button>
           </div>
         ))}

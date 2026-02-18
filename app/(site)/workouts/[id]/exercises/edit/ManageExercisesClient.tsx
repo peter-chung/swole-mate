@@ -17,13 +17,20 @@ type ManageExercisesClientProps = {
   workout: WorkoutWithRelations;
 };
 
-const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClientProps) => {
+const ManageExercisesClient = ({
+  workout: initialWorkout,
+}: ManageExercisesClientProps) => {
   const [workout, setWorkout] = useState(initialWorkout);
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [savingAll, setSavingAll] = useState(false);
-  const [confirmExerciseId, setConfirmExerciseId] = useState<number | null>(null);
+  const [confirmExerciseId, setConfirmExerciseId] = useState<number | null>(
+    null,
+  );
+  const [pendingDeletedExerciseIds, setPendingDeletedExerciseIds] = useState<
+    number[]
+  >([]);
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
 
   const router = useRouter();
   const formRefs = useRef<Record<number, ExerciseSetFormHandle | null>>({});
@@ -31,7 +38,8 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
 
   const workoutId = String(workout.id);
   const anyDirty = Boolean(
-    workout.workout_exercises?.some((we) => !!dirtyMap[we.id])
+    pendingDeletedExerciseIds.length > 0 ||
+    workout.workout_exercises?.some((we) => !!dirtyMap[we.id]),
   );
 
   const fetchWorkout = useCallback(
@@ -39,79 +47,136 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
       const silent = opts?.silent ?? false;
       try {
         if (!silent) setLoading(true);
-        const res = await fetch(`/api/workouts/${encodeURIComponent(workoutId)}`);
+        const res = await fetch(
+          `/api/workouts/${encodeURIComponent(workoutId)}`,
+        );
         const result = await res.json();
         if (!res.ok) throw new Error(result.error);
         setWorkout(result.data as WorkoutWithRelations);
         setDirtyMap({});
+        setPendingDeletedExerciseIds([]);
       } catch (err) {
         console.error("Error fetching workout:", err);
         toast.error(
-          err instanceof Error ? err.message : "Failed to refresh workout"
+          err instanceof Error ? err.message : "Failed to refresh workout",
         );
       } finally {
         if (!silent) setLoading(false);
       }
     },
-    [workoutId]
+    [workoutId],
   );
 
-  const handleDeleteExercise = useCallback(
+  const stageDeleteExercise = useCallback((workoutExerciseId: number) => {
+    if (!workoutExerciseId) return;
+    setPendingDeletedExerciseIds((prev) =>
+      prev.includes(workoutExerciseId) ? prev : [...prev, workoutExerciseId],
+    );
+    setWorkout((prev) => ({
+      ...prev,
+      workout_exercises: (prev.workout_exercises ?? []).filter(
+        (we) => we.id !== workoutExerciseId,
+      ),
+    }));
+    setDirtyMap((prev) => {
+      const next = { ...prev };
+      delete next[workoutExerciseId];
+      return next;
+    });
+  }, []);
+
+  const persistDeleteExercise = useCallback(
     async (workoutExerciseId: number) => {
-      if (!workoutExerciseId) return;
-      try {
-        setDeletingId(workoutExerciseId);
-        const res = await fetch(
-          `/api/workouts/${encodeURIComponent(
-            workoutId
-          )}/workout-exercises/${workoutExerciseId}`,
-          { method: "DELETE" }
-        );
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.error || "Failed to delete");
-        await fetchWorkout({ silent: true });
-      } catch (err) {
-        console.error("Error deleting workout exercise:", err);
-        toast.error(
-          err instanceof Error ? err.message : "Failed to delete exercise"
-        );
-      } finally {
-        setDeletingId(null);
-      }
+      const res = await fetch(
+        `/api/workouts/${encodeURIComponent(
+          workoutId,
+        )}/workout-exercises/${workoutExerciseId}`,
+        { method: "DELETE" },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Failed to delete exercise");
     },
-    [fetchWorkout, workoutId]
+    [workoutId],
   );
 
   const handleSaveAll = useCallback(async () => {
-    if (!workout.workout_exercises?.length) return true;
+    if (
+      !workout.workout_exercises?.length &&
+      pendingDeletedExerciseIds.length === 0
+    ) {
+      return true;
+    }
     try {
       setSavingAll(true);
-      const saves = workout.workout_exercises.map(async (we) => {
+      const deletionsToPersist = [...pendingDeletedExerciseIds];
+      const deletionResults = await Promise.allSettled(
+        deletionsToPersist.map((id) => persistDeleteExercise(id)),
+      );
+      const deletionSucceededIds = new Set<number>(
+        deletionResults.flatMap((result, idx) =>
+          result.status === "fulfilled" ? [deletionsToPersist[idx]] : [],
+        ),
+      );
+      const deletionFailed = deletionResults.some(
+        (result) => result.status === "rejected",
+      );
+      setPendingDeletedExerciseIds((prev) =>
+        prev.filter((id) => !deletionSucceededIds.has(id)),
+      );
+      if (deletionFailed) {
+        throw new Error("Failed to delete some exercises");
+      }
+
+      const saves = (workout.workout_exercises ?? []).map(async (we) => {
         const handle = formRefs.current[we.id];
         if (handle?.save) {
           try {
             await handle.save({ silent: true });
           } catch (e) {
             throw new Error(
-              `Failed saving sets for exercise ${we.exercise?.name ?? we.id}`
+              `Failed saving sets for exercise ${we.exercise?.name ?? we.id}`,
             );
           }
         }
       });
       await Promise.all(saves);
       await fetchWorkout({ silent: true });
-      toast.success("All sets saved");
+      toast.success("All changes saved");
       return true;
     } catch (err) {
       console.error(err);
       toast.error(
-        err instanceof Error ? err.message : "Failed to save some exercises"
+        err instanceof Error ? err.message : "Failed to save some exercises",
       );
       return false;
     } finally {
       setSavingAll(false);
     }
-  }, [fetchWorkout, workout.workout_exercises]);
+  }, [
+    fetchWorkout,
+    pendingDeletedExerciseIds,
+    persistDeleteExercise,
+    workout.workout_exercises,
+  ]);
+
+  const handleCancel = useCallback(() => {
+    if (!anyDirty) {
+      router.push(`/workouts/${String(workout.id)}`);
+      return;
+    }
+    setConfirmDiscardOpen(true);
+  }, [anyDirty, router, workout.id]);
+
+  const handleSaveAndExit = useCallback(async () => {
+    if (!anyDirty) {
+      router.push(`/workouts/${String(workout.id)}`);
+      return;
+    }
+    const ok = await handleSaveAll();
+    if (ok) {
+      router.push(`/workouts/${String(workout.id)}`);
+    }
+  }, [anyDirty, handleSaveAll, router, workout.id]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
@@ -165,50 +230,10 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
             )}
           </section>
 
-          <section className="mb-3 flex items-center justify-between">
+          <section className="mb-3">
             <h2 className="text-base font-medium text-gray-900 dark:text-white">
               Exercises
             </h2>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  void handleSaveAll();
-                }}
-                disabled={savingAll || loading || !anyDirty}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-              >
-                {savingAll
-                  ? "Saving All…"
-                  : anyDirty
-                  ? "Save All Sets"
-                  : "No Changes"}
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!anyDirty) {
-                    router.push(`/workouts/${String(workout.id)}`);
-                    return;
-                  }
-                  const ok = await handleSaveAll();
-                  if (ok) {
-                    router.push(`/workouts/${String(workout.id)}`);
-                  }
-                }}
-                disabled={savingAll || loading}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-              >
-                {anyDirty ? "Save & Exit" : "Exit"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(true)}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px cursor-pointer dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-              >
-                + Add Exercise
-              </button>
-            </div>
           </section>
 
           {workout.workout_exercises && workout.workout_exercises.length > 0 ? (
@@ -218,8 +243,8 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
                   key={we.id}
                   className="rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-5"
                 >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                    <div className="min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
                       <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">
                         {we.exercise?.name ?? "Exercise"}
                         {dirtyMap[we.id] ? (
@@ -232,14 +257,15 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
                         ID: {we.id}
                       </p>
                     </div>
-                    <div className="sm:ml-auto">
+                    <div className="ml-auto shrink-0">
                       <button
                         type="button"
                         onClick={() => setConfirmExerciseId(we.id)}
-                        disabled={deletingId === we.id || loading}
-                        className="inline-flex items-center rounded-md border border-red-700 bg-transparent px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
+                        disabled={loading}
+                        className="inline-flex h-9 items-center justify-center rounded-md border border-red-700 bg-transparent px-3 text-sm font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
+                        aria-label="Remove exercise"
                       >
-                        {deletingId === we.id ? "Deleting…" : "Delete Exercise"}
+                        Remove Exercise
                       </button>
                     </div>
                   </div>
@@ -267,6 +293,35 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
               No exercises yet. Use “Add Exercise” to begin.
             </div>
           )}
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px cursor-pointer dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+            >
+              + Add Exercise
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={savingAll || loading}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleSaveAndExit();
+                }}
+                disabled={savingAll || loading}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+              >
+                {savingAll ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
         </>
       )}
 
@@ -282,17 +337,27 @@ const ManageExercisesClient = ({ workout: initialWorkout }: ManageExercisesClien
       <ConfirmDialog
         open={!!confirmExerciseId}
         title="Delete exercise?"
-        description="This action is permanent and cannot be undone."
+        description="This exercise will be removed when you save changes."
         destructive
-        confirmLabel={
-          deletingId === confirmExerciseId ? "Deleting..." : "Delete"
-        }
-        confirmLoading={deletingId === confirmExerciseId}
+        confirmLabel="Delete"
+        confirmLoading={false}
         onCancel={() => setConfirmExerciseId(null)}
-        onConfirm={async () => {
+        onConfirm={() => {
           if (!confirmExerciseId) return;
-          await handleDeleteExercise(confirmExerciseId);
+          stageDeleteExercise(confirmExerciseId);
           setConfirmExerciseId(null);
+        }}
+      />
+      <ConfirmDialog
+        open={confirmDiscardOpen}
+        title="Discard unsaved changes?"
+        description="All unsaved edits and deletions on this page will be lost."
+        destructive
+        confirmLabel="Discard"
+        onCancel={() => setConfirmDiscardOpen(false)}
+        onConfirm={() => {
+          setConfirmDiscardOpen(false);
+          router.push(`/workouts/${String(workout.id)}`);
         }}
       />
     </div>
