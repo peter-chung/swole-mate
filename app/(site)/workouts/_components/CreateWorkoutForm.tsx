@@ -43,7 +43,7 @@ const CreateWorkoutForm = () => {
         });
 
         if (result?.id) {
-          router.push(`/workouts/${result.id}/exercises/edit`);
+          router.push(`/workouts/${result.id}/edit`);
         } else {
           router.push("/workouts");
         }

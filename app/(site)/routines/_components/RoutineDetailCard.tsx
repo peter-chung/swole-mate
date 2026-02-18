@@ -24,7 +24,7 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
         }
 
         if (result?.id) {
-          router.push(`/workouts/${result.id}/exercises/edit`);
+          router.push(`/workouts/${result.id}/edit`);
         }
       } catch (error) {
         console.error("Error starting workout from routine:", error);

@@ -47,7 +47,6 @@ export default async function WorkoutPage({ params }: PageProps) {
           />
           <ExerciseContainer
             workout={workout}
-            canManageExercises={isAuthenticated && isOwner}
           />
         </div>
       </div>

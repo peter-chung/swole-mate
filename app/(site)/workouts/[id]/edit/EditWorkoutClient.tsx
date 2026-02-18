@@ -4,30 +4,50 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { InputField, TextAreaField } from "@/app/_components/FormFields";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
-import AddWorkoutExerciseModal from "../../../_components/AddWorkoutExerciseModal";
+import AddWorkoutExerciseModal from "../../_components/AddWorkoutExerciseModal";
 import ExerciseSetForm, {
   ExerciseSetFormHandle,
-} from "../../../_components/ExerciseSetForm";
+} from "../../_components/ExerciseSetForm";
 import { prettyDate } from "@/utils/format";
-import type { WorkoutWithRelations } from "../../../_lib/getWorkout";
+import { deleteWorkoutAction, updateWorkoutAction } from "../../actions";
+import type { WorkoutWithRelations } from "../../_lib/getWorkout";
 
-type ManageExercisesClientProps = {
+type EditWorkoutClientProps = {
   workout: WorkoutWithRelations;
 };
 
-const ManageExercisesClient = ({
+type WorkoutDraft = {
+  name: string;
+  date: string;
+  notes: string;
+};
+
+const toDraft = (workout: WorkoutWithRelations): WorkoutDraft => ({
+  name: workout.name ?? "",
+  date: workout.date ?? "",
+  notes: workout.notes ?? "",
+});
+
+const EditWorkoutClient = ({
   workout: initialWorkout,
-}: ManageExercisesClientProps) => {
+}: EditWorkoutClientProps) => {
   const [workout, setWorkout] = useState(initialWorkout);
+  const [detailsDraft, setDetailsDraft] = useState<WorkoutDraft>(
+    toDraft(initialWorkout),
+  );
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [savingAll, setSavingAll] = useState(false);
+  const [deletingWorkout, setDeletingWorkout] = useState(false);
   const [pendingDeletedExerciseIds, setPendingDeletedExerciseIds] = useState<
     number[]
   >([]);
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
+  const [confirmDeleteWorkoutOpen, setConfirmDeleteWorkoutOpen] =
+    useState(false);
   const [openActionsExerciseId, setOpenActionsExerciseId] = useState<
     number | null
   >(null);
@@ -37,9 +57,15 @@ const ManageExercisesClient = ({
   const [dirtyMap, setDirtyMap] = useState<Record<number, boolean>>({});
 
   const workoutId = String(workout.id);
+  const detailsDirty =
+    detailsDraft.name !== (workout.name ?? "") ||
+    detailsDraft.date !== (workout.date ?? "") ||
+    detailsDraft.notes !== (workout.notes ?? "");
+
   const anyDirty = Boolean(
-    pendingDeletedExerciseIds.length > 0 ||
-    workout.workout_exercises?.some((we) => !!dirtyMap[we.id]),
+    detailsDirty ||
+      pendingDeletedExerciseIds.length > 0 ||
+      workout.workout_exercises?.some((we) => !!dirtyMap[we.id]),
   );
 
   const fetchWorkout = useCallback(
@@ -52,9 +78,10 @@ const ManageExercisesClient = ({
         );
         const result = await res.json();
         if (!res.ok) throw new Error(result.error);
+
         setWorkout(result.data as WorkoutWithRelations);
-        setDirtyMap({});
         setPendingDeletedExerciseIds([]);
+        setDirtyMap({});
       } catch (err) {
         console.error("Error fetching workout:", err);
         toast.error(
@@ -101,13 +128,39 @@ const ManageExercisesClient = ({
 
   const handleSaveAll = useCallback(async () => {
     if (
+      !anyDirty &&
       !workout.workout_exercises?.length &&
       pendingDeletedExerciseIds.length === 0
     ) {
       return true;
     }
+
     try {
       setSavingAll(true);
+
+      if (detailsDirty) {
+        const trimmedName = detailsDraft.name.trim();
+        if (!trimmedName) {
+          throw new Error("Workout name is required");
+        }
+        if (!detailsDraft.date) {
+          throw new Error("Workout date is required");
+        }
+
+        const payload = {
+          name: trimmedName,
+          date: detailsDraft.date,
+          notes: detailsDraft.notes,
+        };
+
+        await updateWorkoutAction(workoutId, payload);
+        setDetailsDraft({
+          name: payload.name,
+          date: payload.date,
+          notes: payload.notes ?? "",
+        });
+      }
+
       const deletionsToPersist = [...pendingDeletedExerciseIds];
       const deletionResults = await Promise.allSettled(
         deletionsToPersist.map((id) => persistDeleteExercise(id)),
@@ -132,7 +185,7 @@ const ManageExercisesClient = ({
         if (handle?.save) {
           try {
             await handle.save({ silent: true });
-          } catch (e) {
+          } catch {
             throw new Error(
               `Failed saving sets for exercise ${we.exercise?.name ?? we.id}`,
             );
@@ -140,23 +193,30 @@ const ManageExercisesClient = ({
         }
       });
       await Promise.all(saves);
+
       await fetchWorkout({ silent: true });
       toast.success("All changes saved");
       return true;
     } catch (err) {
       console.error(err);
       toast.error(
-        err instanceof Error ? err.message : "Failed to save some exercises",
+        err instanceof Error ? err.message : "Failed to save some changes",
       );
       return false;
     } finally {
       setSavingAll(false);
     }
   }, [
+    anyDirty,
+    detailsDirty,
+    detailsDraft.date,
+    detailsDraft.name,
+    detailsDraft.notes,
     fetchWorkout,
     pendingDeletedExerciseIds,
     persistDeleteExercise,
     workout.workout_exercises,
+    workoutId,
   ]);
 
   const handleCancel = useCallback(() => {
@@ -177,6 +237,20 @@ const ManageExercisesClient = ({
       router.push(`/workouts/${String(workout.id)}`);
     }
   }, [anyDirty, handleSaveAll, router, workout.id]);
+
+  const handleDeleteWorkout = useCallback(async () => {
+    try {
+      setDeletingWorkout(true);
+      await deleteWorkoutAction(workoutId);
+      setConfirmDeleteWorkoutOpen(false);
+      router.push("/workouts");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to delete workout");
+    } finally {
+      setDeletingWorkout(false);
+    }
+  }, [router, workoutId]);
 
   useEffect(() => {
     if (openActionsExerciseId == null) return;
@@ -203,26 +277,22 @@ const ManageExercisesClient = ({
   }, [openActionsExerciseId]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
       <header className="mb-4 sm:mb-6">
         <div className="mb-2">
           <Link
             href={`/workouts/${String(workout.id)}`}
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
           >
-            <span aria-hidden>←</span>
+            <span aria-hidden>{"<-"}</span>
             <span>Back to workout</span>
           </Link>
         </div>
         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-          Manage Exercises
+          Edit Workout
         </h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          {workout.name ? (
-            <span className="truncate">{workout.name}</span>
-          ) : (
-            workout.date && <span className="truncate">{workout.date}</span>
-          )}
+          {workout.date && <span>{prettyDate(workout.date)}</span>}
         </div>
       </header>
 
@@ -231,27 +301,66 @@ const ManageExercisesClient = ({
       ) : (
         <>
           <section className="mb-6 rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="text-base font-medium text-gray-900 dark:text-white">
-                  Workout Summary
-                </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                  {workout.date && <span>{prettyDate(workout.date)}</span>}
-                </div>
-              </div>
-              <Link
-                href={`/workouts/${String(workout.id)}/edit`}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm transition hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-base font-medium text-gray-900 dark:text-white">
+                Workout Details
+              </h2>
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteWorkoutOpen(true)}
+                disabled={savingAll || deletingWorkout}
+                className="inline-flex items-center rounded-md border border-red-700 bg-transparent px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px disabled:opacity-60 dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
               >
-                Edit workout details
-              </Link>
+                {deletingWorkout ? "Deleting..." : "Delete Workout"}
+              </button>
             </div>
-            {workout.notes && (
-              <p className="mt-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">
-                {workout.notes}
-              </p>
-            )}
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <InputField
+                id="workoutName"
+                label="Workout Name"
+                type="text"
+                name="name"
+                value={detailsDraft.name}
+                onChange={(e) =>
+                  setDetailsDraft((prev) => ({
+                    ...prev,
+                    name: (e.target as HTMLInputElement).value,
+                  }))
+                }
+                required
+              />
+
+              <InputField
+                id="workoutDate"
+                label="Date"
+                type="date"
+                name="date"
+                value={detailsDraft.date}
+                onChange={(e) =>
+                  setDetailsDraft((prev) => ({
+                    ...prev,
+                    date: (e.target as HTMLInputElement).value,
+                  }))
+                }
+                required
+              />
+
+              <TextAreaField
+                id="workoutNotes"
+                label="Notes"
+                name="notes"
+                placeholder="Optional notes about this workout"
+                value={detailsDraft.notes}
+                onChange={(e) =>
+                  setDetailsDraft((prev) => ({
+                    ...prev,
+                    notes: (e.target as HTMLTextAreaElement).value,
+                  }))
+                }
+                containerClassName="sm:col-span-2"
+              />
+            </div>
           </section>
 
           <section className="mb-3">
@@ -281,7 +390,10 @@ const ManageExercisesClient = ({
                         ID: {we.id}
                       </p>
                     </div>
-                    <div className="relative ml-auto shrink-0" data-exercise-actions-menu>
+                    <div
+                      className="relative ml-auto shrink-0"
+                      data-exercise-actions-menu
+                    >
                       <button
                         type="button"
                         onClick={() =>
@@ -290,13 +402,13 @@ const ManageExercisesClient = ({
                           )
                         }
                         disabled={loading}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-lg leading-none text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-900/40"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-lg leading-none text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-900/40"
                         aria-label="Exercise actions"
                         aria-haspopup="menu"
                         aria-expanded={openActionsExerciseId === we.id}
                         title="Exercise actions"
                       >
-                        ⋮
+                        ...
                       </button>
                       {openActionsExerciseId === we.id ? (
                         <div
@@ -339,14 +451,15 @@ const ManageExercisesClient = ({
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-600 dark:border-gray-700 dark:text-gray-400">
-              No exercises yet. Use “Add Exercise” to begin.
+              No exercises yet. Use "Add Exercise" to begin.
             </div>
           )}
+
           <div className="mt-4 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px cursor-pointer dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
             >
               + Add Exercise
             </button>
@@ -354,8 +467,8 @@ const ManageExercisesClient = ({
               <button
                 type="button"
                 onClick={handleCancel}
-                disabled={savingAll || loading}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+                disabled={savingAll || loading || deletingWorkout}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
               >
                 Cancel
               </button>
@@ -364,8 +477,8 @@ const ManageExercisesClient = ({
                 onClick={() => {
                   void handleSaveAndExit();
                 }}
-                disabled={savingAll || loading}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+                disabled={savingAll || loading || deletingWorkout}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
               >
                 {savingAll ? "Saving..." : "Save"}
               </button>
@@ -386,7 +499,7 @@ const ManageExercisesClient = ({
       <ConfirmDialog
         open={confirmDiscardOpen}
         title="Discard unsaved changes?"
-        description="All unsaved edits and deletions on this page will be lost."
+        description="All unsaved edits on this page will be lost."
         destructive
         confirmLabel="Discard"
         onCancel={() => setConfirmDiscardOpen(false)}
@@ -395,8 +508,21 @@ const ManageExercisesClient = ({
           router.push(`/workouts/${String(workout.id)}`);
         }}
       />
+
+      <ConfirmDialog
+        open={confirmDeleteWorkoutOpen}
+        title="Delete workout?"
+        description="This action is permanent and cannot be undone."
+        destructive
+        confirmLabel={deletingWorkout ? "Deleting..." : "Delete"}
+        confirmLoading={deletingWorkout}
+        onCancel={() => setConfirmDeleteWorkoutOpen(false)}
+        onConfirm={() => {
+          void handleDeleteWorkout();
+        }}
+      />
     </div>
   );
 };
 
-export default ManageExercisesClient;
+export default EditWorkoutClient;
