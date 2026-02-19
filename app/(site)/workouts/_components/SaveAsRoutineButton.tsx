@@ -5,11 +5,18 @@ import { useRouter } from "next/navigation";
 import { InputField } from "@/app/_components/FormFields";
 import toast from "react-hot-toast";
 
-type Props = { workoutId: string; defaultTitle?: string };
+type Props = {
+  workoutId: string;
+  defaultTitle?: string;
+  buttonClassName?: string;
+  onButtonClick?: () => void;
+};
 
 export default function SaveAsRoutineButton({
   workoutId,
   defaultTitle,
+  buttonClassName,
+  onButtonClick,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -40,8 +47,14 @@ export default function SaveAsRoutineButton({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200"
+        onClick={() => {
+          onButtonClick?.();
+          setOpen(true);
+        }}
+        className={
+          buttonClassName ??
+          "inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200"
+        }
       >
         <svg
           aria-hidden="true"

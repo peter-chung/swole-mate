@@ -12,7 +12,7 @@ import ExerciseSetForm, {
   ExerciseSetFormHandle,
 } from "../../_components/ExerciseSetForm";
 import { prettyDate } from "@/utils/format";
-import { deleteWorkoutAction, updateWorkoutAction } from "../../actions";
+import { updateWorkoutAction } from "../../actions";
 import type { WorkoutWithRelations } from "../../_lib/getWorkout";
 
 type EditWorkoutClientProps = {
@@ -41,13 +41,10 @@ const EditWorkoutClient = ({
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [savingAll, setSavingAll] = useState(false);
-  const [deletingWorkout, setDeletingWorkout] = useState(false);
   const [pendingDeletedExerciseIds, setPendingDeletedExerciseIds] = useState<
     number[]
   >([]);
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
-  const [confirmDeleteWorkoutOpen, setConfirmDeleteWorkoutOpen] =
-    useState(false);
   const [openActionsExerciseId, setOpenActionsExerciseId] = useState<
     number | null
   >(null);
@@ -238,20 +235,6 @@ const EditWorkoutClient = ({
     }
   }, [anyDirty, handleSaveAll, router, workout.id]);
 
-  const handleDeleteWorkout = useCallback(async () => {
-    try {
-      setDeletingWorkout(true);
-      await deleteWorkoutAction(workoutId);
-      setConfirmDeleteWorkoutOpen(false);
-      router.push("/workouts");
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Failed to delete workout");
-    } finally {
-      setDeletingWorkout(false);
-    }
-  }, [router, workoutId]);
-
   useEffect(() => {
     if (openActionsExerciseId == null) return;
 
@@ -305,14 +288,6 @@ const EditWorkoutClient = ({
               <h2 className="text-base font-medium text-gray-900 dark:text-white">
                 Workout Details
               </h2>
-              <button
-                type="button"
-                onClick={() => setConfirmDeleteWorkoutOpen(true)}
-                disabled={savingAll || deletingWorkout}
-                className="inline-flex items-center rounded-md border border-red-700 bg-transparent px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px disabled:opacity-60 dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
-              >
-                {deletingWorkout ? "Deleting..." : "Delete Workout"}
-              </button>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -467,7 +442,7 @@ const EditWorkoutClient = ({
               <button
                 type="button"
                 onClick={handleCancel}
-                disabled={savingAll || loading || deletingWorkout}
+                disabled={savingAll || loading}
                 className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
               >
                 Cancel
@@ -477,7 +452,7 @@ const EditWorkoutClient = ({
                 onClick={() => {
                   void handleSaveAndExit();
                 }}
-                disabled={savingAll || loading || deletingWorkout}
+                disabled={savingAll || loading}
                 className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
               >
                 {savingAll ? "Saving..." : "Save"}
@@ -509,18 +484,6 @@ const EditWorkoutClient = ({
         }}
       />
 
-      <ConfirmDialog
-        open={confirmDeleteWorkoutOpen}
-        title="Delete workout?"
-        description="This action is permanent and cannot be undone."
-        destructive
-        confirmLabel={deletingWorkout ? "Deleting..." : "Delete"}
-        confirmLoading={deletingWorkout}
-        onCancel={() => setConfirmDeleteWorkoutOpen(false)}
-        onConfirm={() => {
-          void handleDeleteWorkout();
-        }}
-      />
     </div>
   );
 };
