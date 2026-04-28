@@ -51,7 +51,7 @@ export async function GET(req: Request, { params }: Params) {
     id, user_id, date, name, notes,
     user:profiles ( id, username, full_name ),
     workout_exercises (
-      id, public_exercise_id, custom_exercise_id, order_index, notes,
+      id, public_exercise_id, custom_exercise_id, equipment_brand, order_index, notes,
       exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
     )
   `

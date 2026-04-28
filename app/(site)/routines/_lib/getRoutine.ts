@@ -56,7 +56,7 @@ export async function getRoutineWithRelations(
         id, user_id, date, name, notes, started_at, ended_at, created_at,
         user:profiles ( id, username, full_name ),
         routine_exercises (
-          id, public_exercise_id, custom_exercise_id, order_index, notes,
+          id, public_exercise_id, custom_exercise_id, equipment_brand, order_index, notes,
           routine_sets ( id, set_number, reps, weight, duration, distance, notes )
         )
       `

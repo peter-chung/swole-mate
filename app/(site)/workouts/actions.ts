@@ -28,6 +28,53 @@ type WorkoutWithRelations = WorkoutRow & {
 
 const WORKOUTS_PATH = "/workouts";
 
+const normalizeEquipmentBrand = (brand?: string | null) => {
+  const trimmed = brand?.trim();
+  return trimmed ? trimmed : null;
+};
+
+type ExerciseSetSnapshot = Pick<
+  ExerciseSetRow,
+  "set_number" | "reps" | "weight" | "duration" | "distance" | "notes"
+>;
+
+const hasMeaningfulSetValue = (set: ExerciseSetSnapshot) => {
+  const duration =
+    typeof set.duration === "string" ? set.duration.trim() : set.duration;
+  const notes = typeof set.notes === "string" ? set.notes.trim() : set.notes;
+
+  return Boolean(
+    set.reps != null ||
+      set.weight != null ||
+      set.distance != null ||
+      duration ||
+      notes
+  );
+};
+
+const currentSetsLookAutoCopied = (
+  currentSets: ExerciseSetSnapshot[],
+  sourceSets: ExerciseSetSnapshot[]
+) => {
+  if (currentSets.length === 0 || currentSets.length !== sourceSets.length) {
+    return false;
+  }
+
+  return currentSets.every((currentSet, index) => {
+    const sourceSet = sourceSets[index];
+    if (!sourceSet) return false;
+
+    return (
+      currentSet.set_number === index + 1 &&
+      currentSet.reps === (sourceSet.reps ?? null) &&
+      currentSet.weight === (sourceSet.weight ?? null) &&
+      currentSet.duration == null &&
+      currentSet.distance == null &&
+      !currentSet.notes
+    );
+  });
+};
+
 async function ensureUser() {
   const supabase = await createClient();
   const {
@@ -146,7 +193,7 @@ export async function copyWorkoutAction(workoutId: string) {
       `
         id, name, date, notes,
         workout_exercises (
-          id, notes, order_index, public_exercise_id, custom_exercise_id, user_id,
+          id, notes, equipment_brand, order_index, public_exercise_id, custom_exercise_id, user_id,
           exercise_sets ( set_number, reps, weight, duration, distance, notes )
         )
       `
@@ -205,6 +252,7 @@ export async function copyWorkoutAction(workoutId: string) {
           custom_exercise_id: ownsCustomExercise
             ? workoutExercise.custom_exercise_id
             : null,
+          equipment_brand: workoutExercise.equipment_brand ?? null,
           notes: workoutExercise.notes ?? null,
           order_index: workoutExercise.order_index,
         })
@@ -252,13 +300,16 @@ export async function copyWorkoutAction(workoutId: string) {
 export async function addWorkoutExerciseAction({
   workoutId,
   exerciseId,
+  equipmentBrand,
   notes,
 }: {
   workoutId: string;
   exerciseId: string;
+  equipmentBrand?: string | null;
   notes?: string | null;
 }) {
   const { supabase, user } = await ensureUser();
+  const normalizedEquipmentBrand = normalizeEquipmentBrand(equipmentBrand);
 
   if (!workoutId || !exerciseId) {
     throw new Error("Invalid payload");
@@ -300,6 +351,43 @@ export async function addWorkoutExerciseAction({
     .maybeSingle();
 
   const nextOrder = (maxRow?.order_index ?? 0) + 1;
+  const exerciseColumn = isCustomExercise
+    ? "custom_exercise_id"
+    : "public_exercise_id";
+
+  let previousWorkoutExerciseQuery = supabase
+    .from("workout_exercises")
+    .select("id, equipment_brand")
+    .eq(exerciseColumn, exerciseId)
+    .eq("user_id", user.id);
+
+  if (normalizedEquipmentBrand) {
+    previousWorkoutExerciseQuery = previousWorkoutExerciseQuery.ilike(
+      "equipment_brand",
+      normalizedEquipmentBrand
+    );
+  }
+
+  let { data: previousWorkoutExercise } = await previousWorkoutExerciseQuery
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!previousWorkoutExercise && normalizedEquipmentBrand) {
+    const { data: previousAnyWorkoutExercise } = await supabase
+      .from("workout_exercises")
+      .select("id, equipment_brand")
+      .eq(exerciseColumn, exerciseId)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    previousWorkoutExercise = previousAnyWorkoutExercise;
+  }
+
+  const initialEquipmentBrand =
+    normalizedEquipmentBrand ?? previousWorkoutExercise?.equipment_brand ?? null;
 
   const { data, error } = await supabase
     .from("workout_exercises")
@@ -308,11 +396,12 @@ export async function addWorkoutExerciseAction({
       user_id: user.id,
       public_exercise_id: isCustomExercise ? null : exerciseId,
       custom_exercise_id: isCustomExercise ? exerciseId : null,
+      equipment_brand: initialEquipmentBrand,
       order_index: nextOrder,
       notes: notes ?? null,
     })
     .select(
-      "id, workout_id, public_exercise_id, custom_exercise_id, order_index"
+      "id, workout_id, public_exercise_id, custom_exercise_id, equipment_brand, order_index"
     )
     .maybeSingle();
 
@@ -321,19 +410,6 @@ export async function addWorkoutExerciseAction({
   }
 
   // Attempt to copy the most recent sets for this exercise so the user starts with familiar values.
-  const { data: previousWorkoutExercise } = await supabase
-    .from("workout_exercises")
-    .select("id")
-    .eq(
-      isCustomExercise ? "custom_exercise_id" : "public_exercise_id",
-      exerciseId
-    )
-    .eq("user_id", user.id)
-    .neq("id", data.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   if (previousWorkoutExercise?.id) {
     const { data: previousSets, error: previousSetsError } = await supabase
       .from("exercise_sets")
@@ -374,8 +450,359 @@ export async function addWorkoutExerciseAction({
     | "workout_id"
     | "public_exercise_id"
     | "custom_exercise_id"
+    | "equipment_brand"
     | "order_index"
   >;
+}
+
+export async function updateWorkoutExerciseAction({
+  workoutId,
+  workoutExerciseId,
+  equipmentBrand,
+  fillPreviousSets = true,
+}: {
+  workoutId: string;
+  workoutExerciseId: number;
+  equipmentBrand?: string | null;
+  fillPreviousSets?: boolean;
+}) {
+  const { supabase, user } = await ensureUser();
+  const normalizedEquipmentBrand = normalizeEquipmentBrand(equipmentBrand);
+
+  const owns = await assertWorkoutExerciseOwnership(
+    supabase,
+    user.id,
+    workoutId,
+    workoutExerciseId
+  );
+  if (!owns) {
+    throw new Error("Workout exercise not found");
+  }
+
+  const { data: workoutExercise, error: workoutExerciseError } = await supabase
+    .from("workout_exercises")
+    .select("id, public_exercise_id, custom_exercise_id, equipment_brand")
+    .eq("id", workoutExerciseId)
+    .eq("workout_id", workoutId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (workoutExerciseError || !workoutExercise) {
+    throw new Error(
+      workoutExerciseError?.message ?? "Workout exercise not found"
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("workout_exercises")
+    .update({ equipment_brand: normalizedEquipmentBrand })
+    .eq("id", workoutExerciseId)
+    .eq("workout_id", workoutId)
+    .eq("user_id", user.id)
+    .select("id, equipment_brand")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Failed to update exercise brand");
+  }
+
+  let copiedPreviousSets = false;
+  let copiedSetCount = 0;
+  let copiedFromBrand: string | null = null;
+  let copiedMatchedBrand = false;
+
+  const exerciseColumn = workoutExercise.custom_exercise_id
+    ? "custom_exercise_id"
+    : "public_exercise_id";
+  const exerciseId =
+    workoutExercise.custom_exercise_id ?? workoutExercise.public_exercise_id;
+
+  if (fillPreviousSets && exerciseId) {
+    let previousBrandExerciseQuery = supabase
+      .from("workout_exercises")
+      .select("id, equipment_brand")
+      .eq(exerciseColumn, exerciseId)
+      .eq("user_id", user.id)
+      .neq("id", workoutExerciseId);
+
+    previousBrandExerciseQuery = normalizedEquipmentBrand
+      ? previousBrandExerciseQuery.ilike(
+          "equipment_brand",
+          normalizedEquipmentBrand
+        )
+      : previousBrandExerciseQuery.is("equipment_brand", null);
+
+    const { data: previousBrandExercise } = await previousBrandExerciseQuery
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let previousSourceExercise = previousBrandExercise;
+    copiedMatchedBrand = Boolean(previousSourceExercise?.id);
+
+    if (!previousSourceExercise?.id) {
+      const { data: previousAnyExercise } = await supabase
+        .from("workout_exercises")
+        .select("id, equipment_brand")
+        .eq(exerciseColumn, exerciseId)
+        .eq("user_id", user.id)
+        .neq("id", workoutExerciseId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      previousSourceExercise = previousAnyExercise;
+    }
+
+    if (previousSourceExercise?.id) {
+      const { data: previousBrandSets } = await supabase
+        .from("exercise_sets")
+        .select("set_number, reps, weight, duration, distance, notes")
+        .eq("workout_exercise_id", previousSourceExercise.id)
+        .order("set_number", { ascending: true });
+
+      if ((previousBrandSets ?? []).length > 0) {
+        const { data: currentSets } = await supabase
+          .from("exercise_sets")
+          .select("set_number, reps, weight, duration, distance, notes")
+          .eq("workout_exercise_id", workoutExerciseId)
+          .order("set_number", { ascending: true });
+
+        const normalizedCurrentSets = (currentSets ?? []) as ExerciseSetSnapshot[];
+        let canReplaceSets =
+          normalizedCurrentSets.length === 0 ||
+          normalizedCurrentSets.every((set) => !hasMeaningfulSetValue(set));
+
+        if (!canReplaceSets) {
+          let previousContextExerciseQuery = supabase
+            .from("workout_exercises")
+            .select("id")
+            .eq(exerciseColumn, exerciseId)
+            .eq("user_id", user.id)
+            .neq("id", workoutExerciseId);
+
+          previousContextExerciseQuery = workoutExercise.equipment_brand
+            ? previousContextExerciseQuery.ilike(
+                "equipment_brand",
+                workoutExercise.equipment_brand
+              )
+            : previousContextExerciseQuery.is("equipment_brand", null);
+
+          const { data: previousContextExercise } =
+            await previousContextExerciseQuery
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+          if (previousContextExercise?.id) {
+            const { data: previousContextSets } = await supabase
+              .from("exercise_sets")
+              .select("set_number, reps, weight, duration, distance, notes")
+              .eq("workout_exercise_id", previousContextExercise.id)
+              .order("set_number", { ascending: true });
+
+            canReplaceSets = currentSetsLookAutoCopied(
+              normalizedCurrentSets,
+              (previousContextSets ?? []) as ExerciseSetSnapshot[]
+            );
+          }
+        }
+
+        if (!canReplaceSets) {
+          const { data: previousAnyExercise } = await supabase
+            .from("workout_exercises")
+            .select("id")
+            .eq(exerciseColumn, exerciseId)
+            .eq("user_id", user.id)
+            .neq("id", workoutExerciseId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (previousAnyExercise?.id) {
+            const { data: previousAnySets } = await supabase
+              .from("exercise_sets")
+              .select("set_number, reps, weight, duration, distance, notes")
+              .eq("workout_exercise_id", previousAnyExercise.id)
+              .order("set_number", { ascending: true });
+
+            canReplaceSets = currentSetsLookAutoCopied(
+              normalizedCurrentSets,
+              (previousAnySets ?? []) as ExerciseSetSnapshot[]
+            );
+          }
+        }
+
+        if (canReplaceSets) {
+          const { error: deleteSetsError } = await supabase
+            .from("exercise_sets")
+            .delete()
+            .eq("workout_exercise_id", workoutExerciseId);
+
+          if (deleteSetsError) {
+            throw new Error(deleteSetsError.message);
+          }
+
+          const setsPayload = (previousBrandSets ?? []).map((set, index) => ({
+            workout_exercise_id: workoutExerciseId,
+            user_id: user.id,
+            set_number: index + 1,
+            reps: set?.reps ?? null,
+            weight: set?.weight ?? null,
+            duration: set?.duration ?? null,
+            distance: set?.distance ?? null,
+            notes: null,
+          }));
+
+          const { error: insertSetsError } = await supabase
+            .from("exercise_sets")
+            .insert(setsPayload);
+
+          if (insertSetsError) {
+            throw new Error(insertSetsError.message);
+          }
+
+          copiedPreviousSets = true;
+          copiedSetCount = setsPayload.length;
+          copiedFromBrand = previousSourceExercise.equipment_brand ?? null;
+        }
+      }
+    }
+  }
+
+  revalidatePath(`${WORKOUTS_PATH}/${workoutId}`);
+  revalidatePath(`${WORKOUTS_PATH}/${workoutId}/edit`);
+
+  return {
+    ...(data as Pick<WorkoutExerciseRow, "id" | "equipment_brand">),
+    copiedPreviousSets,
+    copiedSetCount,
+    copiedFromBrand,
+    copiedMatchedBrand,
+  };
+}
+
+export async function getWorkoutExerciseBrandSuggestionsAction({
+  workoutId,
+  workoutExerciseId,
+  equipmentBrand,
+}: {
+  workoutId: string;
+  workoutExerciseId: number;
+  equipmentBrand?: string | null;
+}) {
+  const { supabase, user } = await ensureUser();
+  const normalizedEquipmentBrand = normalizeEquipmentBrand(equipmentBrand);
+
+  const owns = await assertWorkoutExerciseOwnership(
+    supabase,
+    user.id,
+    workoutId,
+    workoutExerciseId
+  );
+  if (!owns) {
+    throw new Error("Workout exercise not found");
+  }
+
+  const { data: workoutExercise, error: workoutExerciseError } = await supabase
+    .from("workout_exercises")
+    .select("id, public_exercise_id, custom_exercise_id")
+    .eq("id", workoutExerciseId)
+    .eq("workout_id", workoutId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (workoutExerciseError || !workoutExercise) {
+    throw new Error(
+      workoutExerciseError?.message ?? "Workout exercise not found"
+    );
+  }
+
+  const exerciseColumn = workoutExercise.custom_exercise_id
+    ? "custom_exercise_id"
+    : "public_exercise_id";
+  const exerciseId =
+    workoutExercise.custom_exercise_id ?? workoutExercise.public_exercise_id;
+
+  if (!exerciseId) {
+    return {
+      equipmentBrand: normalizedEquipmentBrand,
+      sets: [] as ExerciseSetSnapshot[],
+      copiedFromBrand: null,
+      matchedBrand: false,
+    };
+  }
+
+  let previousBrandExerciseQuery = supabase
+    .from("workout_exercises")
+    .select("id, equipment_brand")
+    .eq(exerciseColumn, exerciseId)
+    .eq("user_id", user.id)
+    .neq("id", workoutExerciseId);
+
+  previousBrandExerciseQuery = normalizedEquipmentBrand
+    ? previousBrandExerciseQuery.ilike(
+        "equipment_brand",
+        normalizedEquipmentBrand
+      )
+    : previousBrandExerciseQuery.is("equipment_brand", null);
+
+  const { data: previousBrandExercise } = await previousBrandExerciseQuery
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let previousSourceExercise = previousBrandExercise;
+  const matchedBrand = Boolean(previousSourceExercise?.id);
+
+  if (!previousSourceExercise?.id) {
+    const { data: previousAnyExercise } = await supabase
+      .from("workout_exercises")
+      .select("id, equipment_brand")
+      .eq(exerciseColumn, exerciseId)
+      .eq("user_id", user.id)
+      .neq("id", workoutExerciseId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    previousSourceExercise = previousAnyExercise;
+  }
+
+  if (!previousSourceExercise?.id) {
+    return {
+      equipmentBrand: normalizedEquipmentBrand,
+      sets: [] as ExerciseSetSnapshot[],
+      copiedFromBrand: null,
+      matchedBrand,
+    };
+  }
+
+  const { data: previousSets, error: previousSetsError } = await supabase
+    .from("exercise_sets")
+    .select("set_number, reps, weight, duration, distance, notes")
+    .eq("workout_exercise_id", previousSourceExercise.id)
+    .order("set_number", { ascending: true });
+
+  if (previousSetsError) {
+    throw new Error(previousSetsError.message);
+  }
+
+  return {
+    equipmentBrand: normalizedEquipmentBrand,
+    sets: ((previousSets ?? []) as ExerciseSetSnapshot[]).map(
+      (set, index) => ({
+        set_number: index + 1,
+        reps: set.reps ?? null,
+        weight: set.weight ?? null,
+        duration: set.duration ?? null,
+        distance: set.distance ?? null,
+        notes: null,
+      })
+    ),
+    copiedFromBrand: previousSourceExercise.equipment_brand ?? null,
+    matchedBrand,
+  };
 }
 
 export async function saveExerciseSetAction({

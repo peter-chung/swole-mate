@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
+import { InputField } from "@/app/_components/FormFields";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import AddRoutineExerciseModal from "../../../_components/AddRoutineExerciseModal";
 import RoutineSetForm, {
@@ -11,16 +12,39 @@ import RoutineSetForm, {
 } from "../../../_components/RoutineSetForm";
 import { prettyDate } from "@/utils/format";
 import type { RoutineWithRelations } from "../../../_lib/getRoutine";
-import { deleteRoutineExerciseAction } from "../../../actions";
+import {
+  deleteRoutineExerciseAction,
+  updateRoutineExerciseAction,
+} from "../../../actions";
 
 type ManageExercisesClientProps = {
   routine: RoutineWithRelations;
 };
 
+type ExerciseMetaDraft = {
+  equipmentBrand: string;
+};
+
+const buildExerciseMetaDrafts = (
+  exercises: RoutineWithRelations["routine_exercises"] = [],
+) =>
+  (exercises ?? []).reduce<Record<number, ExerciseMetaDraft>>(
+    (acc, exercise) => {
+      acc[exercise.id] = {
+        equipmentBrand: exercise.equipment_brand ?? "",
+      };
+      return acc;
+    },
+    {},
+  );
+
 const ManageExercisesClient = ({
   routine: initialRoutine,
 }: ManageExercisesClientProps) => {
   const [routine, setRoutine] = useState(initialRoutine);
+  const [exerciseMetaDrafts, setExerciseMetaDrafts] = useState(() =>
+    buildExerciseMetaDrafts(initialRoutine.routine_exercises),
+  );
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -33,8 +57,21 @@ const ManageExercisesClient = ({
   const [dirtyMap, setDirtyMap] = useState<Record<number, boolean>>({});
 
   const routineId = String(routine.id);
+  const exerciseMetaDirtyIds = useMemo(
+    () =>
+      (routine.routine_exercises ?? [])
+        .filter(
+          (re) =>
+            (exerciseMetaDrafts[re.id]?.equipmentBrand ?? "") !==
+            (re.equipment_brand ?? ""),
+        )
+        .map((re) => re.id),
+    [exerciseMetaDrafts, routine.routine_exercises],
+  );
+  const hasExerciseMetaDirty = exerciseMetaDirtyIds.length > 0;
   const anyDirty = Boolean(
-    routine.routine_exercises?.some((re) => !!dirtyMap[re.id])
+    hasExerciseMetaDirty ||
+      routine.routine_exercises?.some((re) => !!dirtyMap[re.id])
   );
 
   const fetchRoutine = useCallback(
@@ -48,6 +85,11 @@ const ManageExercisesClient = ({
         const result = await res.json();
         if (!res.ok) throw new Error(result.error);
         setRoutine(result.data as RoutineWithRelations);
+        setExerciseMetaDrafts(
+          buildExerciseMetaDrafts(
+            (result.data as RoutineWithRelations).routine_exercises,
+          ),
+        );
         setDirtyMap({});
       } catch (err) {
         console.error("Error fetching routine:", err);
@@ -143,6 +185,18 @@ const ManageExercisesClient = ({
                   if (!routine.routine_exercises?.length) return;
                   try {
                     setSavingAll(true);
+                    const exerciseMetaSaves = routine.routine_exercises
+                      .filter((re) => exerciseMetaDirtyIds.includes(re.id))
+                      .map((re) =>
+                        updateRoutineExerciseAction({
+                          routineId,
+                          routineExerciseId: re.id,
+                          equipmentBrand:
+                            exerciseMetaDrafts[re.id]?.equipmentBrand ?? "",
+                        }),
+                      );
+                    await Promise.all(exerciseMetaSaves);
+
                     const saves = routine.routine_exercises.map(async (re) => {
                       const handle = formRefs.current[re.id];
                       if (handle?.save) {
@@ -157,7 +211,7 @@ const ManageExercisesClient = ({
                     });
                     await Promise.all(saves);
                     await fetchRoutine({ silent: true });
-                    toast.success("All sets saved");
+                    toast.success("All changes saved");
                   } catch (err) {
                     console.error(err);
                     toast.error(
@@ -175,7 +229,7 @@ const ManageExercisesClient = ({
                 {savingAll
                   ? "Saving All…"
                   : anyDirty
-                  ? "Save All Sets"
+                  ? "Save All"
                   : "No Changes"}
               </button>
               <button
@@ -200,15 +254,13 @@ const ManageExercisesClient = ({
                       <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">
                         {re.exercise?.name ??
                           (re.custom_exercise_id ? "Custom" : "Exercise")}
-                        {dirtyMap[re.id] ? (
+                        {dirtyMap[re.id] ||
+                        exerciseMetaDirtyIds.includes(re.id) ? (
                           <span className="ml-2 inline-flex items-center rounded-full border border-amber-400 px-2 py-0.5 text-[10px] font-normal text-amber-700 dark:border-amber-500 dark:text-amber-400">
                             Unsaved changes
                           </span>
                         ) : null}
                       </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        ID: {re.id}
-                      </p>
                     </div>
                     <div className="sm:ml-auto">
                       <button
@@ -221,6 +273,23 @@ const ManageExercisesClient = ({
                       </button>
                     </div>
                   </div>
+                  <InputField
+                    id={`routine-exercise-brand-${re.id}`}
+                    label="Equipment Brand"
+                    type="text"
+                    placeholder="Optional, e.g., Hammer Strength"
+                    value={exerciseMetaDrafts[re.id]?.equipmentBrand ?? ""}
+                    onChange={(e) => {
+                      const value = (e.target as HTMLInputElement).value;
+                      setExerciseMetaDrafts((prev) => ({
+                        ...prev,
+                        [re.id]: {
+                          equipmentBrand: value,
+                        },
+                      }));
+                    }}
+                    containerClassName="mt-3 max-w-sm"
+                  />
                   <div className="mt-3 sm:mt-4">
                     <RoutineSetForm
                       routineId={routineId}

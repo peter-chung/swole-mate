@@ -51,6 +51,13 @@ export default function RoutineExerciseContainer({ routine }: Props) {
                       {re.exercise?.name ??
                         (re.custom_exercise_id ? "Custom" : "Exercise")}
                     </p>
+                    {re.equipment_brand && (
+                      <p className="mt-1">
+                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40">
+                          Brand: {re.equipment_brand}
+                        </span>
+                      </p>
+                    )}
                     {re.notes && (
                       <p className="mt-2 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">
                         {re.notes}

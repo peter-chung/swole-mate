@@ -7,6 +7,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import type { Tables } from "@/types/database.types";
 import { toast } from "react-hot-toast";
 import {
@@ -16,9 +17,15 @@ import {
 
 type ExerciseSet = Tables<"exercise_sets">;
 
+export type ExerciseSetDraftValue = Pick<
+  ExerciseSet,
+  "set_number" | "reps" | "weight" | "duration" | "distance" | "notes"
+>;
+
 export type ExerciseSetFormHandle = {
   // Imperatively save this form's sets
   save: (opts?: { silent?: boolean }) => Promise<void>;
+  replaceWithSets: (nextSets: ExerciseSetDraftValue[]) => void;
 };
 
 type Props = {
@@ -38,6 +45,7 @@ type Props = {
   >;
   onSaved?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  onManualEdit?: () => void;
 };
 
 type LocalSet = {
@@ -63,11 +71,19 @@ type ApiExerciseSet = {
 
 const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
   (
-    { workoutId, workoutExerciseId, exerciseSets, onSaved, onDirtyChange },
+    {
+      workoutId,
+      workoutExerciseId,
+      exerciseSets,
+      onSaved,
+      onDirtyChange,
+      onManualEdit,
+    },
     ref
   ) => {
     const [sets, setSets] = useState<LocalSet[]>([]);
     const [deletedSetIds, setDeletedSetIds] = useState<number[]>([]);
+    const [referenceSets, setReferenceSets] = useState<ExerciseSetDraftValue[]>([]);
     const lastDirtyRef = useRef<boolean>(false);
     const dirtyCallbackRef = useRef<Props["onDirtyChange"]>(undefined);
 
@@ -123,6 +139,18 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         return normalized;
       });
       setDeletedSetIds([]);
+      setReferenceSets(
+        normalized
+          .filter((s) => s.weight != null || s.reps != null)
+          .map((s) => ({
+            set_number: s.set_number,
+            weight: s.weight,
+            reps: s.reps,
+            duration: s.duration,
+            distance: s.distance,
+            notes: s.notes,
+          }))
+      );
     }, [exerciseSets]);
 
     // Report dirty-state to parent when it changes
@@ -142,6 +170,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       field: keyof Pick<LocalSet, "reps" | "weight" | "notes">,
       value: string
     ) => {
+      onManualEdit?.();
       setSets((prev) => {
         const copy = [...prev];
         const current = copy[idx];
@@ -204,6 +233,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
     });
 
     const addSet = () => {
+      onManualEdit?.();
       const newId = `new-${Date.now()}`;
       setSets((prev) => {
         const sortedByNumber = [...prev].sort(
@@ -236,6 +266,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
     };
 
     const deleteSet = (idx: number) => {
+      onManualEdit?.();
       const target = sets[idx];
       if (!target) return;
 
@@ -249,6 +280,38 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         prev.includes(Number(target.id)) ? prev : [...prev, Number(target.id)]
       );
       setSets((prev) => prev.filter((_, i) => i !== idx));
+    };
+
+    const replaceWithSets = (nextSets: ExerciseSetDraftValue[]) => {
+      setReferenceSets(nextSets);
+      const persistedSetIds = sets
+        .filter((set) => typeof set.id === "number")
+        .map((set) => Number(set.id));
+
+      if (persistedSetIds.length > 0) {
+        setDeletedSetIds((prev) =>
+          Array.from(new Set([...prev, ...persistedSetIds]))
+        );
+      }
+
+      const timestamp = Date.now();
+      setSets(
+        nextSets.map((set, index) => ({
+          id: `suggested-${timestamp}-${index}`,
+          set_number: index + 1,
+          reps: set.reps ?? null,
+          weight: set.weight ?? null,
+          duration:
+            typeof set.duration === "string"
+              ? set.duration
+              : set.duration != null
+              ? String(set.duration)
+              : null,
+          distance: set.distance ?? null,
+          notes: set.notes ?? null,
+          _status: "new",
+        }))
+      );
     };
 
     const save = async (opts?: { silent?: boolean }) => {
@@ -340,59 +403,77 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       }
     };
 
-    useImperativeHandle(ref, () => ({ save }));
+    useImperativeHandle(ref, () => ({ save, replaceWithSets }));
 
     return (
       <div className="mb-4 space-y-3">
-        {sets.map((set, idx) => (
-          <div
-            key={set.id}
-            className="flex items-end gap-3"
-          >
-            <div className="text-sm text-gray-600 dark:text-gray-400 w-14">
-              Set {set.set_number}
+        {sets.map((set, idx) => {
+          const ref = referenceSets[idx];
+          return (
+            <div key={set.id} className="flex items-start gap-3">
+              <span className="w-14 shrink-0 pt-1.5 text-sm text-gray-600 dark:text-gray-400">
+                Set {set.set_number}
+              </span>
+
+              <div className="flex flex-col gap-0.5">
+                <label className="flex items-center gap-1.5">
+                  <span className="w-7 text-xs text-gray-500 dark:text-gray-400">lbs</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={set.weight ?? ""}
+                    onChange={(e) => onChangeField(idx, "weight", e.target.value)}
+                    disabled={set._status === "saving"}
+                    className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
+                  />
+                </label>
+                {ref?.weight != null && (
+                  <span className="pl-[2.125rem] text-[11px] text-gray-400 dark:text-gray-500">
+                    prev {ref.weight}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-0.5">
+                <label className="flex items-center gap-1.5">
+                  <span className="w-7 text-xs text-gray-500 dark:text-gray-400">reps</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={set.reps ?? ""}
+                    onChange={(e) => onChangeField(idx, "reps", e.target.value)}
+                    disabled={set._status === "saving"}
+                    className="w-16 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
+                  />
+                </label>
+                {ref?.reps != null && (
+                  <span className="pl-[2.125rem] text-[11px] text-gray-400 dark:text-gray-500">
+                    prev {ref.reps}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => deleteSet(idx)}
+                className="mt-0.5 ml-auto inline-flex items-center justify-center rounded-md border border-gray-300 px-2 py-1 text-sm hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-900/40"
+                disabled={set._status === "saving"}
+                aria-label="Delete set"
+                title="Delete set"
+              >
+                {set._status === "saving" ? "Saving..." : <Trash2 className="h-3.5 w-3.5" />}
+              </button>
             </div>
-            <label className="flex items-center gap-2">
-              <span className="text-sm">Weight</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={set.weight ?? ""}
-                onChange={(e) => onChangeField(idx, "weight", e.target.value)}
-                disabled={set._status === "saving"}
-                className="w-24 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-              />
-            </label>
-            <label className="flex items-center gap-2">
-              <span className="text-sm">Reps</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={set.reps ?? ""}
-                onChange={(e) => onChangeField(idx, "reps", e.target.value)}
-                disabled={set._status === "saving"}
-                className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => deleteSet(idx)}
-              className="ml-auto inline-flex items-center justify-center rounded-md border border-gray-300 px-2 py-1 text-sm hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-900/40"
-              disabled={set._status === "saving"}
-              aria-label="Delete set"
-              title="Delete set"
-            >
-              {set._status === "saving" ? "Saving..." : "X"}
-            </button>
-          </div>
-        ))}
+          );
+        })}
         <div className="flex gap-3">
           <button
             type="button"
             onClick={addSet}
-            className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 shadow-sm hover:bg-gray-50 cursor-pointer dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+            className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-500 hover:border-gray-300 hover:text-gray-700 cursor-pointer dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"
           >
-            + Add Set
+            <Plus className="h-3 w-3" aria-hidden="true" />
+            Add set
           </button>
         </div>
       </div>

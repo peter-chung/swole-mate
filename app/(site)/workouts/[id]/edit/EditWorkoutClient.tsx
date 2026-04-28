@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { ArrowLeft, MoreHorizontal, Plus, Tag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { InputField, TextAreaField } from "@/app/_components/FormFields";
@@ -9,15 +10,23 @@ import ConfirmDialog from "@/app/_components/ConfirmDialog";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import AddWorkoutExerciseModal from "../../_components/AddWorkoutExerciseModal";
 import ExerciseSetForm, {
+  ExerciseSetDraftValue,
   ExerciseSetFormHandle,
 } from "../../_components/ExerciseSetForm";
-import { prettyDate } from "@/utils/format";
-import { updateWorkoutAction } from "../../actions";
+import {
+  getWorkoutExerciseBrandSuggestionsAction,
+  updateWorkoutAction,
+  updateWorkoutExerciseAction,
+} from "../../actions";
 import type { WorkoutWithRelations } from "../../_lib/getWorkout";
 
 type EditWorkoutClientProps = {
   workout: WorkoutWithRelations;
 };
+
+type WorkoutExerciseWithRelations = NonNullable<
+  WorkoutWithRelations["workout_exercises"]
+>[number];
 
 type WorkoutDraft = {
   name: string;
@@ -31,6 +40,23 @@ const toDraft = (workout: WorkoutWithRelations): WorkoutDraft => ({
   notes: workout.notes ?? "",
 });
 
+type ExerciseMetaDraft = {
+  equipmentBrand: string;
+};
+
+const buildExerciseMetaDrafts = (
+  exercises: WorkoutWithRelations["workout_exercises"] = [],
+) =>
+  (exercises ?? []).reduce<Record<number, ExerciseMetaDraft>>(
+    (acc, exercise) => {
+      acc[exercise.id] = {
+        equipmentBrand: exercise.equipment_brand ?? "",
+      };
+      return acc;
+    },
+    {},
+  );
+
 const EditWorkoutClient = ({
   workout: initialWorkout,
 }: EditWorkoutClientProps) => {
@@ -38,12 +64,24 @@ const EditWorkoutClient = ({
   const [detailsDraft, setDetailsDraft] = useState<WorkoutDraft>(
     toDraft(initialWorkout),
   );
+  const [exerciseMetaDrafts, setExerciseMetaDrafts] = useState(() =>
+    buildExerciseMetaDrafts(initialWorkout.workout_exercises),
+  );
+  const [appliedExerciseMetaDrafts, setAppliedExerciseMetaDrafts] = useState(
+    () => buildExerciseMetaDrafts(initialWorkout.workout_exercises),
+  );
+  const [autoSuggestedSetMap, setAutoSuggestedSetMap] = useState<
+    Record<number, boolean>
+  >({});
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [savingAll, setSavingAll] = useState(false);
   const [pendingDeletedExerciseIds, setPendingDeletedExerciseIds] = useState<
     number[]
   >([]);
+  const [editingBrandMap, setEditingBrandMap] = useState<
+    Record<number, boolean>
+  >({});
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
   const [openActionsExerciseId, setOpenActionsExerciseId] = useState<
     number | null
@@ -58,9 +96,22 @@ const EditWorkoutClient = ({
     detailsDraft.name !== (workout.name ?? "") ||
     detailsDraft.date !== (workout.date ?? "") ||
     detailsDraft.notes !== (workout.notes ?? "");
+  const exerciseMetaDirtyIds = useMemo(
+    () =>
+      (workout.workout_exercises ?? [])
+        .filter(
+          (we) =>
+            (exerciseMetaDrafts[we.id]?.equipmentBrand ?? "") !==
+            (we.equipment_brand ?? ""),
+        )
+        .map((we) => we.id),
+    [exerciseMetaDrafts, workout.workout_exercises],
+  );
+  const hasExerciseMetaDirty = exerciseMetaDirtyIds.length > 0;
 
   const anyDirty = Boolean(
     detailsDirty ||
+      hasExerciseMetaDirty ||
       pendingDeletedExerciseIds.length > 0 ||
       workout.workout_exercises?.some((we) => !!dirtyMap[we.id]),
   );
@@ -77,6 +128,18 @@ const EditWorkoutClient = ({
         if (!res.ok) throw new Error(result.error);
 
         setWorkout(result.data as WorkoutWithRelations);
+        setExerciseMetaDrafts(
+          buildExerciseMetaDrafts(
+            (result.data as WorkoutWithRelations).workout_exercises,
+          ),
+        );
+        setAppliedExerciseMetaDrafts(
+          buildExerciseMetaDrafts(
+            (result.data as WorkoutWithRelations).workout_exercises,
+          ),
+        );
+        setAutoSuggestedSetMap({});
+        setEditingBrandMap({});
         setPendingDeletedExerciseIds([]);
         setDirtyMap({});
       } catch (err) {
@@ -107,6 +170,26 @@ const EditWorkoutClient = ({
       delete next[workoutExerciseId];
       return next;
     });
+    setExerciseMetaDrafts((prev) => {
+      const next = { ...prev };
+      delete next[workoutExerciseId];
+      return next;
+    });
+    setAppliedExerciseMetaDrafts((prev) => {
+      const next = { ...prev };
+      delete next[workoutExerciseId];
+      return next;
+    });
+    setAutoSuggestedSetMap((prev) => {
+      const next = { ...prev };
+      delete next[workoutExerciseId];
+      return next;
+    });
+    setEditingBrandMap((prev) => {
+      const next = { ...prev };
+      delete next[workoutExerciseId];
+      return next;
+    });
   }, []);
 
   const persistDeleteExercise = useCallback(
@@ -122,6 +205,121 @@ const EditWorkoutClient = ({
     },
     [workoutId],
   );
+
+  const handleExerciseBrandBlur = useCallback(
+    async (workoutExercise: WorkoutExerciseWithRelations) => {
+      const equipmentBrand =
+        exerciseMetaDrafts[workoutExercise.id]?.equipmentBrand ?? "";
+      const appliedEquipmentBrand =
+        appliedExerciseMetaDrafts[workoutExercise.id]?.equipmentBrand ?? "";
+
+      if (equipmentBrand === appliedEquipmentBrand) {
+        return true;
+      }
+
+      const canReplaceSets =
+        !dirtyMap[workoutExercise.id] || autoSuggestedSetMap[workoutExercise.id];
+
+      if (!canReplaceSets) {
+        setAppliedExerciseMetaDrafts((prev) => ({
+          ...prev,
+          [workoutExercise.id]: {
+            equipmentBrand,
+          },
+        }));
+        toast.success("Brand updated locally. Existing set edits were kept.");
+        return true;
+      }
+
+      try {
+        const result = await getWorkoutExerciseBrandSuggestionsAction({
+          workoutId,
+          workoutExerciseId: workoutExercise.id,
+          equipmentBrand,
+        });
+
+        const normalizedBrand = result.equipmentBrand ?? "";
+        setExerciseMetaDrafts((prev) => ({
+          ...prev,
+          [workoutExercise.id]: {
+            equipmentBrand: normalizedBrand,
+          },
+        }));
+        setAppliedExerciseMetaDrafts((prev) => ({
+          ...prev,
+          [workoutExercise.id]: {
+            equipmentBrand: normalizedBrand,
+          },
+        }));
+
+        if (result.sets.length > 0) {
+          formRefs.current[workoutExercise.id]?.replaceWithSets(
+            result.sets as ExerciseSetDraftValue[],
+          );
+          setAutoSuggestedSetMap((prev) => ({
+            ...prev,
+            [workoutExercise.id]: true,
+          }));
+        }
+
+        const requestedBrand = equipmentBrand.trim();
+        const copiedFromBrand = result.copiedFromBrand?.trim();
+
+        if (result.sets.length > 0) {
+          if (result.matchedBrand) {
+            toast.success(
+              requestedBrand
+                ? `Using last ${requestedBrand} sets`
+                : "Using last unbranded sets",
+            );
+          } else if (copiedFromBrand) {
+            toast.success(
+              requestedBrand
+                ? `No ${requestedBrand} history found. Using last ${copiedFromBrand} sets`
+                : `Using last ${copiedFromBrand} sets`,
+            );
+          } else {
+            toast.success(
+              requestedBrand
+                ? `No ${requestedBrand} history found. Using last exercise sets`
+                : "Using last exercise sets",
+            );
+          }
+        } else {
+          toast.success("Brand updated locally. No prior sets found.");
+        }
+        return true;
+      } catch (err) {
+        console.error("Error loading exercise brand suggestions:", err);
+        toast.error(
+          err instanceof Error ? err.message : "Failed to update brand sets",
+        );
+        return false;
+      }
+    },
+    [
+      appliedExerciseMetaDrafts,
+      autoSuggestedSetMap,
+      dirtyMap,
+      exerciseMetaDrafts,
+      workoutId,
+    ],
+  );
+
+  const openBrandEditor = useCallback((workoutExerciseId: number) => {
+    setEditingBrandMap((prev) => ({ ...prev, [workoutExerciseId]: true }));
+  }, []);
+
+  const cancelBrandEdit = useCallback((workoutExerciseId: number) => {
+    setExerciseMetaDrafts((prev) => ({
+      ...prev,
+      [workoutExerciseId]: {
+        equipmentBrand:
+          appliedExerciseMetaDrafts[workoutExerciseId]?.equipmentBrand ?? "",
+      },
+    }));
+    setEditingBrandMap((prev) => ({ ...prev, [workoutExerciseId]: false }));
+  }, [appliedExerciseMetaDrafts]);
 
   const handleSaveAll = useCallback(async () => {
     if (
@@ -177,6 +375,18 @@ const EditWorkoutClient = ({
         throw new Error("Failed to delete some exercises");
       }
 
+      const exerciseMetaSaves = (workout.workout_exercises ?? [])
+        .filter((we) => exerciseMetaDirtyIds.includes(we.id))
+        .map((we) =>
+          updateWorkoutExerciseAction({
+            workoutId,
+            workoutExerciseId: we.id,
+            equipmentBrand: exerciseMetaDrafts[we.id]?.equipmentBrand ?? "",
+            fillPreviousSets: false,
+          }),
+        );
+      await Promise.all(exerciseMetaSaves);
+
       const saves = (workout.workout_exercises ?? []).map(async (we) => {
         const handle = formRefs.current[we.id];
         if (handle?.save) {
@@ -209,6 +419,9 @@ const EditWorkoutClient = ({
     detailsDraft.date,
     detailsDraft.name,
     detailsDraft.notes,
+    dirtyMap,
+    exerciseMetaDirtyIds,
+    exerciseMetaDrafts,
     fetchWorkout,
     pendingDeletedExerciseIds,
     persistDeleteExercise,
@@ -260,81 +473,81 @@ const EditWorkoutClient = ({
   }, [openActionsExerciseId]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-xl px-4 py-6 pb-28 sm:px-6 lg:px-8">
       <header className="mb-4 sm:mb-6">
         <div className="mb-2">
           <Link
             href={`/workouts/${String(workout.id)}`}
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
           >
-            <span aria-hidden>{"<-"}</span>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             <span>Back to workout</span>
           </Link>
         </div>
         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
           Edit Workout
         </h1>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          {workout.date && <span>{prettyDate(workout.date)}</span>}
-        </div>
       </header>
 
       {loading ? (
         <LoadingSpinner className="mt-6" />
       ) : (
         <>
-          <section className="mb-6 rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-6">
-            <div className="mb-3 flex items-center justify-between gap-3">
+          <section className="mb-6">
+            <div className="mb-3">
               <h2 className="text-base font-medium text-gray-900 dark:text-white">
                 Workout Details
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <InputField
-                id="workoutName"
-                label="Workout Name"
-                type="text"
-                name="name"
-                value={detailsDraft.name}
-                onChange={(e) =>
-                  setDetailsDraft((prev) => ({
-                    ...prev,
-                    name: (e.target as HTMLInputElement).value,
-                  }))
-                }
-                required
-              />
+            <div className="rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-6">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <InputField
+                  id="workoutName"
+                  label="Workout Name"
+                  type="text"
+                  name="name"
+                  value={detailsDraft.name}
+                  onChange={(e) =>
+                    setDetailsDraft((prev) => ({
+                      ...prev,
+                      name: (e.target as HTMLInputElement).value,
+                    }))
+                  }
+                  required
+                />
 
-              <InputField
-                id="workoutDate"
-                label="Date"
-                type="date"
-                name="date"
-                value={detailsDraft.date}
-                onChange={(e) =>
-                  setDetailsDraft((prev) => ({
-                    ...prev,
-                    date: (e.target as HTMLInputElement).value,
-                  }))
-                }
-                required
-              />
+                <InputField
+                  id="workoutDate"
+                  label="Date"
+                  type="date"
+                  name="date"
+                  value={detailsDraft.date}
+                  onChange={(e) =>
+                    setDetailsDraft((prev) => ({
+                      ...prev,
+                      date: (e.target as HTMLInputElement).value,
+                    }))
+                  }
+                  required
+                />
 
-              <TextAreaField
-                id="workoutNotes"
-                label="Notes"
-                name="notes"
-                placeholder="Optional notes about this workout"
-                value={detailsDraft.notes}
-                onChange={(e) =>
-                  setDetailsDraft((prev) => ({
-                    ...prev,
-                    notes: (e.target as HTMLTextAreaElement).value,
-                  }))
-                }
-                containerClassName="sm:col-span-2"
-              />
+                <TextAreaField
+                  id="workoutNotes"
+                  label="Notes"
+                  name="notes"
+                  placeholder="Optional notes about this workout"
+                  rows={2}
+                  value={detailsDraft.notes}
+                  onChange={(e) =>
+                    setDetailsDraft((prev) => ({
+                      ...prev,
+                      notes: (e.target as HTMLTextAreaElement).value,
+                    }))
+                  }
+                  containerClassName="sm:col-span-2"
+                />
+              </div>
             </div>
           </section>
 
@@ -352,21 +565,41 @@ const EditWorkoutClient = ({
                   className="rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-5"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 leading-tight">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">
                         {we.exercise?.name ?? "Exercise"}
-                        {dirtyMap[we.id] ? (
-                          <span className="ml-2 inline-flex items-center rounded-full border border-amber-400 px-2 py-0.5 text-[10px] font-normal text-amber-700 dark:border-amber-500 dark:text-amber-400">
-                            Unsaved changes
-                          </span>
-                        ) : null}
                       </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        ID: {we.id}
-                      </p>
+                    </div>
+                    {!editingBrandMap[we.id] &&
+                    appliedExerciseMetaDrafts[
+                      we.id
+                    ]?.equipmentBrand?.trim() ? (
+                      <button
+                        type="button"
+                        onClick={() => openBrandEditor(we.id)}
+                        className="self-start inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium leading-tight text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40 dark:hover:bg-blue-500/20"
+                      >
+                        {appliedExerciseMetaDrafts[
+                          we.id
+                        ]?.equipmentBrand?.trim()}
+                      </button>
+                    ) : !editingBrandMap[we.id] &&
+                      !appliedExerciseMetaDrafts[
+                        we.id
+                      ]?.equipmentBrand?.trim() ? (
+                      <button
+                        type="button"
+                        onClick={() => openBrandEditor(we.id)}
+                        className="self-start inline-flex items-center gap-1 text-xs font-medium leading-tight text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                      >
+                        <Plus className="h-3 w-3 shrink-0" aria-hidden="true" />
+                        Add brand
+                      </button>
+                    ) : null}
                     </div>
                     <div
-                      className="relative ml-auto shrink-0"
+                      className="relative shrink-0"
                       data-exercise-actions-menu
                     >
                       <button
@@ -377,17 +610,17 @@ const EditWorkoutClient = ({
                           )
                         }
                         disabled={loading}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-lg leading-none text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-900/40"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-900/40"
                         aria-label="Exercise actions"
                         aria-haspopup="menu"
                         aria-expanded={openActionsExerciseId === we.id}
                         title="Exercise actions"
                       >
-                        ...
+                        <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                       </button>
                       {openActionsExerciseId === we.id ? (
                         <div
-                          className="absolute right-0 top-10 z-20 min-w-40 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-neutral-900"
+                          className="absolute right-0 top-9 z-20 min-w-40 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-neutral-900"
                           role="menu"
                         >
                           <button
@@ -395,16 +628,79 @@ const EditWorkoutClient = ({
                             role="menuitem"
                             onClick={() => {
                               setOpenActionsExerciseId(null);
+                              openBrandEditor(we.id);
+                            }}
+                            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-neutral-800"
+                          >
+                            <Tag className="h-4 w-4" aria-hidden="true" />
+                            <span>
+                              {appliedExerciseMetaDrafts[
+                                we.id
+                              ]?.equipmentBrand?.trim()
+                                ? "Edit brand"
+                                : "Set brand"}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setOpenActionsExerciseId(null);
                               stageDeleteExercise(we.id);
                             }}
-                            className="flex w-full items-center rounded px-2 py-1.5 text-left text-sm text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
                           >
-                            Remove exercise
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            <span>Remove exercise</span>
                           </button>
                         </div>
                       ) : null}
                     </div>
                   </div>
+                  {editingBrandMap[we.id] ? (
+                    <div className="mt-2 max-w-sm space-y-2">
+                      <InputField
+                        id={`workout-exercise-brand-${we.id}`}
+                        label="Equipment Brand"
+                        type="text"
+                        placeholder="Optional, e.g., Hammer Strength"
+                        value={exerciseMetaDrafts[we.id]?.equipmentBrand ?? ""}
+                        onChange={(e) => {
+                          const value = (e.target as HTMLInputElement).value;
+                          setExerciseMetaDrafts((prev) => ({
+                            ...prev,
+                            [we.id]: {
+                              equipmentBrand: value,
+                            },
+                          }));
+                        }}
+                      />
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const applied = await handleExerciseBrandBlur(we);
+                            if (applied) {
+                              setEditingBrandMap((prev) => ({
+                                ...prev,
+                                [we.id]: false,
+                              }));
+                            }
+                          }}
+                          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+                        >
+                          Apply
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => cancelBrandEdit(we.id)}
+                          className="inline-flex items-center rounded-md border border-transparent px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 active:translate-y-px dark:text-gray-300 dark:hover:bg-gray-900/40"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="mt-3 sm:mt-4">
                     <ExerciseSetForm
                       workoutId={workoutId}
@@ -415,6 +711,12 @@ const EditWorkoutClient = ({
                       }}
                       onDirtyChange={(dirty) =>
                         setDirtyMap((prev) => ({ ...prev, [we.id]: dirty }))
+                      }
+                      onManualEdit={() =>
+                        setAutoSuggestedSetMap((prev) => ({
+                          ...prev,
+                          [we.id]: false,
+                        }))
                       }
                       ref={(handle) => {
                         formRefs.current[we.id] = handle;
@@ -430,34 +732,15 @@ const EditWorkoutClient = ({
             </div>
           )}
 
-          <div className="mt-4 flex items-center justify-between gap-2">
+          <div className="mt-4">
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
             >
-              + Add Exercise
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Add Exercise
             </button>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={savingAll || loading}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  void handleSaveAndExit();
-                }}
-                disabled={savingAll || loading}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-              >
-                {savingAll ? "Saving..." : "Save"}
-              </button>
-            </div>
           </div>
         </>
       )}
@@ -483,6 +766,32 @@ const EditWorkoutClient = ({
           router.push(`/workouts/${String(workout.id)}`);
         }}
       />
+
+      <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-950/80">
+        <div className="mx-auto flex max-w-xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {anyDirty ? "Unsaved changes" : "All changes saved"}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={savingAll || loading}
+              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleSaveAndExit()}
+              disabled={savingAll || loading}
+              className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingAll ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
 
     </div>
   );

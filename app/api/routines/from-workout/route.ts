@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       .from("workouts")
       .select(
         `id, user_id, date, name, notes,
-        workout_exercises ( id, public_exercise_id, custom_exercise_id, order_index, notes,
+        workout_exercises ( id, public_exercise_id, custom_exercise_id, equipment_brand, order_index, notes,
           exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
         )`
       )
@@ -100,6 +100,7 @@ export async function POST(req: Request) {
         .insert({
           public_exercise_id: ex.public_exercise_id ?? null,
           custom_exercise_id: ex.custom_exercise_id ?? null,
+          equipment_brand: ex.equipment_brand ?? null,
           order_index: ex.order_index ?? null,
           notes: ex.notes ?? null,
           user_id: user.id,

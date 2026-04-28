@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { BookmarkPlus } from "lucide-react";
 import { InputField } from "@/app/_components/FormFields";
 import toast from "react-hot-toast";
 
@@ -56,19 +57,7 @@ export default function SaveAsRoutineButton({
           "inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200"
         }
       >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-4 w-4"
-        >
-          <path d="M12 20v-6" />
-          <path d="M6 14l6-6 6 6" />
-        </svg>
+        <BookmarkPlus className="h-4 w-4" aria-hidden="true" />
         <span>Save as routine</span>
       </button>
 

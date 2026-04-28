@@ -15,6 +15,11 @@ type RoutineSetRow = Tables<"routine_sets">;
 
 const ROUTINES_PATH = "/routines";
 
+const normalizeEquipmentBrand = (brand?: string | null) => {
+  const trimmed = brand?.trim();
+  return trimmed ? trimmed : null;
+};
+
 async function ensureUser() {
   const supabase = await createClient();
   const {
@@ -146,13 +151,16 @@ export async function deleteRoutineAction(routineId: string) {
 export async function addRoutineExerciseAction({
   routineId,
   exerciseId,
+  equipmentBrand,
   notes,
 }: {
   routineId: string;
   exerciseId: string;
+  equipmentBrand?: string | null;
   notes?: string | null;
 }) {
   const { supabase, user } = await ensureUser();
+  const normalizedEquipmentBrand = normalizeEquipmentBrand(equipmentBrand);
 
   if (!routineId || !exerciseId) {
     throw new Error("Invalid payload");
@@ -201,11 +209,12 @@ export async function addRoutineExerciseAction({
       user_id: user.id,
       public_exercise_id: isCustomExercise ? null : exerciseId,
       custom_exercise_id: isCustomExercise ? exerciseId : null,
+      equipment_brand: normalizedEquipmentBrand,
       order_index: nextOrder,
       notes: notes ?? null,
     })
     .select(
-      "id, routine_id, public_exercise_id, custom_exercise_id, order_index"
+      "id, routine_id, public_exercise_id, custom_exercise_id, equipment_brand, order_index"
     )
     .maybeSingle();
 
@@ -214,7 +223,7 @@ export async function addRoutineExerciseAction({
   }
 
   // Try to copy previous sets for this exercise (best effort)
-  const { data: previousRoutineExercise } = await supabase
+  let previousRoutineExerciseQuery = supabase
     .from("routine_exercises")
     .select("id")
     .eq(
@@ -222,7 +231,16 @@ export async function addRoutineExerciseAction({
       exerciseId
     )
     .eq("user_id", user.id)
-    .neq("id", data.id)
+    .neq("id", data.id);
+
+  if (normalizedEquipmentBrand) {
+    previousRoutineExerciseQuery = previousRoutineExerciseQuery.ilike(
+      "equipment_brand",
+      normalizedEquipmentBrand
+    );
+  }
+
+  const { data: previousRoutineExercise } = await previousRoutineExerciseQuery
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -265,8 +283,50 @@ export async function addRoutineExerciseAction({
     | "routine_id"
     | "public_exercise_id"
     | "custom_exercise_id"
+    | "equipment_brand"
     | "order_index"
   >;
+}
+
+export async function updateRoutineExerciseAction({
+  routineId,
+  routineExerciseId,
+  equipmentBrand,
+}: {
+  routineId: string;
+  routineExerciseId: number;
+  equipmentBrand?: string | null;
+}) {
+  const { supabase, user } = await ensureUser();
+
+  const owns = await assertRoutineExerciseOwnership(
+    supabase,
+    user.id,
+    routineId,
+    routineExerciseId
+  );
+  if (!owns) {
+    throw new Error("Routine exercise not found");
+  }
+
+  const { data, error } = await supabase
+    .from("routine_exercises")
+    .update({ equipment_brand: normalizeEquipmentBrand(equipmentBrand) })
+    .eq("id", routineExerciseId)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .select("id, equipment_brand")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Failed to update exercise brand");
+  }
+
+  revalidatePath(`${ROUTINES_PATH}/${routineId}`);
+  revalidatePath(`${ROUTINES_PATH}/${routineId}/edit`);
+  revalidatePath(`${ROUTINES_PATH}/${routineId}/exercises/edit`);
+
+  return data as Pick<RoutineExerciseRow, "id" | "equipment_brand">;
 }
 
 export async function saveRoutineSetAction({
@@ -457,7 +517,7 @@ export async function startWorkoutFromRoutineAction(routineId: string) {
       `
         id, name, date, notes,
         routine_exercises (
-          id, notes, order_index, public_exercise_id, custom_exercise_id, user_id,
+          id, notes, equipment_brand, order_index, public_exercise_id, custom_exercise_id, user_id,
           routine_sets ( set_number, reps, weight, duration, distance, notes )
         )
       `
@@ -511,6 +571,7 @@ export async function startWorkoutFromRoutineAction(routineId: string) {
         custom_exercise_id: ownsCustomExercise
           ? routineExercise.custom_exercise_id
           : null,
+        equipment_brand: routineExercise.equipment_brand ?? null,
         notes: routineExercise.notes ?? null,
         order_index: routineExercise.order_index,
       })

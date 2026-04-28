@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { Calendar, Copy, MoreHorizontal, Pencil, Trash2, User } from "lucide-react";
 import { prettyDate } from "@/utils/format";
 import type { Tables } from "@/types/database.types";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
@@ -103,9 +104,9 @@ const WorkoutDetailCard = ({
               aria-haspopup="menu"
               aria-expanded={isMenuOpen}
               aria-label="Workout actions"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-lg leading-none text-gray-700 shadow-sm transition hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200 dark:hover:bg-neutral-700"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200 dark:hover:bg-neutral-700"
             >
-              ...
+              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
             </button>
             {isMenuOpen && (
               <div
@@ -119,19 +120,7 @@ const WorkoutDetailCard = ({
                     onClick={() => setIsMenuOpen(false)}
                     className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-neutral-800"
                   >
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4"
-                    >
-                      <path d="M16.862 4.487a2.25 2.25 0 0 1 3.182 3.182l-9.21 9.21a6.75 6.75 0 0 1-2.83 1.68l-2.492.71a.75.75 0 0 1-.92-.92l.71-2.492a6.75 6.75 0 0 1 1.68-2.83z" />
-                      <path d="m15 6 3 3" />
-                    </svg>
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
                     <span>Edit workout</span>
                   </Link>
                 )}
@@ -143,18 +132,7 @@ const WorkoutDetailCard = ({
                     disabled={isCopying}
                     className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-100 dark:hover:bg-neutral-800"
                   >
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4"
-                    >
-                      <path d="M8 16H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2m-6 12h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z" />
-                    </svg>
+                    <Copy className="h-4 w-4" aria-hidden="true" />
                     <span>{isCopying ? "Copying..." : "Copy workout"}</span>
                   </button>
                 )}
@@ -178,21 +156,7 @@ const WorkoutDetailCard = ({
                       disabled={isDeleting}
                       className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-500/10"
                     >
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4"
-                      >
-                        <path d="M3 6h18" />
-                        <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                        <path d="M10 11v6M14 11v6" />
-                      </svg>
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                       <span>{isDeleting ? "Deleting..." : "Delete workout"}</span>
                     </button>
                   </>
@@ -208,10 +172,15 @@ const WorkoutDetailCard = ({
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
               {workout.name || "Untitled workout"}
             </h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-              <span>{prettyDate(workout?.date)}</span>
-              <span className="mx-2">|</span>
-              <span>By {ownerName}</span>
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 dark:text-gray-300">
+              <span className="inline-flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {prettyDate(workout?.date)}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <User className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {ownerName}
+              </span>
             </p>
           </div>
         </div>

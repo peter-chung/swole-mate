@@ -70,7 +70,10 @@ const AddRoutineExerciseModal = ({
     setError(null);
     startAdd(async () => {
       try {
-        await addRoutineExerciseAction({ routineId, exerciseId: exercise.id });
+        await addRoutineExerciseAction({
+          routineId,
+          exerciseId: exercise.id,
+        });
         onAdded?.();
         onClose();
       } catch (err: unknown) {
