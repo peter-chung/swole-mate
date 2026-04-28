@@ -13,6 +13,9 @@ export default function AccountForm({ user }: { user: User | null }) {
   const [username, setUsername] = useState<string | null>(null);
   const [website, setWebsite] = useState<string | null>(null);
   const [avatar_url, setAvatarUrl] = useState<string | null>(null);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const getProfile = useCallback(async () => {
     try {
@@ -76,6 +79,35 @@ export default function AccountForm({ user }: { user: User | null }) {
     }
   }
 
+  async function updatePassword(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      const { error } = await supabase.auth.updateUser({ password });
+
+      if (error) throw error;
+
+      setPassword("");
+      setConfirmPassword("");
+      toast.success("Password updated.");
+    } catch (error) {
+      toast.error("Error updating password.");
+    } finally {
+      setPasswordLoading(false);
+    }
+  }
+
   return (
     <div className="form-widget">
       {/* ... */}
@@ -123,6 +155,40 @@ export default function AccountForm({ user }: { user: User | null }) {
           {loading ? "Loading ..." : "Update"}
         </button>
       </div>
+
+      <form onSubmit={updatePassword}>
+        <div>
+          <label htmlFor="password">New Password</label>
+          <input
+            id="password"
+            type="password"
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+        </div>
+        <div>
+          <label htmlFor="confirmPassword">Confirm New Password</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            minLength={8}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+        </div>
+        <div>
+          <button
+            className="button primary block"
+            type="submit"
+            disabled={passwordLoading}
+          >
+            {passwordLoading ? "Updating ..." : "Update Password"}
+          </button>
+        </div>
+      </form>
 
       <div>
         <form action="/auth/signout" method="post">
