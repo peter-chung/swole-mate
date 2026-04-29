@@ -16,7 +16,7 @@ type Props = {
   open: boolean;
   routineId: string;
   onClose: () => void;
-  onAdded?: () => void;
+  onAdded?: (newRoutineExerciseId: number) => void;
 };
 
 const AddRoutineExerciseModal = ({
@@ -70,11 +70,11 @@ const AddRoutineExerciseModal = ({
     setError(null);
     startAdd(async () => {
       try {
-        await addRoutineExerciseAction({
+        const data = await addRoutineExerciseAction({
           routineId,
           exerciseId: exercise.id,
         });
-        onAdded?.();
+        onAdded?.(data.id);
         onClose();
       } catch (err: unknown) {
         setError(getErrorMessage(err));

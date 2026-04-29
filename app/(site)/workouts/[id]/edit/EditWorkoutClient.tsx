@@ -79,6 +79,7 @@ const EditWorkoutClient = ({
   const [pendingDeletedExerciseIds, setPendingDeletedExerciseIds] = useState<
     number[]
   >([]);
+  const [pendingAddedExerciseIds, setPendingAddedExerciseIds] = useState<number[]>([]);
   const [editingBrandMap, setEditingBrandMap] = useState<
     Record<number, boolean>
   >({});
@@ -116,6 +117,7 @@ const EditWorkoutClient = ({
     detailsDirty ||
       hasExerciseMetaDirty ||
       pendingDeletedExerciseIds.length > 0 ||
+      pendingAddedExerciseIds.length > 0 ||
       workout.workout_exercises?.some((we) => !!dirtyMap[we.id]),
   );
 
@@ -408,6 +410,9 @@ const EditWorkoutClient = ({
       setPendingDeletedExerciseIds((prev) =>
         prev.filter((id) => !deletionSucceededIds.has(id)),
       );
+      if (!deletionFailed) {
+        setPendingAddedExerciseIds([]);
+      }
       if (deletionFailed) {
         throw new Error("Failed to delete some exercises");
       }
@@ -786,7 +791,8 @@ const EditWorkoutClient = ({
         open={isAddModalOpen}
         workoutId={workoutId}
         onClose={() => setIsAddModalOpen(false)}
-        onAdded={() => {
+        onAdded={(newId) => {
+          setPendingAddedExerciseIds((prev) => [...prev, newId]);
           void fetchWorkout({ silent: true });
         }}
       />
@@ -800,7 +806,14 @@ const EditWorkoutClient = ({
         onCancel={() => setConfirmDiscardOpen(false)}
         onConfirm={() => {
           setConfirmDiscardOpen(false);
-          router.push(`/workouts/${String(workout.id)}`);
+          void (async () => {
+            if (pendingAddedExerciseIds.length > 0) {
+              await Promise.allSettled(
+                pendingAddedExerciseIds.map((id) => persistDeleteExercise(id)),
+              );
+            }
+            router.push(`/workouts/${String(workout.id)}`);
+          })();
         }}
       />
 

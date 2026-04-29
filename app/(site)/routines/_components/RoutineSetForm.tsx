@@ -54,7 +54,7 @@ type LocalSet = {
   duration: string | null;
   distance: number | null;
   notes: string | null;
-  _status?: "clean" | "dirty" | "new" | "deleting" | "saving";
+  _status?: "clean" | "dirty" | "new" | "deleted" | "saving";
 };
 
 type ApiRoutineSet = {
@@ -131,7 +131,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
     useEffect(() => {
       const hasDirty = sets.some(
-        (s) => s._status === "dirty" || s._status === "new"
+        (s) => s._status === "dirty" || s._status === "new" || s._status === "deleted"
       );
       if (lastDirtyRef.current !== hasDirty) {
         lastDirtyRef.current = hasDirty;
@@ -219,7 +219,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
             : 1;
 
         const lastNonDeleting = sortedByNumber.filter(
-          (set) => set._status !== "deleting"
+          (set) => set._status !== "deleted"
         );
         const previousSet =
           lastNonDeleting.length > 0
@@ -242,41 +242,38 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
       });
     };
 
-    const deleteSet = async (idx: number) => {
+    const deleteSet = (idx: number) => {
       const target = sets[idx];
       if (!target) return;
 
       if (typeof target.id === "string") {
         setSets((prev) => prev.filter((_, i) => i !== idx));
-        onSaved?.();
         return;
       }
 
-      try {
-        setSets((prev) =>
-          prev.map((s, i) => (i === idx ? { ...s, _status: "deleting" } : s))
-        );
-        await deleteRoutineSetAction({
-          routineId,
-          routineExerciseId,
-          setId: Number(target.id),
-        });
-        setSets((prev) => prev.filter((_, i) => i !== idx));
-        onSaved?.();
-      } catch (err) {
-        console.error(err);
-        toast.error(
-          err instanceof Error ? err.message : "Failed to delete set"
-        );
-        setSets((prev) =>
-          prev.map((s, i) => (i === idx ? { ...s, _status: "clean" } : s))
-        );
-      }
+      setSets((prev) =>
+        prev.map((s, i) => (i === idx ? { ...s, _status: "deleted" } : s))
+      );
     };
 
     const save = async (opts?: { silent?: boolean }) => {
       try {
-        const indicesToPersist = sets.reduce<Array<number>>((acc, set, idx) => {
+        const snapshot = sets;
+
+        await Promise.all(
+          snapshot
+            .filter((s) => s._status === "deleted" && typeof s.id === "number")
+            .map((s) =>
+              deleteRoutineSetAction({
+                routineId,
+                routineExerciseId,
+                setId: s.id as number,
+              })
+            )
+        );
+
+        const indicesToPersist = snapshot.reduce<Array<number>>((acc, set, idx) => {
+          if (set._status === "deleted") return acc;
           if (typeof set.id === "string" || set._status === "dirty") {
             if (typeof set.id === "string" && !hasMeaningfulValue(set))
               return acc;
@@ -287,7 +284,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
         const results = await Promise.all(
           indicesToPersist.map(async (idx) => {
-            const target = sets[idx];
+            const target = snapshot[idx];
             const data = await saveRoutineSetAction({
               routineId,
               routineExerciseId,
@@ -299,16 +296,13 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
         );
 
         setSets((prev) => {
-          const out = [...prev];
+          const out = prev.filter((s) => s._status !== "deleted");
           for (const { idx, data } of results) {
             const normalized = normalizeApiSet(data);
-            const originalId = prev[idx]?.id;
+            const originalId = snapshot[idx]?.id;
             const matchIndex = out.findIndex((s) => s.id === originalId);
-
             if (matchIndex >= 0) {
               out[matchIndex] = normalized;
-            } else {
-              out[idx] = normalized;
             }
           }
           out.sort((a, b) => a.set_number - b.set_number);
@@ -332,10 +326,10 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
     return (
       <div className="mb-4 space-y-3">
-        {sets.map((set, idx) => (
+        {sets.map((set, idx) => set._status === "deleted" ? null : (
           <div
             key={set.id}
-            className="flex items-end gap-3"
+            className="flex items-center gap-3"
           >
             <div className="text-sm text-gray-600 dark:text-gray-400 w-14">
               Set {set.set_number}
@@ -370,15 +364,11 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
               type="button"
               onClick={() => deleteSet(idx)}
               className="ml-auto inline-flex items-center justify-center rounded-md border border-gray-300 px-2 py-1 text-sm hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-900/40"
-              disabled={set._status === "deleting" || set._status === "saving"}
+              disabled={set._status === "saving"}
               aria-label="Delete set"
               title="Delete set"
             >
-              {set._status === "deleting"
-                ? "Deleting…"
-                : set._status === "saving"
-                ? "Saving…"
-                : "✕"}
+              {set._status === "saving" ? "Saving…" : "✕"}
             </button>
           </div>
         ))}

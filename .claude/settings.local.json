@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(netstat -ano)",
+      "Bash(npx next *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

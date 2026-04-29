@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MoreHorizontal, Plus, Tag, Trash2 } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Plus, RotateCcw, Tag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
@@ -67,6 +67,8 @@ const ManageExercisesClient = ({
   const [savingAll, setSavingAll] = useState(false);
   const [confirmExerciseId, setConfirmExerciseId] = useState<number | null>(null);
   const [pendingDeletedExerciseIds, setPendingDeletedExerciseIds] = useState<number[]>([]);
+  const [pendingAddedExerciseIds, setPendingAddedExerciseIds] = useState<number[]>([]);
+  const [cancelling, setCancelling] = useState(false);
   const [openActionsExerciseId, setOpenActionsExerciseId] = useState<number | null>(null);
 
   const formRefs = useRef<Record<number, RoutineSetFormHandle | null>>({});
@@ -97,6 +99,7 @@ const ManageExercisesClient = ({
   const anyDirty = Boolean(
     detailsDirty ||
       pendingDeletedExerciseIds.length > 0 ||
+      pendingAddedExerciseIds.length > 0 ||
       exerciseMetaDirtyIds.length > 0 ||
       routine.routine_exercises?.some((re) => !!dirtyMap[re.id]),
   );
@@ -141,19 +144,16 @@ const ManageExercisesClient = ({
         if (!res.ok) throw new Error(result.error);
         const fetched = result.data as RoutineWithRelations;
 
-        const stagedDeletions = silent ? pendingDeletedExerciseIdsRef.current : [];
         const currentExercises = routineExercisesRef.current ?? [];
         const currentDirtyMap = dirtyMapRef.current;
 
-        const filteredExercises = (fetched.routine_exercises ?? [])
-          .filter((re) => !stagedDeletions.includes(re.id))
-          .map((re) => {
-            if (silent && currentDirtyMap[re.id]) {
-              const existing = currentExercises.find((e) => e.id === re.id);
-              if (existing) return { ...re, routine_sets: existing.routine_sets };
-            }
-            return re;
-          });
+        const filteredExercises = (fetched.routine_exercises ?? []).map((re) => {
+          if (silent && currentDirtyMap[re.id]) {
+            const existing = currentExercises.find((e) => e.id === re.id);
+            if (existing) return { ...re, routine_sets: existing.routine_sets };
+          }
+          return re;
+        });
 
         setRoutine({ ...fetched, routine_exercises: filteredExercises });
         setExerciseMetaDrafts(buildExerciseMetaDrafts(filteredExercises));
@@ -179,12 +179,6 @@ const ManageExercisesClient = ({
     setPendingDeletedExerciseIds((prev) =>
       prev.includes(routineExerciseId) ? prev : [...prev, routineExerciseId],
     );
-    setRoutine((prev) => ({
-      ...prev,
-      routine_exercises: (prev.routine_exercises ?? []).filter(
-        (re) => re.id !== routineExerciseId,
-      ),
-    }));
     setDirtyMap((prev) => {
       const next = { ...prev };
       delete next[routineExerciseId];
@@ -206,6 +200,10 @@ const ManageExercisesClient = ({
       return next;
     });
     setOpenActionsExerciseId(null);
+  }, []);
+
+  const unstageDeleteExercise = useCallback((routineExerciseId: number) => {
+    setPendingDeletedExerciseIds((prev) => prev.filter((id) => id !== routineExerciseId));
   }, []);
 
   const openBrandEditor = useCallback((routineExerciseId: number) => {
@@ -261,10 +259,11 @@ const ManageExercisesClient = ({
       const deleteFailed = deleteResults.some((r) => r.status === "rejected");
       if (!deleteFailed) {
         setPendingDeletedExerciseIds([]);
+        setPendingAddedExerciseIds([]);
       }
 
       const exerciseMetaSaves = (routine.routine_exercises ?? [])
-        .filter((re) => exerciseMetaDirtyIds.includes(re.id))
+        .filter((re) => exerciseMetaDirtyIds.includes(re.id) && !pendingDeletedExerciseIds.includes(re.id))
         .map((re) =>
           updateRoutineExerciseAction({
             routineId,
@@ -274,10 +273,12 @@ const ManageExercisesClient = ({
         );
       await Promise.all(exerciseMetaSaves);
 
-      const setsSaves = (routine.routine_exercises ?? []).map(async (re) => {
-        const handle = formRefs.current[re.id];
-        if (handle?.save) await handle.save({ silent: true });
-      });
+      const setsSaves = (routine.routine_exercises ?? [])
+        .filter((re) => !pendingDeletedExerciseIds.includes(re.id))
+        .map(async (re) => {
+          const handle = formRefs.current[re.id];
+          if (handle?.save) await handle.save({ silent: true });
+        });
       await Promise.all(setsSaves);
 
       if (deleteFailed) throw new Error("Failed to remove some exercises");
@@ -299,9 +300,16 @@ const ManageExercisesClient = ({
     if (ok) router.push(`/routines/${routineId}`);
   }, [handleSaveAll, router, routineId]);
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = useCallback(async () => {
+    if (pendingAddedExerciseIds.length > 0) {
+      setCancelling(true);
+      await Promise.allSettled(
+        pendingAddedExerciseIds.map((id) => persistDeleteExercise(id)),
+      );
+      setCancelling(false);
+    }
     router.push(`/routines/${routineId}`);
-  }, [routineId, router]);
+  }, [pendingAddedExerciseIds, persistDeleteExercise, routineId, router]);
 
 
   return (
@@ -357,6 +365,7 @@ const ManageExercisesClient = ({
                   label="Notes"
                   placeholder="Optional notes about this routine"
                   value={detailsDraft.notes}
+                  rows={2}
                   containerClassName="sm:col-span-2"
                   onChange={(e) =>
                     setDetailsDraft((p) => ({ ...p, notes: (e.target as HTMLTextAreaElement).value }))
@@ -368,162 +377,186 @@ const ManageExercisesClient = ({
 
           {/* Exercises */}
           <section className="mb-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-medium text-gray-900 dark:text-white">
-                Exercises
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px cursor-pointer dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-              >
-                <Plus className="h-4 w-4" />
-                Add Exercise
-              </button>
-            </div>
+            <h2 className="text-base font-medium text-gray-900 dark:text-white">
+              Exercises
+            </h2>
           </section>
 
-          {routine.routine_exercises && routine.routine_exercises.length > 0 ? (
+          {routine.routine_exercises && routine.routine_exercises.filter((re) => !pendingDeletedExerciseIds.includes(re.id)).length > 0 ? (
             <div className="space-y-4">
-              {routine.routine_exercises.map((re) => (
-                <div
-                  key={re.id}
-                  className="rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-5"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 leading-tight">
-                      <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                          {re.exercise?.name ?? (re.custom_exercise_id ? "Custom" : "Exercise")}
-                        </h3>
-                      </div>
-                      {!editingBrandMap[re.id] && appliedExerciseMetaDrafts[re.id]?.equipmentBrand?.trim() ? (
-                        <button
-                          type="button"
-                          onClick={() => openBrandEditor(re.id)}
-                          className="self-start inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium leading-tight text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40 dark:hover:bg-blue-500/20"
-                        >
-                          {appliedExerciseMetaDrafts[re.id]?.equipmentBrand?.trim()}
-                        </button>
-                      ) : !editingBrandMap[re.id] ? (
-                        <button
-                          type="button"
-                          onClick={() => openBrandEditor(re.id)}
-                          className="self-start inline-flex items-center gap-1 text-xs font-medium leading-tight text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                        >
-                            + Brand
-                        </button>
-                      ) : null}
-                    </div>
-                    <div className="relative shrink-0" data-exercise-actions-menu>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setOpenActionsExerciseId((prev) => prev === re.id ? null : re.id)
-                        }
-                        disabled={loading}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-900/40"
-                        aria-label="Exercise actions"
-                        aria-haspopup="menu"
-                        aria-expanded={openActionsExerciseId === re.id}
-                      >
-                        <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      {openActionsExerciseId === re.id && (
-                        <div
-                          className="absolute right-0 top-9 z-20 min-w-40 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-neutral-900"
-                          role="menu"
-                        >
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              setOpenActionsExerciseId(null);
-                              openBrandEditor(re.id);
-                            }}
-                            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-neutral-800"
-                          >
-                            <Tag className="h-4 w-4" aria-hidden="true" />
-                            <span>
-                              {appliedExerciseMetaDrafts[re.id]?.equipmentBrand?.trim()
-                                ? "Edit brand"
-                                : "Set brand"}
+              {routine.routine_exercises.map((re) => {
+                const isPendingDeletion = pendingDeletedExerciseIds.includes(re.id);
+                return (
+                  <div
+                    key={re.id}
+                    className={`rounded-lg border p-4 shadow-sm backdrop-blur-sm sm:p-5 transition-opacity ${
+                      isPendingDeletion
+                        ? "border-red-200 bg-red-50/60 opacity-60 dark:border-red-900/50 dark:bg-red-950/20"
+                        : "border-gray-200 bg-white/60 dark:border-gray-800 dark:bg-gray-900/40"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5 leading-tight">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <h3 className={`truncate text-sm font-medium ${isPendingDeletion ? "line-through text-gray-500 dark:text-gray-500" : "text-gray-900 dark:text-white"}`}>
+                            {re.exercise?.name ?? (re.custom_exercise_id ? "Custom" : "Exercise")}
+                          </h3>
+                          {isPendingDeletion && (
+                            <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                              Removed on save
                             </span>
-                          </button>
-                          <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+                          )}
+                        </div>
+                        {!isPendingDeletion && !editingBrandMap[re.id] && appliedExerciseMetaDrafts[re.id]?.equipmentBrand?.trim() ? (
                           <button
                             type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              setOpenActionsExerciseId(null);
-                              setConfirmExerciseId(re.id);
-                            }}
-                            className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                            onClick={() => openBrandEditor(re.id)}
+                            className="self-start inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium leading-tight text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40 dark:hover:bg-blue-500/20"
                           >
-                            <Trash2 className="h-4 w-4" aria-hidden="true" />
-                            <span>Remove exercise</span>
+                            {appliedExerciseMetaDrafts[re.id]?.equipmentBrand?.trim()}
                           </button>
+                        ) : !isPendingDeletion && !editingBrandMap[re.id] ? (
+                          <button
+                            type="button"
+                            onClick={() => openBrandEditor(re.id)}
+                            className="self-start inline-flex items-center gap-1 text-xs font-medium leading-tight text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                          >
+                              + Brand
+                          </button>
+                        ) : null}
+                      </div>
+                      {isPendingDeletion ? (
+                        <button
+                          type="button"
+                          onClick={() => unstageDeleteExercise(re.id)}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-900/40"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Undo
+                        </button>
+                      ) : (
+                        <div className="relative shrink-0" data-exercise-actions-menu>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenActionsExerciseId((prev) => prev === re.id ? null : re.id)
+                            }
+                            disabled={loading}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-900/40"
+                            aria-label="Exercise actions"
+                            aria-haspopup="menu"
+                            aria-expanded={openActionsExerciseId === re.id}
+                          >
+                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                          {openActionsExerciseId === re.id && (
+                            <div
+                              className="absolute right-0 top-9 z-20 min-w-40 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-neutral-900"
+                              role="menu"
+                            >
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenActionsExerciseId(null);
+                                  openBrandEditor(re.id);
+                                }}
+                                className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-neutral-800"
+                              >
+                                <Tag className="h-4 w-4" aria-hidden="true" />
+                                <span>
+                                  {appliedExerciseMetaDrafts[re.id]?.equipmentBrand?.trim()
+                                    ? "Edit brand"
+                                    : "Set brand"}
+                                </span>
+                              </button>
+                              <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenActionsExerciseId(null);
+                                  setConfirmExerciseId(re.id);
+                                }}
+                                className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                                <span>Remove exercise</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  </div>
-                  {editingBrandMap[re.id] && (
-                    <div className="mt-2 max-w-sm space-y-2">
-                      <InputField
-                        id={`routine-exercise-brand-${re.id}`}
-                        label="Equipment Brand"
-                        type="text"
-                        placeholder="Optional, e.g., Hammer Strength"
-                        value={exerciseMetaDrafts[re.id]?.equipmentBrand ?? ""}
-                        onChange={(e) => {
-                          const value = (e.target as HTMLInputElement).value;
-                          setExerciseMetaDrafts((prev) => ({
-                            ...prev,
-                            [re.id]: { equipmentBrand: value },
-                          }));
-                        }}
-                      />
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => applyBrandEdit(re.id)}
-                          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-                        >
-                          Apply
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => cancelBrandEdit(re.id)}
-                          className="inline-flex items-center rounded-md border border-transparent px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 active:translate-y-px dark:text-gray-300 dark:hover:bg-gray-900/40"
-                        >
-                          Cancel
-                        </button>
+                    {!isPendingDeletion && editingBrandMap[re.id] && (
+                      <div className="mt-2 max-w-sm space-y-2">
+                        <InputField
+                          id={`routine-exercise-brand-${re.id}`}
+                          label="Equipment Brand"
+                          type="text"
+                          placeholder="Optional, e.g., Hammer Strength"
+                          value={exerciseMetaDrafts[re.id]?.equipmentBrand ?? ""}
+                          onChange={(e) => {
+                            const value = (e.target as HTMLInputElement).value;
+                            setExerciseMetaDrafts((prev) => ({
+                              ...prev,
+                              [re.id]: { equipmentBrand: value },
+                            }));
+                          }}
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => applyBrandEdit(re.id)}
+                            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+                          >
+                            Apply
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => cancelBrandEdit(re.id)}
+                            className="inline-flex items-center rounded-md border border-transparent px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 active:translate-y-px dark:text-gray-300 dark:hover:bg-gray-900/40"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  <div className="mt-3 sm:mt-4">
-                    <RoutineSetForm
-                      routineId={routineId}
-                      routineExerciseId={re.id}
-                      routineSets={re.routine_sets ?? []}
-                      exerciseType={re.exercise ?? null}
-                      onSaved={() => void fetchRoutine({ silent: true })}
-                      onDirtyChange={(dirty) =>
-                        setDirtyMap((prev) => ({ ...prev, [re.id]: dirty }))
-                      }
-                      ref={(handle) => {
-                        formRefs.current[re.id] = handle;
-                      }}
-                    />
+                    )}
+                    {!isPendingDeletion && (
+                      <div className="mt-3 sm:mt-4">
+                        <RoutineSetForm
+                          routineId={routineId}
+                          routineExerciseId={re.id}
+                          routineSets={re.routine_sets ?? []}
+                          exerciseType={re.exercise ?? null}
+                          onSaved={() => void fetchRoutine({ silent: true })}
+                          onDirtyChange={(dirty) =>
+                            setDirtyMap((prev) => ({ ...prev, [re.id]: dirty }))
+                          }
+                          ref={(handle) => {
+                            formRefs.current[re.id] = handle;
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-600 dark:border-gray-700 dark:text-gray-400">
-              No exercises yet. Use "Add Exercise" to begin.
+              No exercises yet. Add your first exercise below.
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 py-3 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900 active:translate-y-px cursor-pointer dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:bg-gray-900/40 dark:hover:text-gray-100"
+          >
+            <Plus className="h-4 w-4" />
+            Add Exercise
+          </button>
         </>
       )}
 
@@ -531,7 +564,10 @@ const ManageExercisesClient = ({
         open={isAddModalOpen}
         routineId={routineId}
         onClose={() => setIsAddModalOpen(false)}
-        onAdded={() => void fetchRoutine({ silent: true })}
+        onAdded={(newId) => {
+          setPendingAddedExerciseIds((prev) => [...prev, newId]);
+          void fetchRoutine({ silent: true });
+        }}
       />
 
       <ConfirmDialog
@@ -557,11 +593,11 @@ const ManageExercisesClient = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleCancel}
-              disabled={savingAll || loading}
+              onClick={() => void handleCancel()}
+              disabled={savingAll || loading || cancelling}
               className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
             >
-              Cancel
+              {cancelling ? "Cancelling…" : "Cancel"}
             </button>
             <button
               type="button"
