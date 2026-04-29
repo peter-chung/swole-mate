@@ -1,6 +1,4 @@
 import React from "react";
-import Link from "next/link";
-import { Pencil } from "lucide-react";
 import type { RoutineWithRelations } from "../_lib/getRoutine";
 
 type Props = { routine: RoutineWithRelations };
@@ -10,17 +8,10 @@ export default function RoutineExerciseContainer({ routine }: Props) {
 
   return (
     <div>
-      <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-2">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
           Exercises
         </h2>
-        <Link
-          href={`/routines/${routine.id}/exercises/edit`}
-          className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
-        >
-          <Pencil className="h-4 w-4" aria-hidden="true" />
-          <span>Manage exercises</span>
-        </Link>
       </div>
 
       {exercises.length > 0 ? (
@@ -105,16 +96,7 @@ export default function RoutineExerciseContainer({ routine }: Props) {
       ) : (
         <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
           <p className="font-medium">No exercises yet</p>
-          <p className="text-sm">Add your first exercise to this routine.</p>
-          <div className="mt-4">
-            <Link
-              href={`/routines/${routine.id}/exercises/edit`}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            >
-              <Pencil className="h-4 w-4" aria-hidden="true" />
-              <span>Manage exercises</span>
-            </Link>
-          </div>
+          <p className="text-sm">Use "Edit" to add exercises to this routine.</p>
         </div>
       )}
     </div>

@@ -40,7 +40,7 @@ const CreateRoutineForm = () => {
         });
 
         if (result?.id) {
-          router.push(`/routines/${result.id}/exercises/edit`);
+          router.push(`/routines/${result.id}/edit`);
         } else {
           router.push("/routines");
         }
