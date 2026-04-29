@@ -805,7 +805,7 @@ const EditWorkoutClient = ({
         }}
       />
 
-      <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-950/80">
+      <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-950/80">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <span className="text-sm text-gray-500 dark:text-gray-400">
             {anyDirty ? "Unsaved changes" : "All changes saved"}
