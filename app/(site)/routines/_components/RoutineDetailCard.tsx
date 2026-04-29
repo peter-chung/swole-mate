@@ -81,21 +81,17 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-neutral-900">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-              {routine.name || "Untitled routine"}
-            </h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-              <span>{prettyDate(routine?.date)}</span>
-              <span className="mx-2">•</span>
-              <span>By {ownerName}</span>
-            </p>
-          </div>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+          {routine.name || "Untitled routine"}
+        </h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          <span>{prettyDate(routine?.date)}</span>
+          <span className="mx-2">•</span>
+          <span>By {ownerName}</span>
+        </p>
         {routine.notes && (
-          <p className="mt-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">
+          <p className="mt-2 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">
             {routine.notes}
           </p>
         )}

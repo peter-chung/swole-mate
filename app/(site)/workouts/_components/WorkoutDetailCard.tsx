@@ -166,26 +166,22 @@ const WorkoutDetailCard = ({
           </div>
         )}
       </div>
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-neutral-900">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-              {workout.name || "Untitled workout"}
-            </h1>
-            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 dark:text-gray-300">
-              <span className="inline-flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                {prettyDate(workout?.date)}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <User className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                {ownerName}
-              </span>
-            </p>
-          </div>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+          {workout.name || "Untitled workout"}
+        </h1>
+        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 dark:text-gray-300">
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {prettyDate(workout?.date)}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <User className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {ownerName}
+          </span>
+        </p>
         {workout.notes && (
-          <p className="mt-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">
+          <p className="mt-2 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">
             {workout.notes}
           </p>
         )}

@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useDebounce } from "react-use";
 
 import { createClient } from "@/utils/supabase/client";
@@ -210,9 +211,10 @@ const ExercisesListClient = ({
         {isAuthenticated ? (
           <Link
             href="/exercises/new"
-            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
           >
-            + Create Exercise
+            <Plus className="h-4 w-4" />
+            New Exercise
           </Link>
         ) : (
           <Link
@@ -240,7 +242,7 @@ const ExercisesListClient = ({
 
           <div className="mt-6 flex flex-col items-center gap-3">
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              Loaded {loadedCount} of {totalLabel} exercises
+              Showing {loadedCount} of {totalLabel}
             </p>
             <div
               ref={loadMoreRef}

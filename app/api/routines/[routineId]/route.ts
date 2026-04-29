@@ -60,6 +60,7 @@ export async function GET(req: Request, { params }: Params) {
     has_duration: boolean | null;
     has_distance: boolean | null;
     is_bodyweight: boolean | null;
+    primary_muscle: string | null;
   };
 
   let exerciseLookup = new Map<string, ExerciseLookupEntry>();
@@ -67,7 +68,7 @@ export async function GET(req: Request, { params }: Params) {
   if (exerciseIds.length > 0) {
     const { data: exercises, error: exercisesError } = await supabase
       .from("available_exercises")
-      .select("id, name, exercise_type_label, has_weight, has_reps, has_duration, has_distance, is_bodyweight")
+      .select("id, name, exercise_type_label, has_weight, has_reps, has_duration, has_distance, is_bodyweight, primary_muscle")
       .in("id", exerciseIds);
 
     if (exercisesError) {
