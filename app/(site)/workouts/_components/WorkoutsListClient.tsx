@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import WorkoutCard from "./WorkoutCard";
@@ -67,9 +68,10 @@ const WorkoutsListClient = ({ initialWorkouts, isAuthenticated }: Props) => {
         {isAuthenticated ? (
           <Link
             href="/workouts/new"
-            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
           >
-            + Create Workout
+            <Plus className="h-4 w-4" />
+            New Workout
           </Link>
         ) : (
           <Link

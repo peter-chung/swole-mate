@@ -35,9 +35,6 @@ const WorkoutCard = ({ workout }: { workout: WorkoutWithOwner }) => {
               </p>
             )}
           </div>
-          <span className="shrink-0 text-xs font-medium text-gray-400 transition group-hover:text-blue-600 dark:text-gray-500 dark:group-hover:text-blue-300">
-            View →
-          </span>
         </div>
 
         {exerciseCount > 0 && (
