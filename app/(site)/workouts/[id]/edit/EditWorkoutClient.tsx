@@ -90,6 +90,9 @@ const EditWorkoutClient = ({
   const router = useRouter();
   const formRefs = useRef<Record<number, ExerciseSetFormHandle | null>>({});
   const [dirtyMap, setDirtyMap] = useState<Record<number, boolean>>({});
+  const pendingDeletedExerciseIdsRef = useRef<number[]>([]);
+  const dirtyMapRef = useRef<Record<number, boolean>>({});
+  const workoutExercisesRef = useRef<WorkoutWithRelations["workout_exercises"]>([]);
 
   const workoutId = String(workout.id);
   const detailsDirty =
@@ -116,6 +119,20 @@ const EditWorkoutClient = ({
       workout.workout_exercises?.some((we) => !!dirtyMap[we.id]),
   );
 
+  // Keep refs in sync so fetchWorkout can read current values without
+  // needing them in its dependency array (avoids stale closure issues).
+  useEffect(() => {
+    pendingDeletedExerciseIdsRef.current = pendingDeletedExerciseIds;
+  }, [pendingDeletedExerciseIds]);
+
+  useEffect(() => {
+    dirtyMapRef.current = dirtyMap;
+  }, [dirtyMap]);
+
+  useEffect(() => {
+    workoutExercisesRef.current = workout.workout_exercises;
+  }, [workout.workout_exercises]);
+
   const fetchWorkout = useCallback(
     async (opts?: { silent?: boolean }) => {
       const silent = opts?.silent ?? false;
@@ -127,21 +144,41 @@ const EditWorkoutClient = ({
         const result = await res.json();
         if (!res.ok) throw new Error(result.error);
 
-        setWorkout(result.data as WorkoutWithRelations);
-        setExerciseMetaDrafts(
-          buildExerciseMetaDrafts(
-            (result.data as WorkoutWithRelations).workout_exercises,
-          ),
-        );
-        setAppliedExerciseMetaDrafts(
-          buildExerciseMetaDrafts(
-            (result.data as WorkoutWithRelations).workout_exercises,
-          ),
-        );
+        const fetched = result.data as WorkoutWithRelations;
+
+        // When fetching silently (e.g. after adding an exercise), preserve any
+        // staged deletions — the server still has those exercises since they
+        // haven't been persisted yet.
+        const stagedDeletions = silent
+          ? pendingDeletedExerciseIdsRef.current
+          : [];
+
+        const currentExercises = workoutExercisesRef.current ?? [];
+        const currentDirtyMap = dirtyMapRef.current;
+
+        const filteredExercises = (fetched.workout_exercises ?? [])
+          .filter((we) => !stagedDeletions.includes(we.id))
+          .map((we) => {
+            // For exercises with unsaved local edits, keep the existing
+            // exercise_sets so the form's useEffect sees no change and
+            // doesn't reset the user's in-progress input.
+            if (silent && currentDirtyMap[we.id]) {
+              const existing = currentExercises.find((e) => e.id === we.id);
+              if (existing) return { ...we, exercise_sets: existing.exercise_sets };
+            }
+            return we;
+          });
+        const filteredWorkout = { ...fetched, workout_exercises: filteredExercises };
+
+        setWorkout(filteredWorkout);
+        setExerciseMetaDrafts(buildExerciseMetaDrafts(filteredExercises));
+        setAppliedExerciseMetaDrafts(buildExerciseMetaDrafts(filteredExercises));
         setAutoSuggestedSetMap({});
         setEditingBrandMap({});
-        setPendingDeletedExerciseIds([]);
-        setDirtyMap({});
+        if (!silent) {
+          setPendingDeletedExerciseIds([]);
+          setDirtyMap({});
+        }
       } catch (err) {
         console.error("Error fetching workout:", err);
         toast.error(
@@ -706,6 +743,7 @@ const EditWorkoutClient = ({
                       workoutId={workoutId}
                       workoutExerciseId={we.id}
                       exerciseSets={we.exercise_sets ?? []}
+                      exerciseType={we.exercise ?? null}
                       onSaved={() => {
                         void fetchWorkout({ silent: true });
                       }}

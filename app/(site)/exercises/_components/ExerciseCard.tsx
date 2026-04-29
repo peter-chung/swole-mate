@@ -7,7 +7,7 @@ import type { Tables } from "@/types/database.types";
 type Exercise = Tables<"available_exercises">;
 
 const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
-  const muscle = exercise.primary_muscle || "Unknown";
+  const muscle = exercise.primary_muscle?.trim() || null;
   const secondaryMuscles = exercise.other_muscles?.trim();
   const typeLabel = exercise.exercise_type_label?.trim();
   const otherMuscleBadges = secondaryMuscles
@@ -36,9 +36,11 @@ const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
             ) : null}
           </h3>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40">
-              Primary · {muscle}
-            </span>
+            {muscle ? (
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40">
+                Primary · {muscle}
+              </span>
+            ) : null}
             {typeLabel ? (
               <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 font-medium text-violet-700 ring-1 ring-inset ring-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:ring-violet-500/30">
                 {typeLabel}

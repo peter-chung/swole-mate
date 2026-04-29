@@ -17,6 +17,14 @@ export type RoutineSetFormHandle = {
   save: (opts?: { silent?: boolean }) => Promise<void>;
 };
 
+type ExerciseTypeFlags = {
+  has_weight: boolean | null;
+  has_reps: boolean | null;
+  has_duration: boolean | null;
+  has_distance: boolean | null;
+  is_bodyweight: boolean | null;
+};
+
 type Props = {
   routineId: string;
   routineExerciseId: number;
@@ -32,6 +40,7 @@ type Props = {
       | "notes"
     >
   >;
+  exerciseType?: ExerciseTypeFlags | null;
   onSaved?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
 };
@@ -59,7 +68,7 @@ type ApiRoutineSet = {
 
 const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
   (
-    { routineId, routineExerciseId, routineSets, onSaved, onDirtyChange },
+    { routineId, routineExerciseId, routineSets, exerciseType, onSaved, onDirtyChange },
     ref
   ) => {
     const [sets, setSets] = useState<LocalSet[]>([]);
@@ -132,7 +141,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
     const onChangeField = (
       idx: number,
-      field: keyof Pick<LocalSet, "reps" | "weight" | "notes">,
+      field: keyof Pick<LocalSet, "reps" | "weight" | "duration" | "distance" | "notes">,
       value: string
     ) => {
       setSets((prev) => {
@@ -143,16 +152,18 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
           current._status === "clean" ? "dirty" : current._status ?? "dirty";
 
         if (field === "notes") {
-          const nv: string | null = value === "" ? null : value;
-          copy[idx] = { ...current, notes: nv, _status: markDirty };
+          copy[idx] = { ...current, notes: value === "" ? null : value, _status: markDirty };
         } else if (field === "reps") {
           const n = value === "" ? null : Number(value);
-          const nv: number | null = n === null || Number.isNaN(n) ? null : n;
-          copy[idx] = { ...current, reps: nv, _status: markDirty };
+          copy[idx] = { ...current, reps: n === null || Number.isNaN(n) ? null : n, _status: markDirty };
         } else if (field === "weight") {
           const n = value === "" ? null : Number(value);
-          const nv: number | null = n === null || Number.isNaN(n) ? null : n;
-          copy[idx] = { ...current, weight: nv, _status: markDirty };
+          copy[idx] = { ...current, weight: n === null || Number.isNaN(n) ? null : n, _status: markDirty };
+        } else if (field === "duration") {
+          copy[idx] = { ...current, duration: value === "" ? null : value, _status: markDirty };
+        } else if (field === "distance") {
+          const n = value === "" ? null : Number(value);
+          copy[idx] = { ...current, distance: n === null || Number.isNaN(n) ? null : n, _status: markDirty };
         }
         return copy;
       });
@@ -403,28 +414,32 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
             <div className="text-sm text-gray-600 dark:text-gray-400 w-14">
               Set {set.set_number}
             </div>
-            <label className="flex items-center gap-2">
-              <span className="text-sm">Weight</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={set.weight ?? ""}
-                onChange={(e) => onChangeField(idx, "weight", e.target.value)}
-                disabled={set._status === "saving"}
-                className="w-24 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-              />
-            </label>
-            <label className="flex items-center gap-2">
-              <span className="text-sm">Reps</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={set.reps ?? ""}
-                onChange={(e) => onChangeField(idx, "reps", e.target.value)}
-                disabled={set._status === "saving"}
-                className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-              />
-            </label>
+            {(!exerciseType || exerciseType.has_weight !== false) && (
+              <label className="flex items-center gap-2">
+                <span className="text-sm">Weight</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={set.weight ?? ""}
+                  onChange={(e) => onChangeField(idx, "weight", e.target.value)}
+                  disabled={set._status === "saving"}
+                  className="w-24 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
+                />
+              </label>
+            )}
+            {(!exerciseType || exerciseType.has_reps !== false) && (
+              <label className="flex items-center gap-2">
+                <span className="text-sm">Reps</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={set.reps ?? ""}
+                  onChange={(e) => onChangeField(idx, "reps", e.target.value)}
+                  disabled={set._status === "saving"}
+                  className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
+                />
+              </label>
+            )}
             <button
               type="button"
               onClick={() => deleteSet(idx)}

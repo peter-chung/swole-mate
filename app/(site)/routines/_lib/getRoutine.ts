@@ -19,6 +19,11 @@ export type RoutineWithRelations = RoutineRow & {
         id: string;
         name: string;
         exercise_type_label: string | null;
+        has_weight: boolean | null;
+        has_reps: boolean | null;
+        has_duration: boolean | null;
+        has_distance: boolean | null;
+        is_bodyweight: boolean | null;
       } | null;
       routine_sets?: Array<
         Pick<
@@ -95,22 +100,30 @@ export async function getRoutineWithRelations(
     )
   );
 
-  let exerciseLookup = new Map<
-    string,
-    { id: string; name: string; exercise_type_label: string | null }
-  >();
+  type ExerciseLookupEntry = {
+    id: string;
+    name: string;
+    exercise_type_label: string | null;
+    has_weight: boolean | null;
+    has_reps: boolean | null;
+    has_duration: boolean | null;
+    has_distance: boolean | null;
+    is_bodyweight: boolean | null;
+  };
+
+  let exerciseLookup = new Map<string, ExerciseLookupEntry>();
 
   if (exerciseIds.length > 0) {
     const { data: exercises, error: exercisesError } = await supabase
       .from("available_exercises")
-      .select("id, name, exercise_type_label")
+      .select("id, name, exercise_type_label, has_weight, has_reps, has_duration, has_distance, is_bodyweight")
       .in("id", exerciseIds);
 
     if (!exercisesError) {
       exerciseLookup = new Map(
         (exercises ?? [])
-          .filter((e: any) => Boolean(e?.id))
-          .map((e: any) => [e.id, e])
+          .filter((e): e is ExerciseLookupEntry => Boolean(e?.id))
+          .map((e) => [e.id, e])
       );
     }
   }

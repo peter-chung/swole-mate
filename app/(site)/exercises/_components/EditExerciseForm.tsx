@@ -49,7 +49,18 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
 
         if (!res.ok) throw new Error(result.error);
 
-        setExerciseTypes(result.data ?? []);
+        const UNSUPPORTED_KEYS = new Set([
+          "duration",
+          "distance_duration",
+          "weight_duration",
+          "weight_distance",
+          "duration_weight",
+        ]);
+        setExerciseTypes(
+          (result.data ?? []).filter(
+            (t: ExerciseType) => !UNSUPPORTED_KEYS.has(t.key)
+          )
+        );
       } catch (err) {
         console.error("Error fetching exercise types:", err);
         toast.error("Failed to load exercise types. Please refresh the page.");
@@ -66,13 +77,18 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
     const targetId = resourceId ?? exercise?.id;
     if (!exercise || !targetId) return;
 
+    if (Object.keys(updatedExercise).length === 0) {
+      router.push("/exercises");
+      return;
+    }
+
     try {
       setIsLoading(true);
 
       const res = await fetch(`/api/exercises/${targetId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedExercise), // send only changed fields
+        body: JSON.stringify(updatedExercise),
       });
 
       const result = await res.json();

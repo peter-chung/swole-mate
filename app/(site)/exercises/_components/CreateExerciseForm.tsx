@@ -30,7 +30,18 @@ const CreateExerciseForm = () => {
 
         if (!res.ok) throw new Error(result.error);
 
-        setExerciseTypes(result.data ?? []);
+        const UNSUPPORTED_KEYS = new Set([
+          "duration",
+          "distance_duration",
+          "weight_duration",
+          "weight_distance",
+          "duration_weight",
+        ]);
+        setExerciseTypes(
+          (result.data ?? []).filter(
+            (t: ExerciseType) => !UNSUPPORTED_KEYS.has(t.key)
+          )
+        );
       } catch (err) {
         console.error("Error fetching exercise types:", err);
         setErrors((prev) => ({

@@ -295,6 +295,7 @@ const ManageExercisesClient = ({
                       routineId={routineId}
                       routineExerciseId={re.id}
                       routineSets={re.routine_sets ?? []}
+                      exerciseType={re.exercise ?? null}
                       onSaved={() => {
                         void fetchRoutine({ silent: true });
                       }}

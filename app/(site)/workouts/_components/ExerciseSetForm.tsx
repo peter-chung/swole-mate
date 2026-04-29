@@ -1,6 +1,6 @@
 "use client";
 
-import React, {
+import {
   useEffect,
   useRef,
   useState,
@@ -28,6 +28,14 @@ export type ExerciseSetFormHandle = {
   replaceWithSets: (nextSets: ExerciseSetDraftValue[]) => void;
 };
 
+type ExerciseTypeFlags = {
+  has_weight: boolean | null;
+  has_reps: boolean | null;
+  has_duration: boolean | null;
+  has_distance: boolean | null;
+  is_bodyweight: boolean | null;
+};
+
 type Props = {
   workoutId: string;
   workoutExerciseId: number;
@@ -43,6 +51,7 @@ type Props = {
       | "notes"
     >
   >;
+  exerciseType?: ExerciseTypeFlags | null;
   onSaved?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   onManualEdit?: () => void;
@@ -75,6 +84,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       workoutId,
       workoutExerciseId,
       exerciseSets,
+      exerciseType,
       onSaved,
       onDirtyChange,
       onManualEdit,
@@ -167,7 +177,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
     const onChangeField = (
       idx: number,
-      field: keyof Pick<LocalSet, "reps" | "weight" | "notes">,
+      field: keyof Pick<LocalSet, "reps" | "weight" | "duration" | "distance" | "notes">,
       value: string
     ) => {
       onManualEdit?.();
@@ -179,16 +189,18 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
           current._status === "clean" ? "dirty" : current._status ?? "dirty";
 
         if (field === "notes") {
-          const nv: string | null = value === "" ? null : value;
-          copy[idx] = { ...current, notes: nv, _status: markDirty };
+          copy[idx] = { ...current, notes: value === "" ? null : value, _status: markDirty };
         } else if (field === "reps") {
           const n = value === "" ? null : Number(value);
-          const nv: number | null = n === null || Number.isNaN(n) ? null : n;
-          copy[idx] = { ...current, reps: nv, _status: markDirty };
+          copy[idx] = { ...current, reps: n === null || Number.isNaN(n) ? null : n, _status: markDirty };
         } else if (field === "weight") {
           const n = value === "" ? null : Number(value);
-          const nv: number | null = n === null || Number.isNaN(n) ? null : n;
-          copy[idx] = { ...current, weight: nv, _status: markDirty };
+          copy[idx] = { ...current, weight: n === null || Number.isNaN(n) ? null : n, _status: markDirty };
+        } else if (field === "duration") {
+          copy[idx] = { ...current, duration: value === "" ? null : value, _status: markDirty };
+        } else if (field === "distance") {
+          const n = value === "" ? null : Number(value);
+          copy[idx] = { ...current, distance: n === null || Number.isNaN(n) ? null : n, _status: markDirty };
         }
         return copy;
       });
@@ -415,43 +427,47 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
                 Set {set.set_number}
               </span>
 
-              <div className="flex flex-col gap-0.5">
-                <label className="flex items-center gap-1.5">
-                  <span className="w-7 text-xs text-gray-500 dark:text-gray-400">lbs</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={set.weight ?? ""}
-                    onChange={(e) => onChangeField(idx, "weight", e.target.value)}
-                    disabled={set._status === "saving"}
-                    className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-                  />
-                </label>
-                {ref?.weight != null && (
-                  <span className="pl-[2.125rem] text-[11px] text-gray-400 dark:text-gray-500">
-                    prev {ref.weight}
-                  </span>
-                )}
-              </div>
+              {(!exerciseType || exerciseType.has_weight !== false) && (
+                <div className="flex flex-col gap-0.5">
+                  <label className="flex items-center gap-1.5">
+                    <span className="w-7 text-xs text-gray-500 dark:text-gray-400">lbs</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={set.weight ?? ""}
+                      onChange={(e) => onChangeField(idx, "weight", e.target.value)}
+                      disabled={set._status === "saving"}
+                      className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
+                    />
+                  </label>
+                  {ref?.weight != null && (
+                    <span className="pl-[2.125rem] text-[11px] text-gray-400 dark:text-gray-500">
+                      prev {ref.weight}
+                    </span>
+                  )}
+                </div>
+              )}
 
-              <div className="flex flex-col gap-0.5">
-                <label className="flex items-center gap-1.5">
-                  <span className="w-7 text-xs text-gray-500 dark:text-gray-400">reps</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={set.reps ?? ""}
-                    onChange={(e) => onChangeField(idx, "reps", e.target.value)}
-                    disabled={set._status === "saving"}
-                    className="w-16 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-                  />
-                </label>
-                {ref?.reps != null && (
-                  <span className="pl-[2.125rem] text-[11px] text-gray-400 dark:text-gray-500">
-                    prev {ref.reps}
-                  </span>
-                )}
-              </div>
+              {(!exerciseType || exerciseType.has_reps !== false) && (
+                <div className="flex flex-col gap-0.5">
+                  <label className="flex items-center gap-1.5">
+                    <span className="w-7 text-xs text-gray-500 dark:text-gray-400">reps</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={set.reps ?? ""}
+                      onChange={(e) => onChangeField(idx, "reps", e.target.value)}
+                      disabled={set._status === "saving"}
+                      className="w-16 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
+                    />
+                  </label>
+                  {ref?.reps != null && (
+                    <span className="pl-[2.125rem] text-[11px] text-gray-400 dark:text-gray-500">
+                      prev {ref.reps}
+                    </span>
+                  )}
+                </div>
+              )}
 
               <button
                 type="button"

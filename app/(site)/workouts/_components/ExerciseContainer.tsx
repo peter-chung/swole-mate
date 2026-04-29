@@ -27,15 +27,20 @@ const WorkoutExercisesDetails = ({ workout }: Props) => {
                   <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                     {we.exercise?.name ?? "Exercise"}
                   </p>
-                  {(we.exercise?.exercise_type_label || we.equipment_brand) && (
+                  {(we.exercise?.primary_muscle || we.exercise?.exercise_type_label || we.equipment_brand) && (
                     <div className="mt-1 flex flex-wrap gap-2">
+                      {we.exercise?.primary_muscle && (
+                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40">
+                          Primary · {we.exercise.primary_muscle}
+                        </span>
+                      )}
                       {we.exercise?.exercise_type_label && (
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-200 dark:ring-neutral-700">
+                        <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:ring-violet-500/30">
                           {we.exercise.exercise_type_label}
                         </span>
                       )}
                       {we.equipment_brand && (
-                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40">
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-200 dark:ring-neutral-700">
                           {we.equipment_brand}
                         </span>
                       )}
