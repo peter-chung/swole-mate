@@ -7,6 +7,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
+import { Plus } from "lucide-react";
 import type { Tables } from "@/types/database.types";
 import { toast } from "react-hot-toast";
 import { saveRoutineSetAction, deleteRoutineSetAction } from "../actions";
@@ -207,73 +208,6 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
       notes: set.notes,
     });
 
-    const syncSet = async (set: LocalSet): Promise<ApiRoutineSet> => {
-      const payload = buildPayload(set);
-
-      const data = await saveRoutineSetAction({
-        routineId,
-        routineExerciseId,
-        setId: typeof set.id === "number" ? set.id : undefined,
-        payload,
-      });
-
-      return data as ApiRoutineSet;
-    };
-
-    const persistSet = async (idx: number, opts?: { silent?: boolean }) => {
-      const target = sets[idx];
-      if (!target) return;
-      if (target._status === "saving" || target._status === "deleting") return;
-      if (target._status !== "dirty" && target._status !== "new") return;
-
-      if (typeof target.id === "string" && !hasMeaningfulValue(target)) return;
-
-      setSets((prev) =>
-        prev.map((s, i) => (i === idx ? { ...s, _status: "saving" } : s))
-      );
-
-      try {
-        const apiSet = await syncSet(target);
-        const normalized = normalizeApiSet(apiSet);
-
-        setSets((prev) => {
-          const out = [...prev];
-          const originalId = target.id;
-          const matchIndex = out.findIndex((s) => s.id === originalId);
-
-          if (matchIndex >= 0) {
-            out[matchIndex] = normalized;
-          } else {
-            out[idx] = normalized;
-          }
-
-          out.sort((a, b) => a.set_number - b.set_number);
-          return out;
-        });
-
-        if (!opts?.silent) {
-          toast.success("Set saved");
-          onSaved?.();
-        }
-      } catch (err) {
-        console.error(err);
-        const message =
-          err instanceof Error ? err.message : "Failed to save routine set";
-        toast.error(message);
-
-        setSets((prev) =>
-          prev.map((s, i) =>
-            i === idx
-              ? {
-                  ...s,
-                  _status: typeof target.id === "string" ? "new" : "dirty",
-                }
-              : s
-          )
-        );
-      }
-    };
-
     const addSet = () => {
       setSets((prev) => {
         const sortedByNumber = [...prev].sort(
@@ -402,14 +336,6 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
           <div
             key={set.id}
             className="flex items-end gap-3"
-            onBlur={(event) => {
-              if (
-                !event.currentTarget.contains(
-                  event.relatedTarget as Node | null
-                )
-              )
-                void persistSet(idx, { silent: true });
-            }}
           >
             <div className="text-sm text-gray-600 dark:text-gray-400 w-14">
               Set {set.set_number}
@@ -460,9 +386,10 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
           <button
             type="button"
             onClick={addSet}
-            className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 shadow-sm hover:bg-gray-50 cursor-pointer dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+            className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-500 hover:border-gray-300 hover:text-gray-700 cursor-pointer dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"
           >
-            + Add Set
+            <Plus className="h-3 w-3" aria-hidden="true" />
+            Add set
           </button>
         </div>
       </div>

@@ -630,8 +630,7 @@ const EditWorkoutClient = ({
                         onClick={() => openBrandEditor(we.id)}
                         className="self-start inline-flex items-center gap-1 text-xs font-medium leading-tight text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                       >
-                        <Plus className="h-3 w-3 shrink-0" aria-hidden="true" />
-                        Add brand
+                        + Brand
                       </button>
                     ) : null}
                     </div>
@@ -807,7 +806,7 @@ const EditWorkoutClient = ({
 
       <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-950/80">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+          <span className={`text-sm ${anyDirty ? "text-amber-600 dark:text-amber-400" : "text-gray-500 dark:text-gray-400"}`}>
             {anyDirty ? "Unsaved changes" : "All changes saved"}
           </span>
           <div className="flex items-center gap-2">
