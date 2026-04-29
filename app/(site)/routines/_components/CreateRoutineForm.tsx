@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useTransition } from "react";
 import type { TablesInsert } from "@/types/database.types";
@@ -89,7 +90,7 @@ const CreateRoutineForm = () => {
           href="/routines"
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
         >
-          <span aria-hidden>←</span>
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           <span>Back to routines</span>
         </Link>
 

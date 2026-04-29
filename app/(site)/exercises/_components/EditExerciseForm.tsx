@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Tables, TablesUpdate } from "@/types/database.types";
@@ -227,7 +228,7 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
           href="/exercises"
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
         >
-          <span aria-hidden>←</span>
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           <span>Back to exercises</span>
         </Link>
 

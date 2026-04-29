@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { InputField, SelectField } from "@/app/_components/FormFields";
@@ -254,7 +255,7 @@ const CreateExerciseForm = () => {
           href="/exercises"
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
         >
-          <span aria-hidden>←</span>
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           <span>Back to exercises</span>
         </Link>
 

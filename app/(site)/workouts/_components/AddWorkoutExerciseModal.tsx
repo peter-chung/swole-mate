@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useTransition } from "react";
 import { useDebounce } from "react-use";
+import { X } from "lucide-react";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import { addWorkoutExerciseAction } from "../actions";
 
@@ -124,7 +125,7 @@ const AddWorkoutExerciseModal = ({
             className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-neutral-800"
             aria-label="Close"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
 

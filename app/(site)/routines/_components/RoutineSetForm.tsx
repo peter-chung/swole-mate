@@ -7,7 +7,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { Tables } from "@/types/database.types";
 import { toast } from "react-hot-toast";
 import { saveRoutineSetAction, deleteRoutineSetAction } from "../actions";
@@ -327,11 +327,8 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
     return (
       <div className="mb-4 space-y-3">
         {sets.map((set, idx) => set._status === "deleted" ? null : (
-          <div
-            key={set.id}
-            className="flex items-center gap-3"
-          >
-            <div className="text-sm text-gray-600 dark:text-gray-400 w-14">
+          <div key={set.id} className="flex items-center gap-3">
+            <div className="w-14 shrink-0 text-sm text-gray-600 dark:text-gray-400">
               Set {set.set_number}
             </div>
             {(!exerciseType || exerciseType.has_weight !== false) && (
@@ -363,12 +360,11 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
             <button
               type="button"
               onClick={() => deleteSet(idx)}
-              className="ml-auto inline-flex items-center justify-center rounded-md border border-gray-300 px-2 py-1 text-sm hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-900/40"
               disabled={set._status === "saving"}
+              className="ml-auto inline-flex items-center justify-center rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 dark:text-gray-600 dark:hover:text-red-400 dark:hover:bg-red-950/30"
               aria-label="Delete set"
-              title="Delete set"
             >
-              {set._status === "saving" ? "Saving…" : "✕"}
+              <X className="h-4 w-4" />
             </button>
           </div>
         ))}
