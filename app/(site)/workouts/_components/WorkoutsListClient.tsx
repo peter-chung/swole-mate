@@ -84,11 +84,29 @@ const WorkoutsListClient = ({ initialWorkouts, isAuthenticated }: Props) => {
       {loading ? (
         <LoadingSpinner className="mt-6" />
       ) : workouts.length > 0 ? (
-        <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
-          {workouts.map((workout) => (
-            <WorkoutCard workout={workout} key={workout.id} />
+        <div className="mt-4 space-y-6">
+          {Object.entries(
+            workouts.reduce<Record<string, typeof workouts>>((groups, workout) => {
+              const key = workout.date
+                ? new Date(workout.date + "T00:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" })
+                : "No date";
+              if (!groups[key]) groups[key] = [];
+              groups[key].push(workout);
+              return groups;
+            }, {})
+          ).map(([month, group]) => (
+            <div key={month}>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                {month}
+              </h2>
+              <ul className="grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
+                {group.map((workout) => (
+                  <WorkoutCard workout={workout} key={workout.id} />
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : isAuthenticated ? (
         <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
           <div className="text-3xl mb-2">🗓️</div>
