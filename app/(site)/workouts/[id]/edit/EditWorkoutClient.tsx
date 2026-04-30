@@ -486,6 +486,16 @@ const EditWorkoutClient = ({
   }, [anyDirty, handleSaveAll, router, workout.id]);
 
   useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!anyDirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [anyDirty]);
+
+  useEffect(() => {
     if (openActionsExerciseId == null) return;
 
     const handlePointerDown = (event: MouseEvent) => {

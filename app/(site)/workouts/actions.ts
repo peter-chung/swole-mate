@@ -357,7 +357,7 @@ export async function addWorkoutExerciseAction({
 
   let previousWorkoutExerciseQuery = supabase
     .from("workout_exercises")
-    .select("id, equipment_brand")
+    .select("id, equipment_brand, notes")
     .eq(exerciseColumn, exerciseId)
     .eq("user_id", user.id);
 
@@ -376,7 +376,7 @@ export async function addWorkoutExerciseAction({
   if (!previousWorkoutExercise && normalizedEquipmentBrand) {
     const { data: previousAnyWorkoutExercise } = await supabase
       .from("workout_exercises")
-      .select("id, equipment_brand")
+      .select("id, equipment_brand, notes")
       .eq(exerciseColumn, exerciseId)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
@@ -398,7 +398,7 @@ export async function addWorkoutExerciseAction({
       custom_exercise_id: isCustomExercise ? exerciseId : null,
       equipment_brand: initialEquipmentBrand,
       order_index: nextOrder,
-      notes: notes ?? null,
+      notes: notes ?? previousWorkoutExercise?.notes ?? null,
     })
     .select(
       "id, workout_id, public_exercise_id, custom_exercise_id, equipment_brand, order_index"

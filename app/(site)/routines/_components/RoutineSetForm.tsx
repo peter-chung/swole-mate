@@ -80,6 +80,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
     ref,
   ) => {
     const [sets, setSets] = useState<LocalSet[]>([]);
+    const [referenceSets, setReferenceSets] = useState<Array<{ weight: number | null; reps: number | null }>>([]);
     const lastDirtyRef = useRef<boolean>(false);
     const dirtyCallbackRef = useRef<Props["onDirtyChange"]>(undefined);
 
@@ -134,6 +135,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
         return normalized;
       });
+      setReferenceSets(normalized.map((s) => ({ weight: s.weight, reps: s.reps })));
     }, [routineSets]);
 
     useEffect(() => {
@@ -388,8 +390,14 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
         {/* Set rows */}
         <div className="space-y-1.5">
-          {sets.map((set, idx) =>
-            set._status === "deleted" ? null : (
+          {sets.map((set, idx) => {
+            const ref = referenceSets[idx];
+            const prevParts = [
+              ref?.weight != null ? `${ref.weight} lbs` : null,
+              ref?.reps != null ? `${ref.reps}` : null,
+            ].filter(Boolean);
+            const prevLabel = prevParts.length > 0 ? prevParts.join(" x ") : "—";
+            return set._status === "deleted" ? null : (
               <div
                 key={set.id}
                 className="grid items-center gap-x-4"
@@ -399,7 +407,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
                   {set.set_number}
                 </span>
                 <span className="text-center text-sm text-gray-400 dark:text-gray-500">
-                  —
+                  {prevLabel}
                 </span>
                 {showWeight && (
                   <input
@@ -433,8 +441,8 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-            ),
-          )}
+            );
+          })}
         </div>
 
         <button

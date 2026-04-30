@@ -122,6 +122,16 @@ const ManageExercisesClient = ({
   }, [routine.routine_exercises]);
 
   useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!anyDirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [anyDirty]);
+
+  useEffect(() => {
     if (openActionsExerciseId == null) return;
     const handlePointerDown = (e: MouseEvent) => {
       if (!(e.target as Element | null)?.closest("[data-exercise-actions-menu]"))
