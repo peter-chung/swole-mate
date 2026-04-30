@@ -52,9 +52,19 @@ const CreateRoutineForm = () => {
   };
 
   return (
+    <div className="mx-auto w-full max-w-md">
+      <div className="mb-4">
+        <Link
+          href="/routines"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          <span>Back to routines</span>
+        </Link>
+      </div>
     <form
       onSubmit={handleSubmit}
-      className="mx-auto w-full max-w-md space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900"
+      className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900"
     >
       <InputField
         id="routineName"
@@ -85,15 +95,7 @@ const CreateRoutineForm = () => {
         }
       />
 
-      <div className="pt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link
-          href="/routines"
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          <span>Back to routines</span>
-        </Link>
-
+      <div className="pt-2 flex justify-end">
         <button
           type="submit"
           disabled={isPending}
@@ -103,6 +105,7 @@ const CreateRoutineForm = () => {
         </button>
       </div>
     </form>
+    </div>
   );
 };
 

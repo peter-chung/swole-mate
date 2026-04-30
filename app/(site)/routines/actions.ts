@@ -292,10 +292,12 @@ export async function updateRoutineExerciseAction({
   routineId,
   routineExerciseId,
   equipmentBrand,
+  notes,
 }: {
   routineId: string;
   routineExerciseId: number;
   equipmentBrand?: string | null;
+  notes?: string | null;
 }) {
   const { supabase, user } = await ensureUser();
 
@@ -311,22 +313,25 @@ export async function updateRoutineExerciseAction({
 
   const { data, error } = await supabase
     .from("routine_exercises")
-    .update({ equipment_brand: normalizeEquipmentBrand(equipmentBrand) })
+    .update({
+      equipment_brand: normalizeEquipmentBrand(equipmentBrand),
+      notes: notes?.trim() || null,
+    })
     .eq("id", routineExerciseId)
     .eq("routine_id", routineId)
     .eq("user_id", user.id)
-    .select("id, equipment_brand")
+    .select("id, equipment_brand, notes")
     .single();
 
   if (error || !data) {
-    throw new Error(error?.message ?? "Failed to update exercise brand");
+    throw new Error(error?.message ?? "Failed to update exercise");
   }
 
   revalidatePath(`${ROUTINES_PATH}/${routineId}`);
   revalidatePath(`${ROUTINES_PATH}/${routineId}/edit`);
   revalidatePath(`${ROUTINES_PATH}/${routineId}/exercises/edit`);
 
-  return data as Pick<RoutineExerciseRow, "id" | "equipment_brand">;
+  return data as Pick<RoutineExerciseRow, "id" | "equipment_brand" | "notes">;
 }
 
 export async function saveRoutineSetAction({

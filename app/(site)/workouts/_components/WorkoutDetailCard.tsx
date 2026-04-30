@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Calendar, Copy, MoreHorizontal, Pencil, Trash2, User } from "lucide-react";
+import { Calendar, Copy, MoreVertical, Pencil, Trash2, User } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { prettyDate } from "@/utils/format";
 import type { Tables } from "@/types/database.types";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
@@ -38,16 +39,14 @@ const WorkoutDetailCard = ({
       try {
         const result = await copyWorkoutAction(workout.id);
         if (result?.skippedExercises && result.skippedExercises > 0) {
-          console.info(
-            `Skipped ${result.skippedExercises} exercise(s) that could not be copied.`
-          );
+          toast.success(`Workout copied — ${result.skippedExercises} exercise(s) could not be copied.`);
         }
-
+        setIsMenuOpen(false);
         if (result?.id) {
           router.push(`/workouts/${result.id}/edit`);
         }
-        setIsMenuOpen(false);
       } catch (error) {
+        toast.error("Failed to copy workout.");
         console.error("Error copying workout:", error);
       }
     });
@@ -59,8 +58,10 @@ const WorkoutDetailCard = ({
         await deleteWorkoutAction(workout.id);
         setConfirmDeleteOpen(false);
         setIsMenuOpen(false);
+        toast.success("Workout deleted");
         router.push("/workouts");
       } catch (error) {
+        toast.error("Failed to delete workout.");
         console.error("Error deleting workout:", error);
       }
     });
@@ -92,21 +93,22 @@ const WorkoutDetailCard = ({
 
   return (
     <>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Workout Details
-        </h2>
+      <div>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+            {workout.name || "Untitled workout"}
+          </h1>
         {showActions && (
-          <div className="relative" data-workout-actions-menu>
+          <div className="relative shrink-0" data-workout-actions-menu>
             <button
               type="button"
               onClick={() => setIsMenuOpen((prev) => !prev)}
               aria-haspopup="menu"
               aria-expanded={isMenuOpen}
               aria-label="Workout actions"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200 dark:hover:bg-neutral-700"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 active:translate-y-px dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
             >
-              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+              <MoreVertical className="h-4 w-4" aria-hidden="true" />
             </button>
             {isMenuOpen && (
               <div
@@ -165,11 +167,7 @@ const WorkoutDetailCard = ({
             )}
           </div>
         )}
-      </div>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-          {workout.name || "Untitled workout"}
-        </h1>
+        </div>
         <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 dark:text-gray-300">
           <span className="inline-flex items-center gap-1">
             <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MoreHorizontal, Plus, RotateCcw, Tag, Trash2 } from "lucide-react";
+import { ArrowLeft, MoreVertical, Plus, RotateCcw, Tag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
@@ -30,6 +30,7 @@ type DetailsDraft = {
 
 type ExerciseMetaDraft = {
   equipmentBrand: string;
+  notes: string;
 };
 
 const buildExerciseMetaDrafts = (
@@ -37,7 +38,10 @@ const buildExerciseMetaDrafts = (
 ) =>
   (exercises ?? []).reduce<Record<number, ExerciseMetaDraft>>(
     (acc, exercise) => {
-      acc[exercise.id] = { equipmentBrand: exercise.equipment_brand ?? "" };
+      acc[exercise.id] = {
+        equipmentBrand: exercise.equipment_brand ?? "",
+        notes: exercise.notes ?? "",
+      };
       return acc;
     },
     {},
@@ -89,8 +93,8 @@ const ManageExercisesClient = ({
       (routine.routine_exercises ?? [])
         .filter(
           (re) =>
-            (exerciseMetaDrafts[re.id]?.equipmentBrand ?? "") !==
-            (re.equipment_brand ?? ""),
+            (exerciseMetaDrafts[re.id]?.equipmentBrand ?? "") !== (re.equipment_brand ?? "") ||
+            (exerciseMetaDrafts[re.id]?.notes ?? "") !== (re.notes ?? ""),
         )
         .map((re) => re.id),
     [exerciseMetaDrafts, routine.routine_exercises],
@@ -213,14 +217,20 @@ const ManageExercisesClient = ({
   const cancelBrandEdit = useCallback((routineExerciseId: number) => {
     setExerciseMetaDrafts((prev) => ({
       ...prev,
-      [routineExerciseId]: { equipmentBrand: appliedExerciseMetaDrafts[routineExerciseId]?.equipmentBrand ?? "" },
+      [routineExerciseId]: {
+        ...prev[routineExerciseId],
+        equipmentBrand: appliedExerciseMetaDrafts[routineExerciseId]?.equipmentBrand ?? "",
+      },
     }));
     setEditingBrandMap((prev) => ({ ...prev, [routineExerciseId]: false }));
   }, [appliedExerciseMetaDrafts]);
 
   const applyBrandEdit = useCallback((routineExerciseId: number) => {
     const brand = exerciseMetaDrafts[routineExerciseId]?.equipmentBrand ?? "";
-    setAppliedExerciseMetaDrafts((prev) => ({ ...prev, [routineExerciseId]: { equipmentBrand: brand } }));
+    setAppliedExerciseMetaDrafts((prev) => ({
+      ...prev,
+      [routineExerciseId]: { ...prev[routineExerciseId], equipmentBrand: brand },
+    }));
     setEditingBrandMap((prev) => ({ ...prev, [routineExerciseId]: false }));
   }, [exerciseMetaDrafts]);
 
@@ -269,6 +279,7 @@ const ManageExercisesClient = ({
             routineId,
             routineExerciseId: re.id,
             equipmentBrand: exerciseMetaDrafts[re.id]?.equipmentBrand ?? "",
+            notes: exerciseMetaDrafts[re.id]?.notes ?? "",
           }),
         );
       await Promise.all(exerciseMetaSaves);
@@ -347,6 +358,7 @@ const ManageExercisesClient = ({
                   label="Routine Name"
                   type="text"
                   value={detailsDraft.name}
+                  className="!bg-transparent !shadow-none dark:!bg-transparent"
                   onChange={(e) =>
                     setDetailsDraft((p) => ({ ...p, name: (e.target as HTMLInputElement).value }))
                   }
@@ -356,6 +368,7 @@ const ManageExercisesClient = ({
                   label="Date"
                   type="date"
                   value={detailsDraft.date}
+                  className="!bg-transparent !shadow-none dark:!bg-transparent"
                   onChange={(e) =>
                     setDetailsDraft((p) => ({ ...p, date: (e.target as HTMLInputElement).value }))
                   }
@@ -366,6 +379,7 @@ const ManageExercisesClient = ({
                   placeholder="Optional notes about this routine"
                   value={detailsDraft.notes}
                   rows={2}
+                  className="!bg-transparent !shadow-none dark:!bg-transparent"
                   containerClassName="sm:col-span-2"
                   onChange={(e) =>
                     setDetailsDraft((p) => ({ ...p, notes: (e.target as HTMLTextAreaElement).value }))
@@ -396,7 +410,7 @@ const ManageExercisesClient = ({
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex min-w-0 flex-1 flex-col gap-1.5 leading-tight">
+                      <div className="flex min-w-0 flex-1 flex-col gap-2">
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
                           <h3 className={`truncate text-sm font-medium ${isPendingDeletion ? "line-through text-gray-500 dark:text-gray-500" : "text-gray-900 dark:text-white"}`}>
                             {re.exercise?.name ?? (re.custom_exercise_id ? "Custom" : "Exercise")}
@@ -406,24 +420,30 @@ const ManageExercisesClient = ({
                               Removed on save
                             </span>
                           )}
+                          {!isPendingDeletion && appliedExerciseMetaDrafts[re.id]?.equipmentBrand?.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => openBrandEditor(re.id)}
+                              className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium leading-tight text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40 dark:hover:bg-blue-500/20"
+                            >
+                              {appliedExerciseMetaDrafts[re.id]?.equipmentBrand?.trim()}
+                            </button>
+                          )}
                         </div>
-                        {!isPendingDeletion && !editingBrandMap[re.id] && appliedExerciseMetaDrafts[re.id]?.equipmentBrand?.trim() ? (
-                          <button
-                            type="button"
-                            onClick={() => openBrandEditor(re.id)}
-                            className="self-start inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium leading-tight text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40 dark:hover:bg-blue-500/20"
-                          >
-                            {appliedExerciseMetaDrafts[re.id]?.equipmentBrand?.trim()}
-                          </button>
-                        ) : !isPendingDeletion && !editingBrandMap[re.id] ? (
-                          <button
-                            type="button"
-                            onClick={() => openBrandEditor(re.id)}
-                            className="self-start inline-flex items-center gap-1 text-xs font-medium leading-tight text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                          >
-                              + Brand
-                          </button>
-                        ) : null}
+                        {!isPendingDeletion && (
+                          <input
+                            type="text"
+                            placeholder="Add a note..."
+                            value={exerciseMetaDrafts[re.id]?.notes ?? ""}
+                            onChange={(e) =>
+                              setExerciseMetaDrafts((prev) => ({
+                                ...prev,
+                                [re.id]: { ...prev[re.id], notes: e.target.value },
+                              }))
+                            }
+                            className="w-full bg-transparent text-xs text-gray-400 placeholder-gray-300 outline-none border-b border-transparent focus:border-gray-300 pb-0.5 transition-colors dark:text-gray-500 dark:placeholder-gray-600 dark:focus:border-gray-600"
+                          />
+                        )}
                       </div>
                       {isPendingDeletion ? (
                         <button
@@ -442,12 +462,12 @@ const ManageExercisesClient = ({
                               setOpenActionsExerciseId((prev) => prev === re.id ? null : re.id)
                             }
                             disabled={loading}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-900/40"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
                             aria-label="Exercise actions"
                             aria-haspopup="menu"
                             aria-expanded={openActionsExerciseId === re.id}
                           >
-                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                            <MoreVertical className="h-4 w-4" aria-hidden="true" />
                           </button>
                           {openActionsExerciseId === re.id && (
                             <div
@@ -500,7 +520,7 @@ const ManageExercisesClient = ({
                             const value = (e.target as HTMLInputElement).value;
                             setExerciseMetaDrafts((prev) => ({
                               ...prev,
-                              [re.id]: { equipmentBrand: value },
+                              [re.id]: { ...prev[re.id], equipmentBrand: value },
                             }));
                           }}
                         />
@@ -523,7 +543,7 @@ const ManageExercisesClient = ({
                       </div>
                     )}
                     {!isPendingDeletion && (
-                      <div className="mt-3 sm:mt-4">
+                      <div className="mt-2 border-t border-gray-100 pt-3 dark:border-gray-800">
                         <RoutineSetForm
                           routineId={routineId}
                           routineExerciseId={re.id}
@@ -552,7 +572,7 @@ const ManageExercisesClient = ({
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 py-3 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900 active:translate-y-px cursor-pointer dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:bg-gray-900/40 dark:hover:text-gray-100"
+            className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white py-3 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px cursor-pointer dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
           >
             <Plus className="h-4 w-4" />
             Add Exercise

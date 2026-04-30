@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
+import { Calendar, MoreVertical, Pencil, Play, Trash2, User } from "lucide-react";
 import { prettyDate } from "@/utils/format";
 import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
@@ -24,10 +24,11 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
       try {
         const result = await startWorkoutFromRoutineAction(routine.id);
         if (result?.skippedExercises && result.skippedExercises > 0) {
-          console.info(`Skipped ${result.skippedExercises} exercise(s) that could not be added.`);
+          toast.success(`Workout started — ${result.skippedExercises} exercise(s) could not be added.`);
         }
         if (result?.id) router.push(`/workouts/${result.id}/edit`);
       } catch (error) {
+        toast.error("Failed to start workout.");
         console.error("Error starting workout from routine:", error);
       }
     });
@@ -91,9 +92,9 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
                 aria-haspopup="menu"
                 aria-expanded={isMenuOpen}
                 aria-label="Routine actions"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200 dark:hover:bg-neutral-700"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 active:translate-y-px dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
               >
-                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                <MoreVertical className="h-4 w-4" aria-hidden="true" />
               </button>
               {isMenuOpen && (
                 <div
@@ -128,10 +129,15 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
             </div>
           </div>
         </div>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-          <span>{prettyDate(routine?.date)}</span>
-          <span className="mx-2">•</span>
-          <span>By {ownerName}</span>
+        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 dark:text-gray-300">
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {prettyDate(routine?.date)}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <User className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {ownerName}
+          </span>
         </p>
         {routine.notes && (
           <p className="mt-2 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">

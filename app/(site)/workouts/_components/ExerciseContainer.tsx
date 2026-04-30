@@ -54,36 +54,23 @@ const WorkoutExercisesDetails = ({ workout }: Props) => {
                 </div>
 
                 {we.exercise_sets && we.exercise_sets.length > 0 && (
-                  <ul className="mt-3 space-y-1">
+                  <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2">
                     {we.exercise_sets
                       .slice()
                       .sort((a, b) => (a.set_number ?? 0) - (b.set_number ?? 0))
                       .map((set) => {
                         const value = [
                           set.weight != null ? `${set.weight} lbs` : null,
-                          set.reps != null
-                            ? `${set.reps} reps`
-                            : set.duration != null
-                            ? `${set.duration}s`
-                            : set.distance != null
-                            ? `${set.distance}m`
-                            : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" × ");
+                          set.reps != null ? `${set.reps} reps` : set.duration != null ? `${set.duration}s` : set.distance != null ? `${set.distance}m` : null,
+                        ].filter(Boolean).join(" × ");
                         return (
-                          <li key={set.id} className="flex items-baseline gap-2 text-sm">
-                            <span className="w-12 shrink-0 text-gray-500 dark:text-gray-400">
+                          <li key={set.id} className="flex flex-col gap-0.5 rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-neutral-800">
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                               Set {set.set_number ?? "-"}
                             </span>
-                            <span className="text-gray-900 dark:text-gray-100">
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
                               {value || "—"}
                             </span>
-                            {set.notes && (
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                · {set.notes}
-                              </span>
-                            )}
                           </li>
                         );
                       })}

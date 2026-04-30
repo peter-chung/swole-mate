@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+#claude
+CLAUDE.local.md
+
 # todo list
 todo.md
 notes.md

@@ -1,6 +1,6 @@
 "use client";
 
-import React, {
+import {
   useEffect,
   useRef,
   useState,
@@ -69,8 +69,15 @@ type ApiRoutineSet = {
 
 const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
   (
-    { routineId, routineExerciseId, routineSets, exerciseType, onSaved, onDirtyChange },
-    ref
+    {
+      routineId,
+      routineExerciseId,
+      routineSets,
+      exerciseType,
+      onSaved,
+      onDirtyChange,
+    },
+    ref,
   ) => {
     const [sets, setSets] = useState<LocalSet[]>([]);
     const lastDirtyRef = useRef<boolean>(false);
@@ -93,8 +100,8 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
             typeof s.duration === "string"
               ? s.duration
               : s.duration != null
-              ? String(s.duration)
-              : null,
+                ? String(s.duration)
+                : null,
           distance: s.distance ?? null,
           notes: s.notes ?? null,
           _status: "clean",
@@ -131,7 +138,10 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
     useEffect(() => {
       const hasDirty = sets.some(
-        (s) => s._status === "dirty" || s._status === "new" || s._status === "deleted"
+        (s) =>
+          s._status === "dirty" ||
+          s._status === "new" ||
+          s._status === "deleted",
       );
       if (lastDirtyRef.current !== hasDirty) {
         lastDirtyRef.current = hasDirty;
@@ -142,29 +152,52 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
     const onChangeField = (
       idx: number,
-      field: keyof Pick<LocalSet, "reps" | "weight" | "duration" | "distance" | "notes">,
-      value: string
+      field: keyof Pick<
+        LocalSet,
+        "reps" | "weight" | "duration" | "distance" | "notes"
+      >,
+      value: string,
     ) => {
       setSets((prev) => {
         const copy = [...prev];
         const current = copy[idx];
         if (!current) return prev;
         const markDirty =
-          current._status === "clean" ? "dirty" : current._status ?? "dirty";
+          current._status === "clean" ? "dirty" : (current._status ?? "dirty");
 
         if (field === "notes") {
-          copy[idx] = { ...current, notes: value === "" ? null : value, _status: markDirty };
+          copy[idx] = {
+            ...current,
+            notes: value === "" ? null : value,
+            _status: markDirty,
+          };
         } else if (field === "reps") {
           const n = value === "" ? null : Number(value);
-          copy[idx] = { ...current, reps: n === null || Number.isNaN(n) ? null : n, _status: markDirty };
+          copy[idx] = {
+            ...current,
+            reps: n === null || Number.isNaN(n) ? null : n,
+            _status: markDirty,
+          };
         } else if (field === "weight") {
           const n = value === "" ? null : Number(value);
-          copy[idx] = { ...current, weight: n === null || Number.isNaN(n) ? null : n, _status: markDirty };
+          copy[idx] = {
+            ...current,
+            weight: n === null || Number.isNaN(n) ? null : n,
+            _status: markDirty,
+          };
         } else if (field === "duration") {
-          copy[idx] = { ...current, duration: value === "" ? null : value, _status: markDirty };
+          copy[idx] = {
+            ...current,
+            duration: value === "" ? null : value,
+            _status: markDirty,
+          };
         } else if (field === "distance") {
           const n = value === "" ? null : Number(value);
-          copy[idx] = { ...current, distance: n === null || Number.isNaN(n) ? null : n, _status: markDirty };
+          copy[idx] = {
+            ...current,
+            distance: n === null || Number.isNaN(n) ? null : n,
+            _status: markDirty,
+          };
         }
         return copy;
       });
@@ -193,8 +226,8 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
         apiSet.duration == null
           ? null
           : typeof apiSet.duration === "string"
-          ? apiSet.duration
-          : String(apiSet.duration),
+            ? apiSet.duration
+            : String(apiSet.duration),
       distance: apiSet.distance ?? null,
       notes: apiSet.notes ?? null,
       _status: "clean",
@@ -211,7 +244,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
     const addSet = () => {
       setSets((prev) => {
         const sortedByNumber = [...prev].sort(
-          (a, b) => a.set_number - b.set_number
+          (a, b) => a.set_number - b.set_number,
         );
         const nextSetNumber =
           sortedByNumber.length > 0
@@ -219,7 +252,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
             : 1;
 
         const lastNonDeleting = sortedByNumber.filter(
-          (set) => set._status !== "deleted"
+          (set) => set._status !== "deleted",
         );
         const previousSet =
           lastNonDeleting.length > 0
@@ -252,7 +285,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
       }
 
       setSets((prev) =>
-        prev.map((s, i) => (i === idx ? { ...s, _status: "deleted" } : s))
+        prev.map((s, i) => (i === idx ? { ...s, _status: "deleted" } : s)),
       );
     };
 
@@ -268,19 +301,22 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
                 routineId,
                 routineExerciseId,
                 setId: s.id as number,
-              })
-            )
+              }),
+            ),
         );
 
-        const indicesToPersist = snapshot.reduce<Array<number>>((acc, set, idx) => {
-          if (set._status === "deleted") return acc;
-          if (typeof set.id === "string" || set._status === "dirty") {
-            if (typeof set.id === "string" && !hasMeaningfulValue(set))
-              return acc;
-            acc.push(idx);
-          }
-          return acc;
-        }, []);
+        const indicesToPersist = snapshot.reduce<Array<number>>(
+          (acc, set, idx) => {
+            if (set._status === "deleted") return acc;
+            if (typeof set.id === "string" || set._status === "dirty") {
+              if (typeof set.id === "string" && !hasMeaningfulValue(set))
+                return acc;
+              acc.push(idx);
+            }
+            return acc;
+          },
+          [],
+        );
 
         const results = await Promise.all(
           indicesToPersist.map(async (idx) => {
@@ -292,7 +328,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
               payload: buildPayload(target),
             });
             return { idx, data };
-          })
+          }),
         );
 
         setSets((prev) => {
@@ -324,63 +360,94 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
     useImperativeHandle(ref, () => ({ save }));
 
+    const showWeight = !exerciseType || exerciseType.has_weight !== false;
+    const showReps = !exerciseType || exerciseType.has_reps !== false;
+    const colTemplate = [
+      "2.5rem",
+      "4.5rem",
+      showWeight ? "minmax(0,1fr)" : null,
+      showReps ? "minmax(0,1fr)" : null,
+      "2rem",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     return (
-      <div className="mb-4 space-y-3">
-        {sets.map((set, idx) => set._status === "deleted" ? null : (
-          <div key={set.id} className="flex items-center gap-3">
-            <div className="w-14 shrink-0 text-sm text-gray-600 dark:text-gray-400">
-              Set {set.set_number}
-            </div>
-            {(!exerciseType || exerciseType.has_weight !== false) && (
-              <label className="flex items-center gap-2">
-                <span className="text-sm">Weight</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={set.weight ?? ""}
-                  onChange={(e) => onChangeField(idx, "weight", e.target.value)}
-                  disabled={set._status === "saving"}
-                  className="w-24 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-                />
-              </label>
-            )}
-            {(!exerciseType || exerciseType.has_reps !== false) && (
-              <label className="flex items-center gap-2">
-                <span className="text-sm">Reps</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={set.reps ?? ""}
-                  onChange={(e) => onChangeField(idx, "reps", e.target.value)}
-                  disabled={set._status === "saving"}
-                  className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-                />
-              </label>
-            )}
-            <button
-              type="button"
-              onClick={() => deleteSet(idx)}
-              disabled={set._status === "saving"}
-              className="ml-auto inline-flex items-center justify-center rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 dark:text-gray-600 dark:hover:text-red-400 dark:hover:bg-red-950/30"
-              aria-label="Delete set"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        ))}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={addSet}
-            className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-500 hover:border-gray-300 hover:text-gray-700 cursor-pointer dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"
-          >
-            <Plus className="h-3 w-3" aria-hidden="true" />
-            Add set
-          </button>
+      <div>
+        {/* Column headers */}
+        <div
+          className="mb-1.5 grid items-center gap-x-4 px-0.5 text-center text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
+          style={{ gridTemplateColumns: colTemplate }}
+        >
+          <span>Set</span>
+          <span>Previous</span>
+          {showWeight && <span>lbs</span>}
+          {showReps && <span>reps</span>}
+          <span />
         </div>
+
+        {/* Set rows */}
+        <div className="space-y-1.5">
+          {sets.map((set, idx) =>
+            set._status === "deleted" ? null : (
+              <div
+                key={set.id}
+                className="grid items-center gap-x-4"
+                style={{ gridTemplateColumns: colTemplate }}
+              >
+                <span className="text-center text-sm text-gray-500 dark:text-gray-400">
+                  {set.set_number}
+                </span>
+                <span className="text-center text-sm text-gray-400 dark:text-gray-500">
+                  —
+                </span>
+                {showWeight && (
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={set.weight ?? ""}
+                    onChange={(e) =>
+                      onChangeField(idx, "weight", e.target.value)
+                    }
+                    disabled={set._status === "saving"}
+                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm dark:border-gray-700 dark:bg-transparent"
+                  />
+                )}
+                {showReps && (
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={set.reps ?? ""}
+                    onChange={(e) => onChangeField(idx, "reps", e.target.value)}
+                    disabled={set._status === "saving"}
+                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm dark:border-gray-700 dark:bg-transparent"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => deleteSet(idx)}
+                  disabled={set._status === "saving"}
+                  className="inline-flex items-center justify-center rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 dark:text-gray-600 dark:hover:text-red-400 dark:hover:bg-red-950/30"
+                  aria-label="Delete set"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ),
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={addSet}
+          className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-200 py-2 text-sm text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 cursor-pointer dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-gray-900/30 dark:hover:text-gray-300"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Add set
+        </button>
       </div>
     );
-  }
+  },
 );
 
 RoutineSetForm.displayName = "RoutineSetForm";

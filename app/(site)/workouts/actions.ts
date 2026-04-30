@@ -459,11 +459,13 @@ export async function updateWorkoutExerciseAction({
   workoutId,
   workoutExerciseId,
   equipmentBrand,
+  notes,
   fillPreviousSets = true,
 }: {
   workoutId: string;
   workoutExerciseId: number;
   equipmentBrand?: string | null;
+  notes?: string | null;
   fillPreviousSets?: boolean;
 }) {
   const { supabase, user } = await ensureUser();
@@ -495,11 +497,11 @@ export async function updateWorkoutExerciseAction({
 
   const { data, error } = await supabase
     .from("workout_exercises")
-    .update({ equipment_brand: normalizedEquipmentBrand })
+    .update({ equipment_brand: normalizedEquipmentBrand, notes: notes?.trim() || null })
     .eq("id", workoutExerciseId)
     .eq("workout_id", workoutId)
     .eq("user_id", user.id)
-    .select("id, equipment_brand")
+    .select("id, equipment_brand, notes")
     .single();
 
   if (error || !data) {

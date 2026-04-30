@@ -7,7 +7,7 @@ import {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { Tables } from "@/types/database.types";
 import { toast } from "react-hot-toast";
 import {
@@ -417,81 +417,93 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
     useImperativeHandle(ref, () => ({ save, replaceWithSets }));
 
+    const showWeight = !exerciseType || exerciseType.has_weight !== false;
+    const showReps = !exerciseType || exerciseType.has_reps !== false;
+    const colTemplate = [
+      "2.5rem",
+      "4.5rem",
+      showWeight ? "minmax(0,1fr)" : null,
+      showReps ? "minmax(0,1fr)" : null,
+      "2rem",
+    ].filter(Boolean).join(" ");
+
     return (
-      <div className="mb-4 space-y-3">
-        {sets.map((set, idx) => {
-          const ref = referenceSets[idx];
-          return (
-            <div key={set.id} className="flex items-start gap-3">
-              <span className="w-14 shrink-0 pt-1.5 text-sm text-gray-600 dark:text-gray-400">
-                Set {set.set_number}
-              </span>
-
-              {(!exerciseType || exerciseType.has_weight !== false) && (
-                <div className="flex flex-col gap-0.5">
-                  <label className="flex items-center gap-1.5">
-                    <span className="w-7 text-xs text-gray-500 dark:text-gray-400">lbs</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={set.weight ?? ""}
-                      onChange={(e) => onChangeField(idx, "weight", e.target.value)}
-                      disabled={set._status === "saving"}
-                      className="w-20 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-                    />
-                  </label>
-                  {ref?.weight != null && (
-                    <span className="pl-[2.125rem] text-[11px] text-gray-400 dark:text-gray-500">
-                      prev {ref.weight}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {(!exerciseType || exerciseType.has_reps !== false) && (
-                <div className="flex flex-col gap-0.5">
-                  <label className="flex items-center gap-1.5">
-                    <span className="w-7 text-xs text-gray-500 dark:text-gray-400">reps</span>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={set.reps ?? ""}
-                      onChange={(e) => onChangeField(idx, "reps", e.target.value)}
-                      disabled={set._status === "saving"}
-                      className="w-16 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-transparent"
-                    />
-                  </label>
-                  {ref?.reps != null && (
-                    <span className="pl-[2.125rem] text-[11px] text-gray-400 dark:text-gray-500">
-                      prev {ref.reps}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => deleteSet(idx)}
-                className="mt-0.5 ml-auto inline-flex items-center justify-center rounded-md border border-gray-300 px-2 py-1 text-sm hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-900/40"
-                disabled={set._status === "saving"}
-                aria-label="Delete set"
-                title="Delete set"
-              >
-                {set._status === "saving" ? "Saving..." : <Trash2 className="h-3.5 w-3.5" />}
-              </button>
-            </div>
-          );
-        })}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={addSet}
-            className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-500 hover:border-gray-300 hover:text-gray-700 cursor-pointer dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"
-          >
-            <Plus className="h-3 w-3" aria-hidden="true" />
-            Add set
-          </button>
+      <div className="mb-1">
+        {/* Column headers */}
+        <div
+          className="mb-1.5 grid items-center gap-x-4 px-0.5 text-center text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
+          style={{ gridTemplateColumns: colTemplate }}
+        >
+          <span>Set</span>
+          <span>Previous</span>
+          {showWeight && <span>lbs</span>}
+          {showReps && <span>reps</span>}
+          <span />
         </div>
+
+        {/* Set rows */}
+        <div className="space-y-1.5">
+          {sets.map((set, idx) => {
+            const ref = referenceSets[idx];
+            const prevParts = [
+              ref?.weight != null ? `${ref.weight} lbs` : null,
+              ref?.reps != null ? `${ref.reps}` : null,
+            ].filter(Boolean);
+            const prevLabel = prevParts.length > 0 ? prevParts.join(" x ") : "—";
+            return (
+              <div
+                key={set.id}
+                className="grid items-center gap-x-4"
+                style={{ gridTemplateColumns: colTemplate }}
+              >
+                <span className="text-center text-sm text-gray-500 dark:text-gray-400">
+                  {set.set_number}
+                </span>
+                <span className="text-center text-sm text-gray-400 dark:text-gray-500">
+                  {prevLabel}
+                </span>
+                {showWeight && (
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={set.weight ?? ""}
+                    onChange={(e) => onChangeField(idx, "weight", e.target.value)}
+                    disabled={set._status === "saving"}
+                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm dark:border-gray-700 dark:bg-transparent"
+                  />
+                )}
+                {showReps && (
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={set.reps ?? ""}
+                    onChange={(e) => onChangeField(idx, "reps", e.target.value)}
+                    disabled={set._status === "saving"}
+                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm dark:border-gray-700 dark:bg-transparent"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => deleteSet(idx)}
+                  disabled={set._status === "saving"}
+                  className="inline-flex items-center justify-center rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 dark:text-gray-600 dark:hover:text-red-400 dark:hover:bg-red-950/30"
+                  aria-label="Delete set"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={addSet}
+          className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-200 py-2 text-sm text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 cursor-pointer dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-gray-900/30 dark:hover:text-gray-300"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Add set
+        </button>
       </div>
     );
   }
