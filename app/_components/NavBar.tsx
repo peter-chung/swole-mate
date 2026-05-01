@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { User } from "lucide-react";
 
 export default async function NavBar() {
   const supabase = await createClient();
@@ -40,21 +41,28 @@ export default async function NavBar() {
               Exercises
             </Link>
             {user ? (
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 shadow-sm hover:bg-gray-50 hover:opacity-90 active:translate-y-px transition duration-150 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40 cursor-pointer"
-                >
-                  Logout
-                </button>
-              </form>
-            ) : (
               <Link
-                href="/login"
-                className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-white shadow hover:bg-gray-800 hover:opacity-90 active:translate-y-px transition duration-150 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+                href="/profile"
+                className="inline-flex items-center justify-center rounded-full w-8 h-8 border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition duration-150 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-900/40"
+                aria-label="Profile"
               >
-                Login
+                <User size={15} />
               </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition duration-150"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm text-white shadow hover:bg-gray-800 hover:opacity-90 active:translate-y-px transition duration-150 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+                >
+                  Sign up
+                </Link>
+              </>
             )}
           </nav>
         </div>

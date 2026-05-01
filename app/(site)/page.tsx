@@ -15,7 +15,7 @@ export default function Home() {
 
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
-              href="/login"
+              href="/signup"
               className="inline-flex w-full items-center justify-center rounded-xl bg-gray-900 px-5 py-3 text-base font-medium text-white shadow hover:bg-gray-800 sm:w-auto dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
             >
               Get started
