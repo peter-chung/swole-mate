@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Dumbbell, ClipboardList, BookOpen, User } from "lucide-react";
+import { Dumbbell, Repeat, Library, Rss } from "lucide-react";
 
 const links = [
+  { href: "/feed", label: "Feed", icon: Rss },
   { href: "/workouts", label: "Workouts", icon: Dumbbell },
-  { href: "/routines", label: "Routines", icon: ClipboardList },
-  { href: "/exercises", label: "Exercises", icon: BookOpen },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/routines", label: "Routines", icon: Repeat },
+  { href: "/exercises", label: "Exercises", icon: Library },
 ];
 
 export default function BottomNav() {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
-import { User } from "lucide-react";
+import ProfileDropdown from "./ProfileDropdown";
 
 export default async function NavBar() {
   const supabase = await createClient();
@@ -23,6 +23,12 @@ export default async function NavBar() {
           </Link>
           <nav className="flex items-center gap-3 sm:gap-4 text-sm">
             <Link
+              href="/feed"
+              className="hidden sm:inline text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+            >
+              Feed
+            </Link>
+            <Link
               href="/workouts"
               className="hidden sm:inline text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
             >
@@ -41,13 +47,7 @@ export default async function NavBar() {
               Exercises
             </Link>
             {user ? (
-              <Link
-                href="/profile"
-                className="inline-flex items-center justify-center rounded-full w-8 h-8 border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition duration-150 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-900/40"
-                aria-label="Profile"
-              >
-                <User size={15} />
-              </Link>
+              <ProfileDropdown email={user.email ?? ""} />
             ) : (
               <>
                 <Link

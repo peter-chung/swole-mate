@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useTransition } from "react";
 import { useDebounce } from "react-use";
-import { X } from "lucide-react";
+import { X, BadgeCheck, User } from "lucide-react";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import { addRoutineExerciseAction } from "../actions";
 
@@ -144,21 +144,23 @@ const AddRoutineExerciseModal = ({
                     onClick={() => handleSelect(ex)}
                     className="flex w-full items-center justify-between gap-3 px-2 py-2 text-left hover:bg-gray-50 active:translate-y-px dark:hover:bg-neutral-800/60"
                   >
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {ex.name}
-                    </span>
-                    <div className="flex items-center gap-2">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {ex.name}
+                      </span>
                       {ex.source && (
-                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs uppercase tracking-wide text-gray-600 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:ring-neutral-700">
-                          {ex.source}
+                        <span title={ex.source} aria-label={ex.source} className="shrink-0">
+                          {ex.source === "custom"
+                            ? <User size={14} className="text-gray-400 dark:text-gray-500" />
+                            : <BadgeCheck size={14} className="text-emerald-500 dark:text-emerald-400" />}
                         </span>
                       )}
-                      {ex.type && (
-                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-200 dark:ring-neutral-700">
-                          {ex.type}
-                        </span>
-                      )}
-                    </div>
+                    </span>
+                    {ex.type && (
+                      <span className="hidden sm:inline-flex shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-neutral-800 dark:text-gray-200 dark:ring-neutral-700">
+                        {ex.type}
+                      </span>
+                    )}
                   </button>
                 </li>
               ))}

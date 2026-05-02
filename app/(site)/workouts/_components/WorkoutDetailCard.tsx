@@ -106,7 +106,7 @@ const WorkoutDetailCard = ({
               aria-haspopup="menu"
               aria-expanded={isMenuOpen}
               aria-label="Workout actions"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 active:translate-y-px dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 active:translate-y-px dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
             >
               <MoreVertical className="h-4 w-4" aria-hidden="true" />
             </button>

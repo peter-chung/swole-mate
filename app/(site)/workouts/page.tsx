@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 import WorkoutsListClient from "./_components/WorkoutsListClient";
 import { getWorkoutsList } from "./_lib/getWorkoutsList";
 
@@ -10,12 +11,15 @@ const Page = async () => {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const workouts = await getWorkoutsList();
+  if (!user) redirect("/login");
+
+  const workouts = await getWorkoutsList(user.id);
 
   return (
     <WorkoutsListClient
       initialWorkouts={workouts}
-      isAuthenticated={!!user}
+      isAuthenticated={true}
+      mode="mine"
     />
   );
 };

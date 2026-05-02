@@ -417,11 +417,20 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
     useImperativeHandle(ref, () => ({ save, replaceWithSets }));
 
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+      const mq = window.matchMedia("(max-width: 639px)");
+      setIsMobile(mq.matches);
+      const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    }, []);
+
     const showWeight = !exerciseType || exerciseType.has_weight !== false;
     const showReps = !exerciseType || exerciseType.has_reps !== false;
     const colTemplate = [
       "2.5rem",
-      "4.5rem",
+      isMobile ? "3.5rem" : "4.5rem",
       showWeight ? "minmax(0,1fr)" : null,
       showReps ? "minmax(0,1fr)" : null,
       "2rem",
@@ -431,11 +440,11 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       <div className="mb-1">
         {/* Column headers */}
         <div
-          className="mb-1.5 grid items-center gap-x-4 px-0.5 text-center text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
+          className="mb-1.5 grid items-center gap-x-2 sm:gap-x-4 px-0.5 text-center text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
           style={{ gridTemplateColumns: colTemplate }}
         >
           <span>Set</span>
-          <span>Previous</span>
+          <span>Prev</span>
           {showWeight && <span>lbs</span>}
           {showReps && <span>reps</span>}
           <span />
@@ -446,14 +455,14 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
           {sets.map((set, idx) => {
             const ref = referenceSets[idx];
             const prevParts = [
-              ref?.weight != null ? `${ref.weight} lbs` : null,
+              ref?.weight != null ? `${ref.weight}` : null,
               ref?.reps != null ? `${ref.reps}` : null,
             ].filter(Boolean);
             const prevLabel = prevParts.length > 0 ? prevParts.join(" x ") : "—";
             return (
               <div
                 key={set.id}
-                className="grid items-center gap-x-4"
+                className="grid items-center gap-x-2 sm:gap-x-4"
                 style={{ gridTemplateColumns: colTemplate }}
               >
                 <span className="text-center text-sm text-gray-500 dark:text-gray-400">

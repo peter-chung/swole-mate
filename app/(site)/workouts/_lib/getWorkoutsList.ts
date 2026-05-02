@@ -15,10 +15,10 @@ export type WorkoutWithOwner = WorkoutRow & {
   exerciseNames: string[];
 };
 
-export async function getWorkoutsList(): Promise<WorkoutWithOwner[]> {
+export async function getWorkoutsList(userId?: string): Promise<WorkoutWithOwner[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("workouts")
     .select(
       `
@@ -29,6 +29,10 @@ export async function getWorkoutsList(): Promise<WorkoutWithOwner[]> {
     )
     .order("date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false, nullsFirst: false });
+
+  if (userId) query = query.eq("user_id", userId);
+
+  const { data, error } = await query;
 
   if (error || !data) return [];
 

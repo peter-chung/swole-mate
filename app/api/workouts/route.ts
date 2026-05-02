@@ -21,11 +21,11 @@ export async function GET(req: Request) {
   const supabase = await createClient();
   const { searchParams } = new URL(req.url);
 
-  // const search = (searchParams.get("search") || "").trim();
   const limit = Number(searchParams.get("limit") || 25);
   const offset = Number(searchParams.get("offset") || 0);
+  const mine = searchParams.get("mine") === "true";
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("workouts")
     .select(
       `
@@ -37,6 +37,14 @@ export async function GET(req: Request) {
     .order("date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false, nullsFirst: false })
     .range(offset, offset + limit - 1);
+
+  if (mine) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    query = query.eq("user_id", user.id);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
