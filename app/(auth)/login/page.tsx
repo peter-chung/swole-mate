@@ -3,7 +3,8 @@
 import { login } from "./actions";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { Eye, EyeOff, Loader2, ArrowLeft, MailCheck } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, MailCheck } from "lucide-react";
+import Button from "@/app/_components/Button";
 import toast from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
 
@@ -26,7 +27,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-black dark:to-gray-950 flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         <Link
           href="/"
@@ -42,7 +43,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 text-center">
             Welcome back
           </h1>
@@ -66,7 +67,7 @@ export default function LoginPage() {
                 autoComplete="email"
                 required
                 placeholder="you@example.com"
-                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-100"
+                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100"
               />
             </div>
 
@@ -85,7 +86,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                   placeholder="••••••••••••"
-                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-100"
+                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100"
                 />
                 <button
                   type="button"
@@ -99,17 +100,15 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
-              disabled={isLoading}
-              className="mt-2 inline-flex w-full h-10 items-center justify-center rounded-md bg-gray-900 px-4 text-sm font-medium text-white transition hover:bg-gray-800 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+              variant="primary"
+              size="lg"
+              isLoading={isLoading}
+              className="mt-2 w-full"
             >
-              {isLoading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                "Log in"
-              )}
-            </button>
+              Log in
+            </Button>
           </form>
 
           <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-300">

@@ -136,7 +136,7 @@ const AddWorkoutExerciseModal = ({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search for exercises"
             autoFocus
-            className="w-full rounded-lg border border-gray-300 bg-transparent p-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-neutral-700"
+            className="w-full rounded-lg border border-gray-300 bg-transparent p-2 text-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700"
           />
         </div>
 

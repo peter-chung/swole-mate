@@ -15,7 +15,7 @@ type TextAreaFieldProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
 type SelectFieldProps = React.SelectHTMLAttributes<HTMLSelectElement> & BaseProps;
 
 const baseInputClasses =
-  "block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-100";
+  "block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100";
 
 const baseLabelClasses =
   "block text-sm font-medium text-gray-700 dark:text-gray-200";

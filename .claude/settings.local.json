@@ -4,7 +4,10 @@
       "Bash(xargs grep *)",
       "Bash(netstat -ano)",
       "Bash(npx next *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:supabase.com)"
     ]
   }
 }

@@ -17,6 +17,7 @@ import {
   deleteRoutineExerciseAction,
   updateRoutineExerciseAction,
 } from "../../../actions";
+import Button from "@/app/_components/Button";
 
 type ManageExercisesClientProps = {
   routine: RoutineWithRelations;
@@ -361,7 +362,7 @@ const ManageExercisesClient = ({
                 Routine Details
               </h2>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40 sm:p-6">
+            <div className="rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-900/40 sm:p-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <InputField
                   id="routineName"
@@ -416,7 +417,7 @@ const ManageExercisesClient = ({
                     className={`rounded-lg border p-4 shadow-sm backdrop-blur-sm sm:p-5 transition-opacity ${
                       isPendingDeletion
                         ? "border-red-200 bg-red-50/60 opacity-60 dark:border-red-900/50 dark:bg-red-950/20"
-                        : "border-gray-200 bg-white/60 dark:border-gray-800 dark:bg-gray-900/40"
+                        : "border-gray-200 bg-white/60 dark:border-neutral-800 dark:bg-neutral-900/40"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -456,14 +457,16 @@ const ManageExercisesClient = ({
                         )}
                       </div>
                       {isPendingDeletion ? (
-                        <button
+                        <Button
                           type="button"
+                          variant="secondary"
+                          size="sm"
                           onClick={() => unstageDeleteExercise(re.id)}
-                          className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-900/40"
+                          className="gap-1.5"
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
                           Undo
-                        </button>
+                        </Button>
                       ) : (
                         <div className="relative shrink-0" data-exercise-actions-menu>
                           <button
@@ -472,7 +475,7 @@ const ManageExercisesClient = ({
                               setOpenActionsExerciseId((prev) => prev === re.id ? null : re.id)
                             }
                             disabled={loading}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-400 dark:hover:bg-neutral-800 dark:hover:text-gray-200"
                             aria-label="Exercise actions"
                             aria-haspopup="menu"
                             aria-expanded={openActionsExerciseId === re.id}
@@ -481,7 +484,7 @@ const ManageExercisesClient = ({
                           </button>
                           {openActionsExerciseId === re.id && (
                             <div
-                              className="absolute right-0 top-9 z-20 min-w-40 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-neutral-900"
+                              className="absolute right-0 top-9 z-20 min-w-40 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
                               role="menu"
                             >
                               <button
@@ -500,7 +503,7 @@ const ManageExercisesClient = ({
                                     : "Set brand"}
                                 </span>
                               </button>
-                              <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+                              <div className="my-1 h-px bg-gray-200 dark:bg-neutral-700" />
                               <button
                                 type="button"
                                 role="menuitem"
@@ -535,25 +538,27 @@ const ManageExercisesClient = ({
                           }}
                         />
                         <div className="flex items-center gap-2">
-                          <button
+                          <Button
                             type="button"
+                            variant="secondary"
+                            size="sm"
                             onClick={() => applyBrandEdit(re.id)}
-                            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
                           >
                             Apply
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => cancelBrandEdit(re.id)}
-                            className="inline-flex items-center rounded-md border border-transparent px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 active:translate-y-px dark:text-gray-300 dark:hover:bg-gray-900/40"
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     )}
                     {!isPendingDeletion && (
-                      <div className="mt-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                      <div className="mt-2 border-t border-gray-100 pt-3 dark:border-neutral-800">
                         <RoutineSetForm
                           routineId={routineId}
                           routineExerciseId={re.id}
@@ -574,19 +579,21 @@ const ManageExercisesClient = ({
               })}
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-600 dark:border-gray-700 dark:text-gray-400">
+            <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-600 dark:border-neutral-700 dark:text-gray-400">
               No exercises yet. Add your first exercise below.
             </div>
           )}
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="lg"
             onClick={() => setIsAddModalOpen(true)}
-            className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white py-3 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:translate-y-px cursor-pointer dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+            className="mt-4 w-full gap-1.5"
           >
             <Plus className="h-4 w-4" />
             Add Exercise
-          </button>
+          </Button>
         </>
       )}
 
@@ -615,28 +622,31 @@ const ManageExercisesClient = ({
       />
 
       {/* Sticky save/cancel bar */}
-      <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-950/80">
+      <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/80">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <span className={`text-sm ${anyDirty ? "text-amber-600 dark:text-amber-400" : "text-gray-500 dark:text-gray-400"}`}>
             {anyDirty ? "Unsaved changes" : "All changes saved"}
           </span>
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => void handleCancel()}
               disabled={savingAll || loading || cancelling}
-              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
             >
               {cancelling ? "Cancelling…" : "Cancel"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
+              isLoading={savingAll}
+              disabled={loading}
               onClick={() => void handleSaveAndExit()}
-              disabled={savingAll || loading}
-              className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {savingAll ? "Saving..." : "Save"}
-            </button>
+              Save
+            </Button>
           </div>
         </div>
       </div>

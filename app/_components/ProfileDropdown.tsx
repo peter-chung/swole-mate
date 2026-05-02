@@ -30,14 +30,14 @@ export default function ProfileDropdown({ email }: Props) {
         aria-label="Profile menu"
         aria-haspopup="true"
         aria-expanded={open}
-        className="inline-flex items-center justify-center rounded-full w-10 h-10 border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition duration-150 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-900/40"
+        className="inline-flex items-center justify-center rounded-full w-10 h-10 border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition duration-150 dark:border-neutral-700 dark:bg-transparent dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-900/40"
       >
         <User size={15} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 z-30 w-56 rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-neutral-900">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="absolute right-0 top-12 z-30 w-56 rounded-xl border border-gray-200 bg-white shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-neutral-800">
             <p className="text-xs text-gray-500 dark:text-gray-400">Signed in as</p>
             <p className="mt-0.5 truncate text-sm font-medium text-gray-900 dark:text-white">
               {email}
@@ -55,7 +55,7 @@ export default function ProfileDropdown({ email }: Props) {
             </Link>
           </div>
 
-          <div className="border-t border-gray-100 p-1 dark:border-gray-800">
+          <div className="border-t border-gray-100 p-1 dark:border-neutral-800">
             <form action="/auth/signout" method="post">
               <button
                 type="submit"

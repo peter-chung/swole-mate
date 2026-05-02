@@ -7,6 +7,7 @@ import React, { useState, useTransition } from "react";
 import type { TablesInsert } from "@/types/database.types";
 import { InputField, TextAreaField } from "@/app/_components/FormFields";
 import { createRoutineAction } from "../actions";
+import Button from "@/app/_components/Button";
 
 type NewRoutine = TablesInsert<"routines">;
 
@@ -64,7 +65,7 @@ const CreateRoutineForm = () => {
       </div>
     <form
       onSubmit={handleSubmit}
-      className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900"
+      className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
     >
       <InputField
         id="routineName"
@@ -96,13 +97,14 @@ const CreateRoutineForm = () => {
       />
 
       <div className="pt-2 flex justify-end">
-        <button
+        <Button
           type="submit"
-          disabled={isPending}
-          className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          variant="primary"
+          size="lg"
+          isLoading={isPending}
         >
-          {isPending ? "Saving..." : "Create Routine"}
-        </button>
+          Create Routine
+        </Button>
       </div>
     </form>
     </div>

@@ -15,7 +15,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="sm:hidden fixed bottom-0 inset-x-0 z-20 border-t border-gray-200 bg-white/80 backdrop-blur dark:border-gray-800 dark:bg-black/80">
+    <nav className="sm:hidden fixed bottom-0 inset-x-0 z-20 border-t border-gray-200 bg-white/80 backdrop-blur dark:border-neutral-800 dark:bg-black/80">
       <ul className="flex h-16 items-stretch">
         {links.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
@@ -25,7 +25,7 @@ export default function BottomNav() {
                 href={href}
                 className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
                   active
-                    ? "text-blue-600 dark:text-blue-400"
+                    ? "text-[#3ecf8e]"
                     : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                 }`}
               >

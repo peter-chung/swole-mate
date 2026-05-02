@@ -21,7 +21,7 @@ const SearchBar = ({ query, setQuery }: SearchBarProps) => {
         placeholder="Search exercises by name or type..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 bg-white pl-9 pr-10 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-100"
+        className="w-full rounded-lg border border-gray-300 bg-white pl-9 pr-10 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100"
         aria-label="Search exercises by name or type"
       />
       {query && (

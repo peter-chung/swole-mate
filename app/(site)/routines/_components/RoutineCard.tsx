@@ -16,11 +16,11 @@ export default function RoutineCard({ routine }: { routine: RoutineWithOwner }) 
     <li className="h-full">
       <Link
         href={`/routines/${routine.id}`}
-        className="group flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 dark:border-gray-800 dark:bg-neutral-900"
+        className="group flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3ecf8e]/60 dark:border-neutral-800 dark:bg-neutral-900"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-semibold text-gray-900 transition group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-300">
+            <h3 className="text-base font-semibold text-gray-900 transition group-hover:text-[#3ecf8e] dark:text-gray-100 dark:group-hover:text-[#3ecf8e]">
               {routine.name || "Untitled routine"}
             </h3>
             {ownerName && (
@@ -31,7 +31,7 @@ export default function RoutineCard({ routine }: { routine: RoutineWithOwner }) 
           </div>
         </div>
 
-        <div className="mt-3 border-t border-gray-100 pt-3 dark:border-gray-800">
+        <div className="mt-3 border-t border-gray-100 pt-3 dark:border-neutral-800">
           {exerciseCount > 0 ? (
             <>
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400">

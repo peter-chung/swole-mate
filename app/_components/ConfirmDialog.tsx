@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import Button from "@/app/_components/Button";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -89,7 +90,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       />
       <div
         ref={modalRef}
-        className="relative z-10 w-full max-w-sm mx-4 rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-neutral-900"
+        className="relative z-10 w-full max-w-sm mx-4 rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-neutral-800 dark:bg-neutral-900"
       >
         <h3 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
           {title}
@@ -98,27 +99,23 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">{description}</p>
         )}
         <div className="flex justify-end gap-2">
-          <button
+          <Button
             ref={cancelBtnRef}
             type="button"
+            variant="secondary"
             onClick={onCancel}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200 dark:hover:bg-neutral-800/70"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             ref={confirmBtnRef}
             type="button"
+            variant={destructive ? "danger" : "secondary"}
+            isLoading={confirmLoading}
             onClick={() => void onConfirm()}
-            disabled={confirmLoading}
-            className={
-              destructive
-                ? "inline-flex h-9 items-center justify-center rounded-md border border-red-700 bg-transparent px-3 text-sm font-medium text-red-700 transition hover:bg-red-50 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-red-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
-                : "inline-flex h-9 items-center justify-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200 dark:hover:bg-neutral-800/70"
-            }
           >
-            {confirmLoading ? "Working..." : confirmLabel}
-          </button>
+            {confirmLabel}
+          </Button>
         </div>
       </div>
     </div>

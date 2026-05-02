@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
 import type { RoutineWithRelations } from "../_lib/getRoutine";
 import { startWorkoutFromRoutineAction } from "../actions";
+import Button from "@/app/_components/Button";
 
 type Props = { routine: RoutineWithRelations; ownerName: string };
 
@@ -76,15 +77,16 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
             {routine.name || "Untitled routine"}
           </h1>
           <div className="flex shrink-0 items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="primary"
+              isLoading={isPending}
               onClick={handleStartWorkout}
-              disabled={isPending}
-              className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-green-700 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-green-500/40 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+              className="gap-1.5"
             >
               <Play className="h-4 w-4" aria-hidden="true" />
-              <span>{isPending ? "Starting..." : "Start Workout"}</span>
-            </button>
+              <span>Start Workout</span>
+            </Button>
             <div className="relative" data-routine-actions-menu>
               <button
                 type="button"
@@ -92,14 +94,14 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
                 aria-haspopup="menu"
                 aria-expanded={isMenuOpen}
                 aria-label="Routine actions"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 active:translate-y-px dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 active:translate-y-px dark:text-gray-400 dark:hover:bg-neutral-800 dark:hover:text-gray-200"
               >
                 <MoreVertical className="h-4 w-4" aria-hidden="true" />
               </button>
               {isMenuOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 z-20 mt-2 min-w-44 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-neutral-900"
+                  className="absolute right-0 z-20 mt-2 min-w-44 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
                 >
                   <Link
                     href={`/routines/${routine.id}/edit`}
@@ -110,7 +112,7 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
                     <Pencil className="h-4 w-4" aria-hidden="true" />
                     <span>Edit routine</span>
                   </Link>
-                  <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+                  <div className="my-1 h-px bg-gray-200 dark:bg-neutral-700" />
                   <button
                     type="button"
                     role="menuitem"

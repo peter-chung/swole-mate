@@ -19,13 +19,13 @@ const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
     : [];
   const isCustom = exercise.source === "custom";
   const cardBaseClasses =
-    "flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 dark:border-gray-800 dark:bg-neutral-900";
+    "flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3ecf8e]/60 dark:border-neutral-800 dark:bg-neutral-900";
 
   const content = (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="flex items-center gap-2 text-base font-semibold text-gray-900 transition group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-300">
+          <h3 className="flex items-center gap-2 text-base font-semibold text-gray-900 transition group-hover:text-[#3ecf8e] dark:text-gray-100 dark:group-hover:text-[#3ecf8e]">
             <span>{exercise.name}</span>
             {isCustom ? (
               <User className="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" aria-label="Custom exercise" />

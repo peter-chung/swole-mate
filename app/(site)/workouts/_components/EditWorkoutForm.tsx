@@ -9,6 +9,7 @@ import {
   deleteWorkoutAction,
   updateWorkoutAction,
 } from "../actions";
+import Button from "@/app/_components/Button";
 
 type Workout = Tables<"workouts">;
 type WorkoutUpdate = TablesUpdate<"workouts">;
@@ -85,14 +86,15 @@ const UpdateWorkoutForm = ({ workout }: Props) => {
         <div className="text-sm font-medium text-gray-700 dark:text-gray-200">
           Workout Details
         </div>
-        <button
+        <Button
           type="button"
+          variant="danger"
+          size="sm"
+          isLoading={isDeleting}
           onClick={() => setConfirmOpen(true)}
-          disabled={isDeleting}
-          className="inline-flex items-center rounded-md border border-red-700 bg-transparent px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 active:translate-y-px disabled:opacity-60 dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
         >
-          {isDeleting ? "Deleting..." : "Delete Workout"}
-        </button>
+          Delete Workout
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -143,13 +145,14 @@ const UpdateWorkoutForm = ({ workout }: Props) => {
       </div>
 
       <div className="flex justify-end">
-        <button
+        <Button
           type="submit"
-          disabled={isUpdating}
-          className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 active:translate-y-px disabled:opacity-60"
+          variant="primary"
+          size="lg"
+          isLoading={isUpdating}
         >
-          {isUpdating ? "Saving..." : "Save Changes"}
-        </button>
+          Save Changes
+        </Button>
       </div>
       <ConfirmDialog
         open={confirmOpen}

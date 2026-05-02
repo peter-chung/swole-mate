@@ -8,6 +8,7 @@ import type { Tables, TablesUpdate } from "@/types/database.types";
 import { InputField, SelectField } from "@/app/_components/FormFields";
 import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
+import Button from "@/app/_components/Button";
 
 type Exercise = Tables<"custom_exercises"> & {
   exercise_type_label?: string | null;
@@ -141,7 +142,7 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
       </div>
     <form
       onSubmit={handleSubmit}
-      className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900"
+      className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
     >
       <InputField
         id="exerciseName"
@@ -235,21 +236,23 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
 
       <div className="pt-2 flex justify-end">
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
+            variant="danger"
+            size="lg"
             onClick={() => setConfirmOpen(true)}
             disabled={isDeleting}
-            className="inline-flex h-10 items-center justify-center rounded-md border border-red-700 bg-transparent px-4 text-sm font-medium text-red-700 transition hover:bg-red-50 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-red-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
           >
             Delete
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={isLoading}
-            className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+            variant="primary"
+            size="lg"
+            isLoading={isLoading}
           >
-            {isLoading ? "Saving..." : "Save Changes"}
-          </button>
+            Save Changes
+          </Button>
         </div>
       </div>
       <ConfirmDialog

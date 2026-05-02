@@ -427,7 +427,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
                       onChangeField(idx, "weight", e.target.value)
                     }
                     disabled={set._status === "saving"}
-                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm dark:border-gray-700 dark:bg-transparent"
+                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm dark:border-neutral-700 dark:bg-transparent"
                   />
                 )}
                 {showReps && (
@@ -437,7 +437,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
                     value={set.reps ?? ""}
                     onChange={(e) => onChangeField(idx, "reps", e.target.value)}
                     disabled={set._status === "saving"}
-                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm dark:border-gray-700 dark:bg-transparent"
+                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm dark:border-neutral-700 dark:bg-transparent"
                   />
                 )}
                 <button
@@ -457,7 +457,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
         <button
           type="button"
           onClick={addSet}
-          className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-200 py-2 text-sm text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 cursor-pointer dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-gray-900/30 dark:hover:text-gray-300"
+          className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-200 py-2 text-sm text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 cursor-pointer dark:border-neutral-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-neutral-900/30 dark:hover:text-gray-300"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Add set

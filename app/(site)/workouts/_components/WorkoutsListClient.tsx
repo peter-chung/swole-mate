@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import WorkoutCard from "./WorkoutCard";
 import type { WorkoutWithOwner } from "../_lib/getWorkoutsList";
+import { ButtonLink } from "@/app/_components/Button";
 
 type Props = {
   initialWorkouts: WorkoutWithOwner[];
@@ -58,20 +58,14 @@ const WorkoutsListClient = ({ initialWorkouts, isAuthenticated, mode }: Props) =
         </h1>
         {!isFeed && (
           isAuthenticated ? (
-            <Link
-              href="/workouts/new"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-            >
+            <ButtonLink href="/workouts/new" variant="primary" className="gap-1.5">
               <Plus className="h-4 w-4" />
               New Workout
-            </Link>
+            </ButtonLink>
           ) : (
-            <Link
-              href="/login"
-              className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-            >
+            <ButtonLink href="/login" variant="primary">
               🔐 Log In to Create a Workout
-            </Link>
+            </ButtonLink>
           )
         )}
       </div>
@@ -103,36 +97,30 @@ const WorkoutsListClient = ({ initialWorkouts, isAuthenticated, mode }: Props) =
           ))}
         </div>
       ) : isFeed ? (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
           <div className="text-3xl mb-2">🌍</div>
           <p className="font-medium">No workouts yet</p>
           <p className="text-sm">Be the first to log a workout!</p>
         </div>
       ) : isAuthenticated ? (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
           <div className="text-3xl mb-2">🗓️</div>
           <p className="font-medium">No workouts yet</p>
           <p className="text-sm">Create your first workout to get started.</p>
           <div className="mt-4">
-            <Link
-              href="/workouts/new"
-              className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-            >
+            <ButtonLink href="/workouts/new" variant="secondary">
               Create Workout
-            </Link>
+            </ButtonLink>
           </div>
         </div>
       ) : (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
           <p className="font-medium">Log in to track your workouts.</p>
           <p className="text-sm">Your workouts are saved to your account and available anywhere.</p>
           <div className="mt-4">
-            <Link
-              href="/login"
-              className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-            >
+            <ButtonLink href="/login" variant="primary">
               Log In
-            </Link>
+            </ButtonLink>
           </div>
         </div>
       )}

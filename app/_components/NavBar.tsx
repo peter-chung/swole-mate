@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import ProfileDropdown from "./ProfileDropdown";
+import { ButtonLink } from "@/app/_components/Button";
 
 export default async function NavBar() {
   const supabase = await createClient();
@@ -9,7 +10,7 @@ export default async function NavBar() {
   } = await supabase.auth.getUser();
 
   return (
-    <header className="sticky top-0 z-20 bg-white/70 dark:bg-black/50 backdrop-blur border-b border-gray-200 dark:border-gray-800">
+    <header className="sticky top-0 z-20 bg-white/70 dark:bg-black/50 backdrop-blur border-b border-gray-200 dark:border-neutral-800">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-14 items-center justify-between">
           <Link
@@ -56,12 +57,9 @@ export default async function NavBar() {
                 >
                   Log in
                 </Link>
-                <Link
-                  href="/signup"
-                  className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm text-white shadow hover:bg-gray-800 hover:opacity-90 active:translate-y-px transition duration-150 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-                >
+                <ButtonLink href="/signup" variant="primary">
                   Sign up
-                </Link>
+                </ButtonLink>
               </>
             )}
           </nav>

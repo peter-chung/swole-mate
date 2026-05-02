@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ButtonLink } from "@/app/_components/Button";
 
 export default function Home() {
   return (
@@ -14,30 +15,34 @@ export default function Home() {
           </p>
 
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <Link
+            <ButtonLink
               href="/signup"
-              className="inline-flex w-full items-center justify-center rounded-xl bg-gray-900 px-5 py-3 text-base font-medium text-white shadow hover:bg-gray-800 sm:w-auto dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+              variant="primary"
+              size="lg"
+              className="w-full sm:w-auto"
             >
               Get started
-            </Link>
-            <Link
+            </ButtonLink>
+            <ButtonLink
               href="/workouts"
-              className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3 text-base font-medium text-gray-900 hover:bg-gray-50 sm:w-auto dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
+              variant="secondary"
+              size="lg"
+              className="w-full sm:w-auto"
             >
               Browse workouts
-            </Link>
+            </ButtonLink>
           </div>
 
           <ul className="mt-10 grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
-            <li className="rounded-lg border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
+            <li className="rounded-lg border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-neutral-800 dark:bg-neutral-900/40">
               <p className="font-medium text-gray-900 dark:text-white">Fast logging</p>
               <p className="mt-1 text-gray-600 dark:text-gray-300">Add sets and reps in seconds.</p>
             </li>
-            <li className="rounded-lg border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
+            <li className="rounded-lg border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-neutral-800 dark:bg-neutral-900/40">
               <p className="font-medium text-gray-900 dark:text-white">Flexible workouts</p>
               <p className="mt-1 text-gray-600 dark:text-gray-300">Customize exercises and routines.</p>
             </li>
-            <li className="rounded-lg border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
+            <li className="rounded-lg border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-neutral-800 dark:bg-neutral-900/40">
               <p className="font-medium text-gray-900 dark:text-white">Realtime updates</p>
               <p className="mt-1 text-gray-600 dark:text-gray-300">Stay in sync across devices.</p>
             </li>
@@ -45,7 +50,7 @@ export default function Home() {
         </div>
 
         <div className="pointer-events-none absolute inset-x-0 -z-10 mx-auto hidden h-64 w-[90%] blur-3xl sm:block">
-          <div className="h-full w-full rounded-full bg-gradient-to-r from-indigo-400/30 via-purple-400/30 to-pink-400/30 dark:from-indigo-700/20 dark:via-purple-700/20 dark:to-pink-700/20" />
+          <div className="h-full w-full rounded-full bg-gradient-to-r from-[#3ecf8e]/10 via-[#3ecf8e]/5 to-transparent" />
         </div>
       </section>
     </div>

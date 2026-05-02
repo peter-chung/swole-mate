@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { createClient } from "@/utils/supabase/client";
 import { type User } from "@supabase/supabase-js";
-import { Loader2, Eye, EyeOff, LogOut } from "lucide-react";
+import { Eye, EyeOff, LogOut } from "lucide-react";
+import Button from "@/app/_components/Button";
 
 export default function ProfileForm({ user }: { user: User | null }) {
   const supabase = createClient();
@@ -104,7 +105,7 @@ export default function ProfileForm({ user }: { user: User | null }) {
   }
 
   const inputClass =
-    "block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed";
+    "block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed";
   const labelClass =
     "block text-sm font-medium text-gray-700 dark:text-gray-200";
 
@@ -118,7 +119,7 @@ export default function ProfileForm({ user }: { user: User | null }) {
       </p>
 
       {/* Profile info */}
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900">
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
           Profile information
         </h2>
@@ -166,17 +167,19 @@ export default function ProfileForm({ user }: { user: User | null }) {
 
         </div>
 
-        <button
+        <Button
           onClick={updateProfile}
-          disabled={loading || saving}
-          className="mt-5 inline-flex h-9 items-center justify-center rounded-md bg-gray-900 px-4 text-sm font-medium text-white transition hover:bg-gray-800 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+          variant="primary"
+          isLoading={saving}
+          disabled={loading}
+          className="mt-5"
         >
-          {saving ? <Loader2 size={15} className="animate-spin" /> : "Save changes"}
-        </button>
+          Save changes
+        </Button>
       </div>
 
       {/* Security */}
-      <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900">
+      <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
           Security
         </h2>
@@ -264,21 +267,18 @@ export default function ProfileForm({ user }: { user: User | null }) {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
-            disabled={passwordLoading || !currentPassword || !password}
-            className="inline-flex h-9 items-center justify-center rounded-md bg-gray-900 px-4 text-sm font-medium text-white transition hover:bg-gray-800 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+            variant="primary"
+            isLoading={passwordLoading}
+            disabled={!currentPassword || !password}
           >
-            {passwordLoading ? (
-              <Loader2 size={15} className="animate-spin" />
-            ) : (
-              "Update password"
-            )}
-          </button>
+            Update password
+          </Button>
         </form>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900">
+      <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
           Sign out
         </h2>
