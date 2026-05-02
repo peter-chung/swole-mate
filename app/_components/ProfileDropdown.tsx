@@ -30,9 +30,9 @@ export default function ProfileDropdown({ email }: Props) {
         aria-label="Profile menu"
         aria-haspopup="true"
         aria-expanded={open}
-        className="inline-flex items-center justify-center rounded-full w-10 h-10 border border-gray-300 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition duration-150 dark:border-neutral-700 dark:bg-transparent dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-900/40"
+        className="inline-flex items-center justify-center w-10 h-10 text-gray-400 hover:text-white transition duration-150"
       >
-        <User size={15} />
+        <User size={18} />
       </button>
 
       {open && (
