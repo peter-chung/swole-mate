@@ -64,7 +64,7 @@ export type Database = {
         Row: {
           created_at: string
           distance: number | null
-          duration: unknown
+          duration: string | null
           id: number
           notes: string | null
           reps: number | null
@@ -76,7 +76,7 @@ export type Database = {
         Insert: {
           created_at?: string
           distance?: number | null
-          duration?: unknown
+          duration?: string | null
           id?: number
           notes?: string | null
           reps?: number | null
@@ -88,7 +88,7 @@ export type Database = {
         Update: {
           created_at?: string
           distance?: number | null
-          duration?: unknown
+          duration?: string | null
           id?: number
           notes?: string | null
           reps?: number | null
@@ -219,6 +219,7 @@ export type Database = {
         Row: {
           created_at: string
           custom_exercise_id: string | null
+          equipment_brand: string | null
           id: number
           notes: string | null
           order_index: number
@@ -229,6 +230,7 @@ export type Database = {
         Insert: {
           created_at?: string
           custom_exercise_id?: string | null
+          equipment_brand?: string | null
           id?: number
           notes?: string | null
           order_index?: number
@@ -239,6 +241,7 @@ export type Database = {
         Update: {
           created_at?: string
           custom_exercise_id?: string | null
+          equipment_brand?: string | null
           id?: number
           notes?: string | null
           order_index?: number
@@ -281,7 +284,7 @@ export type Database = {
         Row: {
           created_at: string
           distance: number | null
-          duration: unknown
+          duration: string | null
           id: number
           notes: string | null
           reps: number | null
@@ -293,7 +296,7 @@ export type Database = {
         Insert: {
           created_at?: string
           distance?: number | null
-          duration?: unknown
+          duration?: string | null
           id?: number
           notes?: string | null
           reps?: number | null
@@ -305,7 +308,7 @@ export type Database = {
         Update: {
           created_at?: string
           distance?: number | null
-          duration?: unknown
+          duration?: string | null
           id?: number
           notes?: string | null
           reps?: number | null
@@ -376,6 +379,7 @@ export type Database = {
         Row: {
           created_at: string
           custom_exercise_id: string | null
+          equipment_brand: string | null
           id: number
           notes: string | null
           order_index: number
@@ -386,6 +390,7 @@ export type Database = {
         Insert: {
           created_at?: string
           custom_exercise_id?: string | null
+          equipment_brand?: string | null
           id?: number
           notes?: string | null
           order_index?: number
@@ -396,6 +401,7 @@ export type Database = {
         Update: {
           created_at?: string
           custom_exercise_id?: string | null
+          equipment_brand?: string | null
           id?: number
           notes?: string | null
           order_index?: number

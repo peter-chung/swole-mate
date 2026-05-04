@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useDebounce } from "react-use";
 
 import { createClient } from "@/utils/supabase/client";
@@ -16,6 +16,7 @@ import ExerciseCard from "./ExerciseCard";
 import SearchBar from "./SearchBar";
 import type { AvailableExercise } from "../_lib/types";
 import { EXERCISES_PAGE_SIZE } from "../_lib/constants";
+import { ButtonLink } from "@/app/_components/Button";
 
 type Props = {
   initialExercises: AvailableExercise[];
@@ -208,19 +209,18 @@ const ExercisesListClient = ({
           Exercises
         </h1>
         {isAuthenticated ? (
-          <Link
+          <ButtonLink
             href="/exercises/new"
-            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+            variant="primary"
+            className="gap-1.5"
           >
-            + Create Exercise
-          </Link>
+            <Plus className="h-4 w-4" />
+            New Exercise
+          </ButtonLink>
         ) : (
-          <Link
-            href="/login"
-            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-          >
+          <ButtonLink href="/login" variant="primary">
             🔐 Log In to Create an Exercise
-          </Link>
+          </ButtonLink>
         )}
       </div>
 
@@ -240,7 +240,7 @@ const ExercisesListClient = ({
 
           <div className="mt-6 flex flex-col items-center gap-3">
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              Loaded {loadedCount} of {totalLabel} exercises
+              Showing {loadedCount} of {totalLabel}
             </p>
             <div
               ref={loadMoreRef}
@@ -256,7 +256,7 @@ const ExercisesListClient = ({
                 <button
                   type="button"
                   onClick={handleScrollToTop}
-                  className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200 dark:hover:bg-gray-900"
+                  className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-100 dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-gray-200 dark:hover:bg-neutral-900"
                 >
                   Back to top
                 </button>
@@ -265,7 +265,7 @@ const ExercisesListClient = ({
           </div>
         </>
       ) : (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
           <div className="text-3xl mb-2">🕵️‍♀️</div>
           <p className="font-medium">No exercises found</p>
           <p className="text-sm">
@@ -274,19 +274,13 @@ const ExercisesListClient = ({
           </p>
           <div className="mt-4">
             {isAuthenticated ? (
-              <Link
-                href="/exercises/new"
-                className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-              >
+              <ButtonLink href="/exercises/new" variant="secondary">
                 Create Exercise
-              </Link>
+              </ButtonLink>
             ) : (
-              <Link
-                href="/login"
-                className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-              >
+              <ButtonLink href="/login" variant="secondary">
                 🔐 Log In to Create an Exercise
-              </Link>
+              </ButtonLink>
             )}
           </div>
         </div>

@@ -16,7 +16,7 @@ const SetCard = ({ set }: Props) => {
   return (
     <li
       key={set.id}
-      className="rounded-lg border border-gray-200 bg-white p-3 text-sm dark:border-gray-800 dark:bg-neutral-900"
+      className="rounded-lg border border-gray-200 bg-white p-3 text-sm dark:border-neutral-800 dark:bg-neutral-900"
     >
       <div className="flex items-center justify-between">
         <span className="font-medium text-gray-900 dark:text-gray-100">

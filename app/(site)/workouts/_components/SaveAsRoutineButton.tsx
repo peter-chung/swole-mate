@@ -2,14 +2,23 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { BookmarkPlus } from "lucide-react";
 import { InputField } from "@/app/_components/FormFields";
 import toast from "react-hot-toast";
+import Button from "@/app/_components/Button";
 
-type Props = { workoutId: string; defaultTitle?: string };
+type Props = {
+  workoutId: string;
+  defaultTitle?: string;
+  buttonClassName?: string;
+  onButtonClick?: () => void;
+};
 
 export default function SaveAsRoutineButton({
   workoutId,
   defaultTitle,
+  buttonClassName,
+  onButtonClick,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -38,26 +47,33 @@ export default function SaveAsRoutineButton({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200"
-      >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-4 w-4"
+      {buttonClassName ? (
+        <button
+          type="button"
+          className={buttonClassName}
+          onClick={() => {
+            onButtonClick?.();
+            setOpen(true);
+          }}
         >
-          <path d="M12 20v-6" />
-          <path d="M6 14l6-6 6 6" />
-        </svg>
-        <span>Save as routine</span>
-      </button>
+          <BookmarkPlus className="h-4 w-4" aria-hidden="true" />
+          <span>Save as routine</span>
+        </button>
+      ) : (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            onButtonClick?.();
+            setOpen(true);
+          }}
+          className="gap-1.5"
+        >
+          <BookmarkPlus className="h-4 w-4" aria-hidden="true" />
+          <span>Save as routine</span>
+        </Button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -65,7 +81,7 @@ export default function SaveAsRoutineButton({
             className="absolute inset-0 bg-black/40"
             onClick={() => !loading && setOpen(false)}
           />
-          <div className="relative z-10 w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-neutral-900">
+          <div className="relative z-10 w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
             <h3 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
               Save as routine
             </h3>
@@ -81,22 +97,22 @@ export default function SaveAsRoutineButton({
               />
             </div>
             <div className="flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
-                onClick={() => setOpen(false)}
+                variant="secondary"
                 disabled={loading}
-                className="inline-flex h-9 items-center justify-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-200"
+                onClick={() => setOpen(false)}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="primary"
+                isLoading={loading}
                 onClick={() => void handleConfirm()}
-                disabled={loading}
-                className="inline-flex h-9 items-center justify-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white transition hover:bg-blue-700 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Saving..." : "Save"}
-              </button>
+                Save
+              </Button>
             </div>
           </div>
         </div>

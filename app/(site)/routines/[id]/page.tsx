@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { getRoutineWithRelations } from "../_lib/getRoutine";
 import RoutineDetailCard from "../_components/RoutineDetailCard";
 import RoutineExerciseContainer from "../_components/RoutineExerciseContainer";
@@ -24,7 +25,7 @@ export default async function RoutineDetailPage({ params }: Props) {
           href="/routines"
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
         >
-          <span aria-hidden>←</span>
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           <span>Back to routines</span>
         </Link>
 

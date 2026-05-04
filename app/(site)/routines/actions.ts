@@ -15,6 +15,11 @@ type RoutineSetRow = Tables<"routine_sets">;
 
 const ROUTINES_PATH = "/routines";
 
+const normalizeEquipmentBrand = (brand?: string | null) => {
+  const trimmed = brand?.trim();
+  return trimmed ? trimmed : null;
+};
+
 async function ensureUser() {
   const supabase = await createClient();
   const {
@@ -146,13 +151,16 @@ export async function deleteRoutineAction(routineId: string) {
 export async function addRoutineExerciseAction({
   routineId,
   exerciseId,
+  equipmentBrand,
   notes,
 }: {
   routineId: string;
   exerciseId: string;
+  equipmentBrand?: string | null;
   notes?: string | null;
 }) {
   const { supabase, user } = await ensureUser();
+  const normalizedEquipmentBrand = normalizeEquipmentBrand(equipmentBrand);
 
   if (!routineId || !exerciseId) {
     throw new Error("Invalid payload");
@@ -194,6 +202,56 @@ export async function addRoutineExerciseAction({
 
   const nextOrder = (maxRow?.order_index ?? 0) + 1;
 
+  const exerciseColumn = isCustomExercise
+    ? "custom_exercise_id"
+    : "public_exercise_id";
+
+  // Look up previous workout performance first, fall back to routine history
+  let previousWorkoutExerciseQuery = supabase
+    .from("workout_exercises")
+    .select("id, notes")
+    .eq(exerciseColumn, exerciseId)
+    .eq("user_id", user.id);
+
+  if (normalizedEquipmentBrand) {
+    previousWorkoutExerciseQuery = previousWorkoutExerciseQuery.ilike(
+      "equipment_brand",
+      normalizedEquipmentBrand,
+    );
+  }
+
+  let { data: previousWorkoutExercise } =
+    await previousWorkoutExerciseQuery
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+  if (!previousWorkoutExercise && normalizedEquipmentBrand) {
+    const { data: fallback } = await supabase
+      .from("workout_exercises")
+      .select("id, notes")
+      .eq(exerciseColumn, exerciseId)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    previousWorkoutExercise = fallback;
+  }
+
+  // Fall back to routine history for notes if no workout exists
+  let previousNotes: string | null = previousWorkoutExercise?.notes ?? null;
+  if (previousNotes == null) {
+    const { data: prevRoutineExercise } = await supabase
+      .from("routine_exercises")
+      .select("notes")
+      .eq(exerciseColumn, exerciseId)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    previousNotes = prevRoutineExercise?.notes ?? null;
+  }
+
   const { data, error } = await supabase
     .from("routine_exercises")
     .insert({
@@ -201,11 +259,12 @@ export async function addRoutineExerciseAction({
       user_id: user.id,
       public_exercise_id: isCustomExercise ? null : exerciseId,
       custom_exercise_id: isCustomExercise ? exerciseId : null,
+      equipment_brand: normalizedEquipmentBrand,
       order_index: nextOrder,
-      notes: notes ?? null,
+      notes: notes ?? previousNotes ?? null,
     })
     .select(
-      "id, routine_id, public_exercise_id, custom_exercise_id, order_index"
+      "id, routine_id, public_exercise_id, custom_exercise_id, equipment_brand, order_index"
     )
     .maybeSingle();
 
@@ -213,25 +272,12 @@ export async function addRoutineExerciseAction({
     throw new Error(error?.message ?? "Failed to add exercise");
   }
 
-  // Try to copy previous sets for this exercise (best effort)
-  const { data: previousRoutineExercise } = await supabase
-    .from("routine_exercises")
-    .select("id")
-    .eq(
-      isCustomExercise ? "custom_exercise_id" : "public_exercise_id",
-      exerciseId
-    )
-    .eq("user_id", user.id)
-    .neq("id", data.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (previousRoutineExercise?.id) {
+  // Copy sets from last workout performance, fall back to previous routine
+  if (previousWorkoutExercise?.id) {
     const { data: previousSets, error: previousSetsError } = await supabase
-      .from("routine_sets")
+      .from("exercise_sets")
       .select("set_number, reps, weight")
-      .eq("routine_exercise_id", previousRoutineExercise.id)
+      .eq("workout_exercise_id", previousWorkoutExercise.id)
       .order("set_number", { ascending: true });
 
     if (!previousSetsError && (previousSets ?? []).length > 0) {
@@ -247,12 +293,58 @@ export async function addRoutineExerciseAction({
           notes: null,
         })
       );
-
       const { error: insertSetsError } = await supabase
         .from("routine_sets")
         .insert(setsPayload);
-
       if (insertSetsError) console.error(insertSetsError);
+    }
+  } else {
+    // Fall back to previous routine sets
+    let previousRoutineExerciseQuery = supabase
+      .from("routine_exercises")
+      .select("id")
+      .eq(exerciseColumn, exerciseId)
+      .eq("user_id", user.id)
+      .neq("id", data.id);
+
+    if (normalizedEquipmentBrand) {
+      previousRoutineExerciseQuery = previousRoutineExerciseQuery.ilike(
+        "equipment_brand",
+        normalizedEquipmentBrand,
+      );
+    }
+
+    const { data: previousRoutineExercise } =
+      await previousRoutineExerciseQuery
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (previousRoutineExercise?.id) {
+      const { data: previousSets, error: previousSetsError } = await supabase
+        .from("routine_sets")
+        .select("set_number, reps, weight")
+        .eq("routine_exercise_id", previousRoutineExercise.id)
+        .order("set_number", { ascending: true });
+
+      if (!previousSetsError && (previousSets ?? []).length > 0) {
+        const setsPayload = (previousSets ?? []).map(
+          (set: any, index: number) => ({
+            routine_exercise_id: data.id,
+            user_id: user.id,
+            set_number: index + 1,
+            reps: set?.reps ?? null,
+            weight: set?.weight ?? null,
+            duration: null,
+            distance: null,
+            notes: null,
+          })
+        );
+        const { error: insertSetsError } = await supabase
+          .from("routine_sets")
+          .insert(setsPayload);
+        if (insertSetsError) console.error(insertSetsError);
+      }
     }
   }
 
@@ -265,8 +357,55 @@ export async function addRoutineExerciseAction({
     | "routine_id"
     | "public_exercise_id"
     | "custom_exercise_id"
+    | "equipment_brand"
     | "order_index"
   >;
+}
+
+export async function updateRoutineExerciseAction({
+  routineId,
+  routineExerciseId,
+  equipmentBrand,
+  notes,
+}: {
+  routineId: string;
+  routineExerciseId: number;
+  equipmentBrand?: string | null;
+  notes?: string | null;
+}) {
+  const { supabase, user } = await ensureUser();
+
+  const owns = await assertRoutineExerciseOwnership(
+    supabase,
+    user.id,
+    routineId,
+    routineExerciseId
+  );
+  if (!owns) {
+    throw new Error("Routine exercise not found");
+  }
+
+  const { data, error } = await supabase
+    .from("routine_exercises")
+    .update({
+      equipment_brand: normalizeEquipmentBrand(equipmentBrand),
+      notes: notes?.trim() || null,
+    })
+    .eq("id", routineExerciseId)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .select("id, equipment_brand, notes")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Failed to update exercise");
+  }
+
+  revalidatePath(`${ROUTINES_PATH}/${routineId}`);
+  revalidatePath(`${ROUTINES_PATH}/${routineId}/edit`);
+  revalidatePath(`${ROUTINES_PATH}/${routineId}/exercises/edit`);
+
+  return data as Pick<RoutineExerciseRow, "id" | "equipment_brand" | "notes">;
 }
 
 export async function saveRoutineSetAction({
@@ -457,7 +596,7 @@ export async function startWorkoutFromRoutineAction(routineId: string) {
       `
         id, name, date, notes,
         routine_exercises (
-          id, notes, order_index, public_exercise_id, custom_exercise_id, user_id,
+          id, notes, equipment_brand, order_index, public_exercise_id, custom_exercise_id, user_id,
           routine_sets ( set_number, reps, weight, duration, distance, notes )
         )
       `
@@ -511,6 +650,7 @@ export async function startWorkoutFromRoutineAction(routineId: string) {
         custom_exercise_id: ownsCustomExercise
           ? routineExercise.custom_exercise_id
           : null,
+        equipment_brand: routineExercise.equipment_brand ?? null,
         notes: routineExercise.notes ?? null,
         order_index: routineExercise.order_index,
       })

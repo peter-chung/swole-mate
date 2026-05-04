@@ -2,12 +2,13 @@
 
 import React from "react";
 import Link from "next/link";
+import { BadgeCheck, User } from "lucide-react";
 import type { Tables } from "@/types/database.types";
 
 type Exercise = Tables<"available_exercises">;
 
 const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
-  const muscle = exercise.primary_muscle || "Unknown";
+  const muscle = exercise.primary_muscle?.trim() || null;
   const secondaryMuscles = exercise.other_muscles?.trim();
   const typeLabel = exercise.exercise_type_label?.trim();
   const otherMuscleBadges = secondaryMuscles
@@ -18,27 +19,26 @@ const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
     : [];
   const isCustom = exercise.source === "custom";
   const cardBaseClasses =
-    "flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 dark:border-gray-800 dark:bg-neutral-900";
+    "flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3ecf8e]/60 dark:border-neutral-800 dark:bg-neutral-900";
 
   const content = (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="flex items-center gap-2 text-base font-semibold text-gray-900 transition group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-300">
+          <h3 className="flex items-center gap-2 text-base font-semibold text-gray-900 transition group-hover:text-[#3ecf8e] dark:text-gray-100 dark:group-hover:text-[#3ecf8e]">
             <span>{exercise.name}</span>
-            {!isCustom ? (
-              <span
-                aria-label="Official exercise"
-                className="inline-flex items-center justify-center rounded-full bg-emerald-50 px-1.5 py-0.5 text-[0.65rem] text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/30"
-              >
-                ✔
-              </span>
-            ) : null}
+            {isCustom ? (
+              <User className="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" aria-label="Custom exercise" />
+            ) : (
+              <BadgeCheck className="h-4 w-4 shrink-0 text-emerald-500 dark:text-emerald-400" aria-label="Official exercise" />
+            )}
           </h3>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40">
-              Primary · {muscle}
-            </span>
+            {muscle ? (
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40">
+                Primary · {muscle}
+              </span>
+            ) : null}
             {typeLabel ? (
               <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 font-medium text-violet-700 ring-1 ring-inset ring-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:ring-violet-500/30">
                 {typeLabel}
@@ -59,13 +59,6 @@ const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
           ) : null}
         </div>
       </div>
-      {isCustom ? (
-        <div className="flex flex-1 items-end justify-end">
-          <span className="inline-flex items-center text-xs font-medium text-gray-500 transition group-hover:text-blue-600 dark:text-gray-400 dark:group-hover:text-blue-300">
-            Edit →
-          </span>
-        </div>
-      ) : null}
     </div>
   );
 

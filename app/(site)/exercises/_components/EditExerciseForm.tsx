@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Tables, TablesUpdate } from "@/types/database.types";
 import { InputField, SelectField } from "@/app/_components/FormFields";
 import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
+import Button from "@/app/_components/Button";
 
 type Exercise = Tables<"custom_exercises"> & {
   exercise_type_label?: string | null;
@@ -49,7 +51,18 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
 
         if (!res.ok) throw new Error(result.error);
 
-        setExerciseTypes(result.data ?? []);
+        const UNSUPPORTED_KEYS = new Set([
+          "duration",
+          "distance_duration",
+          "weight_duration",
+          "weight_distance",
+          "duration_weight",
+        ]);
+        setExerciseTypes(
+          (result.data ?? []).filter(
+            (t: ExerciseType) => !UNSUPPORTED_KEYS.has(t.key)
+          )
+        );
       } catch (err) {
         console.error("Error fetching exercise types:", err);
         toast.error("Failed to load exercise types. Please refresh the page.");
@@ -66,13 +79,18 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
     const targetId = resourceId ?? exercise?.id;
     if (!exercise || !targetId) return;
 
+    if (Object.keys(updatedExercise).length === 0) {
+      router.push("/exercises");
+      return;
+    }
+
     try {
       setIsLoading(true);
 
       const res = await fetch(`/api/exercises/${targetId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedExercise), // send only changed fields
+        body: JSON.stringify(updatedExercise),
       });
 
       const result = await res.json();
@@ -112,9 +130,19 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
   };
 
   return (
+    <div className="mx-auto w-full max-w-md">
+      <div className="mb-4">
+        <Link
+          href="/exercises"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          <span>Back to exercises</span>
+        </Link>
+      </div>
     <form
       onSubmit={handleSubmit}
-      className="mx-auto w-full max-w-md space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900"
+      className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
     >
       <InputField
         id="exerciseName"
@@ -206,31 +234,25 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
         ))}
       </SelectField>
 
-      <div className="pt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link
-          href="/exercises"
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-        >
-          <span aria-hidden>←</span>
-          <span>Back to exercises</span>
-        </Link>
-
+      <div className="pt-2 flex justify-end">
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
+            variant="danger"
+            size="lg"
             onClick={() => setConfirmOpen(true)}
             disabled={isDeleting}
-            className="inline-flex h-10 items-center justify-center rounded-md border border-red-700 bg-transparent px-4 text-sm font-medium text-red-700 transition hover:bg-red-50 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-red-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
           >
             Delete
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={isLoading}
-            className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+            variant="primary"
+            size="lg"
+            isLoading={isLoading}
           >
-            {isLoading ? "Saving..." : "Save Changes"}
-          </button>
+            Save Changes
+          </Button>
         </div>
       </div>
       <ConfirmDialog
@@ -247,6 +269,7 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
         onConfirm={confirmDelete}
       />
     </form>
+    </div>
   );
 };
 

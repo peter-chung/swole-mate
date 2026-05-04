@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { InputField, SelectField } from "@/app/_components/FormFields";
 import type { Tables, TablesInsert } from "@/types/database.types";
+import Button from "@/app/_components/Button";
 
 type ExerciseInsert = TablesInsert<"custom_exercises">;
 type ExerciseType = Tables<"exercise_types">;
@@ -30,7 +32,18 @@ const CreateExerciseForm = () => {
 
         if (!res.ok) throw new Error(result.error);
 
-        setExerciseTypes(result.data ?? []);
+        const UNSUPPORTED_KEYS = new Set([
+          "duration",
+          "distance_duration",
+          "weight_duration",
+          "weight_distance",
+          "duration_weight",
+        ]);
+        setExerciseTypes(
+          (result.data ?? []).filter(
+            (t: ExerciseType) => !UNSUPPORTED_KEYS.has(t.key)
+          )
+        );
       } catch (err) {
         console.error("Error fetching exercise types:", err);
         setErrors((prev) => ({
@@ -109,10 +122,20 @@ const CreateExerciseForm = () => {
   const typeHasError = Boolean(errors.type);
 
   return (
+    <div className="mx-auto w-full max-w-md">
+      <div className="mb-4">
+        <Link
+          href="/exercises"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          <span>Back to exercises</span>
+        </Link>
+      </div>
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="mx-auto w-full max-w-md space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900"
+      className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
     >
       <InputField
         id="exerciseName"
@@ -238,24 +261,18 @@ const CreateExerciseForm = () => {
         </div>
       ) : null}
 
-      <div className="pt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link
-          href="/exercises"
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-        >
-          <span aria-hidden>←</span>
-          <span>Back to exercises</span>
-        </Link>
-
-        <button
+      <div className="pt-2 flex justify-end">
+        <Button
           type="submit"
-          disabled={isLoading}
-          className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          variant="primary"
+          size="lg"
+          isLoading={isLoading}
         >
-          {isLoading ? "Saving..." : "Create Exercise"}
-        </button>
+          Create Exercise
+        </Button>
       </div>
     </form>
+    </div>
   );
 };
 

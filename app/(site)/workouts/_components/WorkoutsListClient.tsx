@@ -1,18 +1,20 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import WorkoutCard from "./WorkoutCard";
 import type { WorkoutWithOwner } from "../_lib/getWorkoutsList";
+import { ButtonLink } from "@/app/_components/Button";
 
 type Props = {
   initialWorkouts: WorkoutWithOwner[];
   isAuthenticated: boolean;
+  mode: "feed" | "mine";
 };
 
-const WorkoutsListClient = ({ initialWorkouts, isAuthenticated }: Props) => {
+const WorkoutsListClient = ({ initialWorkouts, isAuthenticated, mode }: Props) => {
   const [workouts, setWorkouts] = useState(initialWorkouts);
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +23,8 @@ const WorkoutsListClient = ({ initialWorkouts, isAuthenticated }: Props) => {
   const fetchWorkouts = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/workouts", { method: "GET" });
+      const url = mode === "mine" ? "/api/workouts?mine=true" : "/api/workouts";
+      const res = await fetch(url, { method: "GET" });
       const result = await res.json();
 
       if (!res.ok) throw new Error(result.error);
@@ -35,89 +38,89 @@ const WorkoutsListClient = ({ initialWorkouts, isAuthenticated }: Props) => {
 
   useEffect(() => {
     const channel = supabase
-      .channel("workouts-changes")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "workouts" },
-        () => fetchWorkouts(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "workouts" },
-        () => fetchWorkouts(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "workouts" },
-        () => fetchWorkouts(),
-      )
+      .channel(`${mode}-workouts-changes`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "workouts" }, () => fetchWorkouts())
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "workouts" }, () => fetchWorkouts())
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "workouts" }, () => fetchWorkouts())
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [supabase]);
+
+  const isFeed = mode === "feed";
+  const title = isFeed ? "Feed" : "My Workouts";
 
   return (
     <div className="py-6">
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-          Workouts
+          {title}
         </h1>
-        {isAuthenticated ? (
-          <Link
-            href="/workouts/new"
-            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-          >
-            + Create Workout
-          </Link>
-        ) : (
-          <Link
-            href="/login"
-            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-          >
-            🔐 Log In to Create a Workout
-          </Link>
+        {!isFeed && (
+          isAuthenticated ? (
+            <ButtonLink href="/workouts/new" variant="primary" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              New Workout
+            </ButtonLink>
+          ) : (
+            <ButtonLink href="/login" variant="primary">
+              🔐 Log In to Create a Workout
+            </ButtonLink>
+          )
         )}
       </div>
 
       {loading ? (
         <LoadingSpinner className="mt-6" />
       ) : workouts.length > 0 ? (
-        <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
-          {workouts.map((workout) => (
-            <WorkoutCard workout={workout} key={workout.id} />
+        <div className="mt-4 space-y-6">
+          {Object.entries(
+            workouts.reduce<Record<string, typeof workouts>>((groups, workout) => {
+              const key = workout.date
+                ? new Date(workout.date + "T00:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" })
+                : "No date";
+              if (!groups[key]) groups[key] = [];
+              groups[key].push(workout);
+              return groups;
+            }, {})
+          ).map(([month, group]) => (
+            <div key={month}>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                {month}
+              </h2>
+              <ul className="grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
+                {group.map((workout) => (
+                  <WorkoutCard workout={workout} key={workout.id} />
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
+      ) : isFeed ? (
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
+          <div className="text-3xl mb-2">🌍</div>
+          <p className="font-medium">No workouts yet</p>
+          <p className="text-sm">Be the first to log a workout!</p>
+        </div>
       ) : isAuthenticated ? (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
           <div className="text-3xl mb-2">🗓️</div>
           <p className="font-medium">No workouts yet</p>
           <p className="text-sm">Create your first workout to get started.</p>
           <div className="mt-4">
-            <Link
-              href="/workouts/new"
-              className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-            >
+            <ButtonLink href="/workouts/new" variant="secondary">
               Create Workout
-            </Link>
+            </ButtonLink>
           </div>
         </div>
       ) : (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
-          <p className="font-medium">
-            Log in or create an account to build your workouts.
-          </p>
-          <p className="text-sm">
-            Your workouts are saved to your account and available anywhere.
-          </p>
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
+          <p className="font-medium">Log in to track your workouts.</p>
+          <p className="text-sm">Your workouts are saved to your account and available anywhere.</p>
           <div className="mt-4">
-            <Link
-              href="/login"
-              className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-            >
+            <ButtonLink href="/login" variant="primary">
               Log In
-            </Link>
+            </ButtonLink>
           </div>
         </div>
       )}

@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useTransition } from "react";
 import type { TablesInsert } from "@/types/database.types";
 import { InputField, TextAreaField } from "@/app/_components/FormFields";
 import { createRoutineAction } from "../actions";
+import Button from "@/app/_components/Button";
 
 type NewRoutine = TablesInsert<"routines">;
 
@@ -40,7 +42,7 @@ const CreateRoutineForm = () => {
         });
 
         if (result?.id) {
-          router.push(`/routines/${result.id}/exercises/edit`);
+          router.push(`/routines/${result.id}/edit`);
         } else {
           router.push("/routines");
         }
@@ -51,9 +53,19 @@ const CreateRoutineForm = () => {
   };
 
   return (
+    <div className="mx-auto w-full max-w-md">
+      <div className="mb-4">
+        <Link
+          href="/routines"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          <span>Back to routines</span>
+        </Link>
+      </div>
     <form
       onSubmit={handleSubmit}
-      className="mx-auto w-full max-w-md space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900"
+      className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
     >
       <InputField
         id="routineName"
@@ -84,24 +96,18 @@ const CreateRoutineForm = () => {
         }
       />
 
-      <div className="pt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link
-          href="/routines"
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-        >
-          <span aria-hidden>←</span>
-          <span>Back to routines</span>
-        </Link>
-
-        <button
+      <div className="pt-2 flex justify-end">
+        <Button
           type="submit"
-          disabled={isPending}
-          className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          variant="primary"
+          size="lg"
+          isLoading={isPending}
         >
-          {isPending ? "Saving..." : "Create Routine"}
-        </button>
+          Create Routine
+        </Button>
       </div>
     </form>
+    </div>
   );
 };
 

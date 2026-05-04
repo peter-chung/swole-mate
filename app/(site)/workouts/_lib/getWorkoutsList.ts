@@ -11,37 +11,77 @@ type UserSummary = {
 
 export type WorkoutWithOwner = WorkoutRow & {
   user: UserSummary | null;
+  exerciseCount: number;
+  exerciseNames: string[];
 };
 
-export async function getWorkoutsList(): Promise<WorkoutWithOwner[]> {
+export async function getWorkoutsList(userId?: string): Promise<WorkoutWithOwner[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("workouts")
     .select(
       `
         id, user_id, date, name, notes, created_at,
-        user:profiles ( id, username, full_name )
+        user:profiles ( id, username, full_name ),
+        workout_exercises ( id, public_exercise_id, custom_exercise_id, order_index )
       `
     )
     .order("date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false, nullsFirst: false });
 
-  if (error || !data) {
-    return [];
+  if (userId) query = query.eq("user_id", userId);
+
+  const { data, error } = await query;
+
+  if (error || !data) return [];
+
+  // Collect all unique exercise IDs across all workouts
+  const allExerciseIds = Array.from(
+    new Set(
+      data.flatMap((w: any) =>
+        (w.workout_exercises ?? []).map(
+          (we: any) => we.public_exercise_id ?? we.custom_exercise_id ?? null
+        ).filter(Boolean)
+      )
+    )
+  ) as string[];
+
+  const exerciseNameMap = new Map<string, string>();
+
+  if (allExerciseIds.length > 0) {
+    const { data: exercises } = await supabase
+      .from("available_exercises")
+      .select("id, name")
+      .in("id", allExerciseIds);
+
+    for (const ex of exercises ?? []) {
+      if (ex.id && ex.name) exerciseNameMap.set(ex.id, ex.name);
+    }
   }
 
   return data
-    .map((row) => {
-      const { user: rawUser, ...rest } = row as WorkoutRow & {
-        user?: UserSummary | UserSummary[] | null;
-      };
-
+    .map((row: any) => {
+      const { user: rawUser, workout_exercises: rawExercises, ...rest } = row;
       const owner = Array.isArray(rawUser) ? rawUser[0] ?? null : rawUser ?? null;
+      const exercises: any[] = Array.isArray(rawExercises) ? rawExercises : [];
+
+      const ordered = exercises
+        .slice()
+        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+
+      const exerciseNames = ordered
+        .map((we) => {
+          const id = we.public_exercise_id ?? we.custom_exercise_id ?? null;
+          return id ? (exerciseNameMap.get(id) ?? null) : null;
+        })
+        .filter((n): n is string => n !== null);
 
       return {
-        ...rest,
+        ...(rest as WorkoutRow),
         user: owner,
+        exerciseCount: exercises.length,
+        exerciseNames,
       };
     })
     .sort((a, b) => {

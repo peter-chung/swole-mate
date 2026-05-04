@@ -19,6 +19,12 @@ export type WorkoutWithRelations = WorkoutRow & {
         id: string;
         name: string;
         exercise_type_label: string | null;
+        has_weight: boolean | null;
+        has_reps: boolean | null;
+        has_duration: boolean | null;
+        has_distance: boolean | null;
+        is_bodyweight: boolean | null;
+        primary_muscle: string | null;
       } | null;
       exercise_sets?: Array<
         Pick<
@@ -49,7 +55,7 @@ export async function getWorkoutWithRelations(
         id, user_id, date, name, notes, created_at,
         user:profiles ( id, username, full_name ),
         workout_exercises (
-          id, public_exercise_id, custom_exercise_id, order_index, notes,
+          id, public_exercise_id, custom_exercise_id, equipment_brand, order_index, notes,
           exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
         )
       `
@@ -93,29 +99,30 @@ export async function getWorkoutWithRelations(
     )
   );
 
-  let exerciseLookup = new Map<
-    string,
-    { id: string; name: string; exercise_type_label: string | null }
-  >();
+  type ExerciseLookupEntry = {
+    id: string;
+    name: string;
+    exercise_type_label: string | null;
+    has_weight: boolean | null;
+    has_reps: boolean | null;
+    has_duration: boolean | null;
+    has_distance: boolean | null;
+    is_bodyweight: boolean | null;
+    primary_muscle: string | null;
+  };
+
+  let exerciseLookup = new Map<string, ExerciseLookupEntry>();
 
   if (exerciseIds.length > 0) {
     const { data: exercises, error: exercisesError } = await supabase
       .from("available_exercises")
-      .select("id, name, exercise_type_label")
+      .select("id, name, exercise_type_label, has_weight, has_reps, has_duration, has_distance, is_bodyweight, primary_muscle")
       .in("id", exerciseIds);
 
     if (!exercisesError) {
       exerciseLookup = new Map(
         (exercises ?? [])
-          .filter(
-            (
-              exercise
-            ): exercise is {
-              id: string;
-              name: string;
-              exercise_type_label: string | null;
-            } => Boolean(exercise?.id)
-          )
+          .filter((exercise): exercise is ExerciseLookupEntry => Boolean(exercise?.id))
           .map((exercise) => [exercise.id, exercise])
       );
     }

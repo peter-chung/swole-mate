@@ -39,7 +39,7 @@ export async function GET(req: Request, { params }: Params) {
     .from("workout_exercises")
     .select(
       `
-      id, workout_id, public_exercise_id, custom_exercise_id, order_index, notes,
+      id, workout_id, public_exercise_id, custom_exercise_id, equipment_brand, order_index, notes,
       exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
     `
     )
@@ -101,6 +101,7 @@ export async function POST(req: Request, { params }: Params) {
   const body = (await req.json()) as Partial<{
     exercise_id: string;
     exercise_source: string;
+    equipment_brand: string;
     notes: string;
   }>;
   const exerciseId = body.exercise_id?.trim();
@@ -162,11 +163,12 @@ export async function POST(req: Request, { params }: Params) {
       user_id: user.id,
       public_exercise_id: isCustomExercise ? null : exerciseId,
       custom_exercise_id: isCustomExercise ? exerciseId : null,
+      equipment_brand: body.equipment_brand?.trim() || null,
       order_index: nextOrder,
       notes: body.notes,
     })
     .select(
-      "id, workout_id, public_exercise_id, custom_exercise_id, order_index"
+      "id, workout_id, public_exercise_id, custom_exercise_id, equipment_brand, order_index"
     )
     .maybeSingle();
 

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = "/account";
+  const next = "/profile";
 
   // Create redirect link without the secret token
   const redirectTo = request.nextUrl.clone();
@@ -23,6 +23,14 @@ export async function GET(request: NextRequest) {
       token_hash,
     });
     if (!error) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.user_metadata?.username) {
+        await supabase.from("profiles").upsert({
+          id: user.id,
+          username: user.user_metadata.username,
+          updated_at: new Date().toISOString(),
+        });
+      }
       redirectTo.searchParams.delete("next");
       return NextResponse.redirect(redirectTo);
     }

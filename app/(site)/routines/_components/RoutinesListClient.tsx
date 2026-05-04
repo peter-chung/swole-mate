@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import RoutineCard from "./RoutineCard";
 import type { RoutineWithOwner } from "../_lib/getRoutinesList";
+import { ButtonLink } from "@/app/_components/Button";
 
 type Props = {
   initialRoutines?: RoutineWithOwner[];
@@ -76,26 +77,21 @@ export default function RoutinesListClient({
           Routines
         </h1>
         {isAuthenticated ? (
-          <Link
-            href="/routines/new"
-            className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-          >
-            + Create Routine
-          </Link>
+          <ButtonLink href="/routines/new" variant="primary" className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            New Routine
+          </ButtonLink>
         ) : null}
       </div>
 
       {!isAuthenticated ? (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
           <p className="font-medium">🔐 Log in or create an account to create routines.</p>
           <p className="text-sm">💾 Your routines are saved to your account.</p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/login"
-              className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 active:translate-y-px dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-            >
+            <ButtonLink href="/login" variant="primary">
               Log in
-            </Link>
+            </ButtonLink>
           </div>
         </div>
       ) : loading ? (
@@ -107,17 +103,14 @@ export default function RoutinesListClient({
           ))}
         </ul>
       ) : (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-gray-700 dark:text-gray-300">
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
           <div className="text-3xl mb-2">🏋️‍♂️</div>
           <p className="font-medium">No routines yet</p>
           <p className="text-sm">Create your first routine to get started.</p>
           <div className="mt-4">
-            <Link
-              href="/routines/new"
-              className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-white dark:hover:bg-gray-900/40"
-            >
+            <ButtonLink href="/routines/new" variant="secondary">
               Create Routine
-            </Link>
+            </ButtonLink>
           </div>
         </div>
       )}

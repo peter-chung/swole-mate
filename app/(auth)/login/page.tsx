@@ -1,46 +1,60 @@
 "use client";
 
-import { login, signup } from "./actions";
+import { login } from "./actions";
 import Link from "next/link";
-import { FormEvent } from "react";
+import { FormEvent, useState } from "react";
+import { Eye, EyeOff, ArrowLeft, MailCheck } from "lucide-react";
+import Button from "@/app/_components/Button";
 import toast from "react-hot-toast";
+import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
-  const handleSubmit = async (
-    e: FormEvent<HTMLFormElement>,
-    action: (formData: FormData) => Promise<any>,
-  ) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const notice = searchParams.get("notice");
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
     const formData = new FormData(e.currentTarget);
-    const result = await action(formData);
+    const result = await login(formData);
 
     if (result?.error) {
       toast.error(result.error);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-black dark:to-gray-950 flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center gap-2 justify-center">
-          <span aria-hidden className="text-3xl leading-none">
-            💪
-          </span>
-          <span className="text-xl font-semibold">Swole Mate</span>
-        </div>
+        <Link
+          href="/"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
+        >
+          <ArrowLeft size={15} />
+          Home
+        </Link>
+        {notice === "confirm-email" && (
+          <div className="mb-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
+            <MailCheck size={16} className="mt-0.5 shrink-0" />
+            <p>
+              Email sent. Confirm your email address to activate your account —
+              your demo data will be waiting for you.
+            </p>
+          </div>
+        )}
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-neutral-900">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 text-center">
             Welcome back
           </h1>
           <p className="mt-1 text-center text-sm text-gray-600 dark:text-gray-300">
-            Log in to continue your training
+            Log in to continue your training 🏋️
           </p>
 
-          <form
-            className="mt-6 space-y-4"
-            onSubmit={(e) => handleSubmit(e, login)}
-          >
+          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label
                 htmlFor="email"
@@ -56,7 +70,7 @@ export default function LoginPage() {
                 autoComplete="email"
                 required
                 placeholder="you@example.com"
-                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-100"
+                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100"
               />
             </div>
 
@@ -67,49 +81,48 @@ export default function LoginPage() {
               >
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                placeholder="••••••••••••"
-                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-100"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  placeholder="••••••••••••"
+                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
-            <div className="pt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button
-                type="submit"
-                className="inline-flex h-10 items-center justify-center rounded-md bg-gray-900 px-4 text-sm font-medium text-white transition hover:bg-gray-800 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-              >
-                Log in
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  const form = (e.target as HTMLElement).closest("form");
-                  if (form) {
-                    handleSubmit(
-                      {
-                        preventDefault: () => {},
-                        currentTarget: form,
-                      } as FormEvent<HTMLFormElement>,
-                      signup,
-                    );
-                  }
-                }}
-                className="inline-flex h-10 items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-gray-900 transition hover:bg-gray-50 hover:opacity-90 active:translate-y-px focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer dark:border-gray-700 dark:bg-neutral-800 dark:text-gray-100 dark:hover:bg-neutral-800/70"
-              >
-                Create account
-              </button>
-            </div>
-            <p className="text-center text-sm text-gray-600 dark:text-gray-300">
-              <Link href="/" className="underline hover:no-underline">
-                Back to home
-              </Link>
-            </p>
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              isLoading={isLoading}
+              className="mt-2 w-full"
+            >
+              Log in
+            </Button>
           </form>
+
+          <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-300">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/signup"
+              className="font-medium text-gray-900 dark:text-white underline hover:no-underline"
+            >
+              Sign up
+            </Link>
+          </p>
         </div>
       </div>
     </div>
