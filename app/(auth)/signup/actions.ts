@@ -22,6 +22,30 @@ export async function signup(formData: FormData) {
     return { error: "Username is already taken" };
   }
 
+  // Check for an existing anonymous session to upgrade
+  const {
+    data: { user: existingUser },
+  } = await supabase.auth.getUser();
+
+  if (existingUser?.is_anonymous) {
+    const { error: updateError } = await supabase.auth.updateUser({
+      email,
+      password,
+      data: { username },
+    });
+
+    if (updateError) return { error: updateError.message };
+
+    await supabase.from("profiles").upsert({
+      id: existingUser.id,
+      username,
+      updated_at: new Date().toISOString(),
+    });
+
+    revalidatePath("/", "layout");
+    redirect("/login?notice=confirm-email");
+  }
+
   const { data: signUpData, error } = await supabase.auth.signUp({
     email,
     password,

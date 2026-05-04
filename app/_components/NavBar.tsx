@@ -9,6 +9,8 @@ export default async function NavBar() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const isAnonymous = user?.is_anonymous ?? false;
+
   return (
     <header className="sticky top-0 z-20 bg-white/70 dark:bg-black/50 backdrop-blur border-b border-gray-200 dark:border-neutral-800">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -23,31 +25,44 @@ export default async function NavBar() {
             <span>SwoleMate</span>
           </Link>
           <nav className="flex items-center gap-3 sm:gap-4 text-sm">
-            <Link
-              href="/feed"
-              className="hidden sm:inline text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-            >
-              Feed
-            </Link>
-            <Link
-              href="/workouts"
-              className="hidden sm:inline text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-            >
-              Workouts
-            </Link>
-            <Link
-              href="/routines"
-              className="hidden sm:inline text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-            >
-              Routines
-            </Link>
-            <Link
-              href="/exercises"
-              className="hidden sm:inline text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-            >
-              Exercises
-            </Link>
-            {user ? (
+            {user && (
+              <>
+                <Link
+                  href="/feed"
+                  className="hidden sm:inline text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Feed
+                </Link>
+                <Link
+                  href="/workouts"
+                  className="hidden sm:inline text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Workouts
+                </Link>
+                <Link
+                  href="/routines"
+                  className="hidden sm:inline text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Routines
+                </Link>
+                <Link
+                  href="/exercises"
+                  className="hidden sm:inline text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Exercises
+                </Link>
+              </>
+            )}
+            {user && isAnonymous ? (
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="text-sm text-gray-500 transition hover:text-gray-300 dark:text-gray-400 dark:hover:text-white"
+                >
+                  Exit Demo
+                </button>
+              </form>
+            ) : user ? (
               <ProfileDropdown email={user.email ?? ""} />
             ) : (
               <>

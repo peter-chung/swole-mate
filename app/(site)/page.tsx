@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ButtonLink } from "@/app/_components/Button";
+import DemoButton from "@/app/_components/DemoButton";
 
 export default function Home() {
   return (
@@ -10,7 +11,7 @@ export default function Home() {
             Build strength. Track progress. Stay consistent.
           </h1>
           <p className="mt-4 text-base leading-relaxed text-gray-600 sm:text-lg dark:text-gray-300">
-            Swole Mate is your lightweight workout companion. Create workouts,
+            SwoleMate is your lightweight workout companion. Create workouts,
             log exercises, and watch your gains over time.
           </p>
 
@@ -23,28 +24,33 @@ export default function Home() {
             >
               Get started
             </ButtonLink>
-            <ButtonLink
-              href="/workouts"
-              variant="secondary"
-              size="lg"
-              className="w-full sm:w-auto"
-            >
-              Browse workouts
-            </ButtonLink>
+            <DemoButton className="w-full sm:w-auto" />
           </div>
 
           <ul className="mt-10 grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
             <li className="rounded-lg border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-neutral-800 dark:bg-neutral-900/40">
-              <p className="font-medium text-gray-900 dark:text-white">Fast logging</p>
-              <p className="mt-1 text-gray-600 dark:text-gray-300">Add sets and reps in seconds.</p>
+              <p className="font-medium text-gray-900 dark:text-white">
+                Fast logging
+              </p>
+              <p className="mt-1 text-gray-600 dark:text-gray-300">
+                Add sets and reps in seconds.
+              </p>
             </li>
             <li className="rounded-lg border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-neutral-800 dark:bg-neutral-900/40">
-              <p className="font-medium text-gray-900 dark:text-white">Flexible workouts</p>
-              <p className="mt-1 text-gray-600 dark:text-gray-300">Customize exercises and routines.</p>
+              <p className="font-medium text-gray-900 dark:text-white">
+                Flexible workouts
+              </p>
+              <p className="mt-1 text-gray-600 dark:text-gray-300">
+                Customize exercises and routines.
+              </p>
             </li>
             <li className="rounded-lg border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-neutral-800 dark:bg-neutral-900/40">
-              <p className="font-medium text-gray-900 dark:text-white">Realtime updates</p>
-              <p className="mt-1 text-gray-600 dark:text-gray-300">Stay in sync across devices.</p>
+              <p className="font-medium text-gray-900 dark:text-white">
+                Realtime updates
+              </p>
+              <p className="mt-1 text-gray-600 dark:text-gray-300">
+                Stay in sync across devices.
+              </p>
             </li>
           </ul>
         </div>

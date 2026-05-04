@@ -39,7 +39,10 @@ export default function LoginPage() {
         {notice === "confirm-email" && (
           <div className="mb-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
             <MailCheck size={16} className="mt-0.5 shrink-0" />
-            <p>Email sent. Confirm your email address and login in below.</p>
+            <p>
+              Email sent. Confirm your email address to activate your account —
+              your demo data will be waiting for you.
+            </p>
           </div>
         )}
 

@@ -586,7 +586,7 @@ const ManageExercisesClient = ({
 
           <Button
             type="button"
-            variant="secondary"
+            variant="primary"
             size="lg"
             onClick={() => setIsAddModalOpen(true)}
             className="mt-4 w-full gap-1.5"
