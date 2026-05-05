@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MoreVertical, Plus, RotateCcw, Tag, Trash2 } from "lucide-react";
+import { ArrowLeft, MoreVertical, Plus, RotateCcw, Tag, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
@@ -141,10 +141,10 @@ const ManageExercisesClient = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpenActionsExerciseId(null);
     };
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [openActionsExerciseId]);
@@ -395,6 +395,7 @@ const ManageExercisesClient = ({
                   onChange={(e) =>
                     setDetailsDraft((p) => ({ ...p, notes: (e.target as HTMLTextAreaElement).value }))
                   }
+                  onClear={() => setDetailsDraft((p) => ({ ...p, notes: "" }))}
                 />
               </div>
             </div>
@@ -442,18 +443,35 @@ const ManageExercisesClient = ({
                           )}
                         </div>
                         {!isPendingDeletion && (
-                          <input
-                            type="text"
-                            placeholder="Add a note..."
-                            value={exerciseMetaDrafts[re.id]?.notes ?? ""}
-                            onChange={(e) =>
-                              setExerciseMetaDrafts((prev) => ({
-                                ...prev,
-                                [re.id]: { ...prev[re.id], notes: e.target.value },
-                              }))
-                            }
-                            className="w-full bg-transparent text-xs text-gray-400 placeholder-gray-300 outline-none border-b border-transparent focus:border-gray-300 pb-0.5 transition-colors dark:text-gray-500 dark:placeholder-gray-600 dark:focus:border-gray-600"
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Add a note..."
+                              value={exerciseMetaDrafts[re.id]?.notes ?? ""}
+                              onChange={(e) =>
+                                setExerciseMetaDrafts((prev) => ({
+                                  ...prev,
+                                  [re.id]: { ...prev[re.id], notes: e.target.value },
+                                }))
+                              }
+                              className="w-full bg-transparent text-xs text-gray-400 placeholder-gray-300 outline-none border-b border-transparent focus:border-[#3ecf8e] pb-0.5 pr-5 transition-colors dark:text-gray-500 dark:placeholder-gray-600 dark:focus:border-[#3ecf8e]"
+                            />
+                            {exerciseMetaDrafts[re.id]?.notes && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExerciseMetaDrafts((prev) => ({
+                                    ...prev,
+                                    [re.id]: { ...prev[re.id], notes: "" },
+                                  }))
+                                }
+                                aria-label="Clear note"
+                                className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-300 transition-colors hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                       {isPendingDeletion ? (

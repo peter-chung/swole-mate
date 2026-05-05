@@ -49,3 +49,23 @@ button[disabled] {
 .is-disabled {
   cursor: not-allowed;
 }
+
+/* Normalize date inputs on iOS Safari — strips native sizing while keeping the date picker */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  min-width: 0;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+
+/* Prevent iOS Safari from auto-zooming on input focus.
+   iOS triggers zoom when an input's font-size is below 16px (1rem).
+   Unlayered CSS beats Tailwind's @layer utilities, so this overrides text-sm globally. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+textarea,
+select {
+  font-size: 1rem;
+}

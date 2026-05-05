@@ -27,14 +27,14 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-[#0a0a0a] flex items-start sm:items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         <Link
           href="/"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
         >
-          <ArrowLeft size={15} />
-          Home
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to home
         </Link>
         {notice === "confirm-email" && (
           <div className="mb-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
@@ -46,7 +46,7 @@ export default function LoginForm() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="sm:rounded-2xl sm:border sm:border-gray-200 sm:bg-white sm:p-6 sm:shadow-sm sm:dark:border-neutral-800 sm:dark:bg-neutral-900">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 text-center">
             Welcome back
           </h1>
@@ -70,7 +70,7 @@ export default function LoginForm() {
                 autoComplete="email"
                 required
                 placeholder="you@example.com"
-                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100"
+                className="block w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:text-gray-100 sm:bg-white sm:shadow-sm sm:dark:bg-neutral-800"
               />
             </div>
 
@@ -89,7 +89,7 @@ export default function LoginForm() {
                   autoComplete="current-password"
                   required
                   placeholder="••••••••••••"
-                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100"
+                  className="block w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 pr-10 text-sm text-gray-900 outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:text-gray-100 sm:bg-white sm:shadow-sm sm:dark:bg-neutral-800"
                 />
                 <button
                   type="button"

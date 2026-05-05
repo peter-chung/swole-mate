@@ -172,7 +172,7 @@ export default function ProfileForm({ user }: { user: User | null }) {
           variant="primary"
           isLoading={saving}
           disabled={loading}
-          className="mt-5"
+          className="mt-5 w-full sm:w-auto"
         >
           Save changes
         </Button>
@@ -272,6 +272,7 @@ export default function ProfileForm({ user }: { user: User | null }) {
             variant="primary"
             isLoading={passwordLoading}
             disabled={!currentPassword || !password}
+            className="w-full sm:w-auto"
           >
             Update password
           </Button>
@@ -288,7 +289,7 @@ export default function ProfileForm({ user }: { user: User | null }) {
         <form action="/auth/signout" method="post" className="mt-4">
           <button
             type="submit"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 bg-white px-4 text-sm font-medium text-red-600 transition hover:bg-red-50 active:translate-y-px focus:outline-none cursor-pointer dark:border-red-900 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-950/30"
+            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-red-200 bg-white px-4 text-sm font-medium text-red-600 transition hover:bg-red-50 active:translate-y-px focus:outline-none cursor-pointer sm:w-auto sm:justify-start dark:border-red-900 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-950/30"
           >
             <LogOut size={15} />
             Sign out
