@@ -7,8 +7,9 @@ const ExercisesLoading = () => (
       <Skeleton className="h-8 w-28" />
       <Skeleton className="hidden h-9 w-36 rounded-lg sm:block" />
     </div>
+    <Skeleton className="mt-3 h-9 w-full rounded-lg sm:hidden" />
     <Skeleton className="mt-4 h-10 w-full rounded-lg" />
-    <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="mt-6 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 9 }).map((_, i) => (
         <ExerciseCardSkeleton key={i} />
       ))}

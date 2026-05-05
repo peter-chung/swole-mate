@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import RoutineCard from "./RoutineCard";
@@ -68,19 +67,9 @@ export default function RoutinesListClient({
   }, [isAuthenticated, supabase]);
 
   return (
-    <div className="py-6">
-      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-          Routines
-        </h1>
-        <ButtonLink href="/routines/new" variant="primary" className="w-full gap-1.5 sm:w-auto">
-          <Plus className="h-4 w-4" />
-          New Routine
-        </ButtonLink>
-      </div>
-
+    <>
       {loading ? (
-        <LoadingSpinner className="mt-6" />
+        <LoadingSpinner className="mt-4" />
       ) : routines.length > 0 ? (
         <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
           {routines.map((r) => (
@@ -99,6 +88,6 @@ export default function RoutinesListClient({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import WorkoutCard from "./WorkoutCard";
@@ -48,24 +47,11 @@ const WorkoutsListClient = ({ initialWorkouts, mode }: Props) => {
   }, [supabase]);
 
   const isFeed = mode === "feed";
-  const title = isFeed ? "Feed" : "My Workouts";
 
   return (
-    <div className="py-6">
-      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-          {title}
-        </h1>
-        {!isFeed && (
-          <ButtonLink href="/workouts/new" variant="primary" className="w-full gap-1.5 sm:w-auto">
-            <Plus className="h-4 w-4" />
-            New Workout
-          </ButtonLink>
-        )}
-      </div>
-
+    <>
       {loading ? (
-        <LoadingSpinner className="mt-6" />
+        <LoadingSpinner className="mt-4" />
       ) : workouts.length > 0 ? (
         <div className="mt-4 space-y-6">
           {Object.entries(
@@ -108,7 +94,7 @@ const WorkoutsListClient = ({ initialWorkouts, mode }: Props) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
