@@ -427,7 +427,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
                       onChangeField(idx, "weight", e.target.value)
                     }
                     disabled={set._status === "saving"}
-                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm dark:border-neutral-700 dark:bg-transparent"
+                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-transparent"
                   />
                 )}
                 {showReps && (
@@ -437,7 +437,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
                     value={set.reps ?? ""}
                     onChange={(e) => onChangeField(idx, "reps", e.target.value)}
                     disabled={set._status === "saving"}
-                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm dark:border-neutral-700 dark:bg-transparent"
+                    className="w-full rounded border border-gray-300 px-2 py-2 text-center text-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700 dark:bg-transparent"
                   />
                 )}
                 <button

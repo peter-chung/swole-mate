@@ -61,10 +61,10 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setIsMenuOpen(false);
     };
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isMenuOpen]);
@@ -73,7 +73,7 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
     <>
       <div>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
             {routine.name || "Untitled routine"}
           </h1>
           <div className="flex shrink-0 items-center gap-2">

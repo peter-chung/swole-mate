@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MoreVertical, Plus, RotateCcw, Tag, Trash2 } from "lucide-react";
+import { ArrowLeft, MoreVertical, Plus, RotateCcw, Tag, Trash2, X } from "lucide-react";
 import Button from "@/app/_components/Button";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
@@ -512,10 +512,10 @@ const EditWorkoutClient = ({
       }
     };
 
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [openActionsExerciseId]);
@@ -596,6 +596,7 @@ const EditWorkoutClient = ({
                       notes: (e.target as HTMLTextAreaElement).value,
                     }))
                   }
+                  onClear={() => setDetailsDraft((prev) => ({ ...prev, notes: "" }))}
                   containerClassName="sm:col-span-2"
                 />
               </div>
@@ -643,18 +644,35 @@ const EditWorkoutClient = ({
                           )}
                         </div>
                         {!isPendingDeletion && (
-                          <input
-                            type="text"
-                            placeholder="Add a note..."
-                            value={exerciseMetaDrafts[we.id]?.notes ?? ""}
-                            onChange={(e) =>
-                              setExerciseMetaDrafts((prev) => ({
-                                ...prev,
-                                [we.id]: { ...prev[we.id], notes: e.target.value },
-                              }))
-                            }
-                            className="w-full bg-transparent text-xs text-gray-400 placeholder-gray-300 outline-none border-b border-transparent focus:border-gray-300 pb-0.5 transition-colors dark:text-gray-500 dark:placeholder-gray-600 dark:focus:border-gray-600"
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Add a note..."
+                              value={exerciseMetaDrafts[we.id]?.notes ?? ""}
+                              onChange={(e) =>
+                                setExerciseMetaDrafts((prev) => ({
+                                  ...prev,
+                                  [we.id]: { ...prev[we.id], notes: e.target.value },
+                                }))
+                              }
+                              className="w-full bg-transparent text-xs text-gray-400 placeholder-gray-300 outline-none border-b border-transparent focus:border-[#3ecf8e] pb-0.5 pr-5 transition-colors dark:text-gray-500 dark:placeholder-gray-600 dark:focus:border-[#3ecf8e]"
+                            />
+                            {exerciseMetaDrafts[we.id]?.notes && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExerciseMetaDrafts((prev) => ({
+                                    ...prev,
+                                    [we.id]: { ...prev[we.id], notes: "" },
+                                  }))
+                                }
+                                aria-label="Clear note"
+                                className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-300 transition-colors hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                       {isPendingDeletion ? (

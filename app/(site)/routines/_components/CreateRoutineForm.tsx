@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useTransition } from "react";
 import type { TablesInsert } from "@/types/database.types";
@@ -54,57 +52,55 @@ const CreateRoutineForm = () => {
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="mb-4">
-        <Link
-          href="/routines"
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          <span>Back to routines</span>
-        </Link>
-      </div>
     <form
       onSubmit={handleSubmit}
-      className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+      className="w-full"
     >
-      <InputField
-        id="routineName"
-        label="Routine Name"
-        type="text"
-        placeholder="e.g., Push day!"
-        name="name"
-        autoComplete="off"
-        onChange={(e) =>
-          setRoutine((prev) => ({
-            ...prev,
-            name: (e.target as HTMLInputElement).value,
-          }))
-        }
-        required
-      />
+      <div className="space-y-5 py-4 sm:rounded-xl sm:border sm:border-gray-200 sm:bg-white sm:p-6 sm:shadow-sm sm:dark:border-neutral-800 sm:dark:bg-neutral-900">
+        <InputField
+          id="routineName"
+          label="Routine Name"
+          type="text"
+          placeholder="e.g., Push day!"
+          name="name"
+          autoComplete="off"
+          className="!bg-transparent !shadow-none dark:!bg-transparent"
+          onChange={(e) =>
+            setRoutine((prev) => ({
+              ...prev,
+              name: (e.target as HTMLInputElement).value,
+            }))
+          }
+          required
+        />
 
-      <TextAreaField
-        id="routineNotes"
-        label="Notes"
-        name="notes"
-        placeholder="Optional notes about this routine"
-        onChange={(e) =>
-          setRoutine((prev) => ({
-            ...prev,
-            notes: (e.target as HTMLTextAreaElement).value,
-          }))
-        }
-      />
+        <TextAreaField
+          id="routineNotes"
+          label="Notes"
+          name="notes"
+          placeholder="Optional notes about this routine"
+          className="!bg-transparent !shadow-none dark:!bg-transparent"
+          value={routine.notes ?? ""}
+          onChange={(e) =>
+            setRoutine((prev) => ({
+              ...prev,
+              notes: (e.target as HTMLTextAreaElement).value,
+            }))
+          }
+          onClear={() => setRoutine((prev) => ({ ...prev, notes: "" }))}
+        />
 
-      <div className="pt-2 flex justify-end">
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          isLoading={isPending}
-        >
-          Create Routine
-        </Button>
+        <div className="pt-2 flex justify-end">
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            isLoading={isPending}
+            className="w-full sm:w-auto"
+          >
+            Create Routine
+          </Button>
+        </div>
       </div>
     </form>
     </div>

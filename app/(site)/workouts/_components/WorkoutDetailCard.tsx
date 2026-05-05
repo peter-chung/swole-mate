@@ -83,10 +83,10 @@ const WorkoutDetailCard = ({
       }
     };
 
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isMenuOpen]);
@@ -95,7 +95,7 @@ const WorkoutDetailCard = ({
     <>
       <div>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
             {workout.name || "Untitled workout"}
           </h1>
         {showActions && (

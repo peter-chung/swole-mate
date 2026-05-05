@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { X } from "lucide-react";
 
 type BaseProps = {
   label: string;
@@ -11,7 +12,7 @@ type BaseProps = {
 
 type InputFieldProps = React.InputHTMLAttributes<HTMLInputElement> & BaseProps;
 type TextAreaFieldProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
-  BaseProps;
+  BaseProps & { onClear?: () => void };
 type SelectFieldProps = React.SelectHTMLAttributes<HTMLSelectElement> & BaseProps;
 
 const baseInputClasses =
@@ -45,6 +46,7 @@ export function TextAreaField({
   labelClassName,
   className,
   rows = 4,
+  onClear,
   ...rest
 }: TextAreaFieldProps) {
   return (
@@ -52,12 +54,24 @@ export function TextAreaField({
       <label htmlFor={id} className={`${baseLabelClasses} ${labelClassName ?? ""}`}>
         {label}
       </label>
-      <textarea
-        id={id}
-        rows={rows}
-        className={`${baseInputClasses} resize-y ${className ?? ""}`}
-        {...rest}
-      />
+      <div className="relative">
+        <textarea
+          id={id}
+          rows={rows}
+          className={`${baseInputClasses} resize-y ${onClear ? "pr-8" : ""} ${className ?? ""}`}
+          {...rest}
+        />
+        {onClear && rest.value && (
+          <button
+            type="button"
+            onClick={onClear}
+            aria-label="Clear"
+            className="absolute right-2 top-2 rounded p-0.5 text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -234,26 +234,26 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
         ))}
       </SelectField>
 
-      <div className="pt-2 flex justify-end">
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="danger"
-            size="lg"
-            onClick={() => setConfirmOpen(true)}
-            disabled={isDeleting}
-          >
-            Delete
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            isLoading={isLoading}
-          >
-            Save Changes
-          </Button>
-        </div>
+      <div className="pt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button
+          type="button"
+          variant="danger"
+          size="lg"
+          onClick={() => setConfirmOpen(true)}
+          disabled={isDeleting}
+          className="w-full sm:w-auto"
+        >
+          Delete
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          isLoading={isLoading}
+          className="w-full sm:w-auto"
+        >
+          Save Changes
+        </Button>
       </div>
       <ConfirmDialog
         open={confirmOpen}
