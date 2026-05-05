@@ -3,33 +3,32 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import type { Tables, TablesUpdate } from "@/types/database.types";
 import { InputField, SelectField } from "@/app/_components/FormFields";
 import { toast } from "react-hot-toast";
 import ConfirmDialog from "@/app/_components/ConfirmDialog";
 import Button from "@/app/_components/Button";
+import { useExerciseTypes } from "../_hooks/useExerciseTypes";
 
 type Exercise = Tables<"custom_exercises"> & {
   exercise_type_label?: string | null;
   exercise_type_key?: string | null;
 };
-type ExerciseType = Tables<"exercise_types">;
 
 type Props = {
   exercise: Exercise | null;
   resourceId?: string;
+  isPublic?: boolean;
 };
 
-const EditExerciseForm = ({ exercise, resourceId }: Props) => {
+const EditExerciseForm = ({ exercise, resourceId, isPublic = false }: Props) => {
   const [updatedExercise, setUpdatedExercise] =
     useState<TablesUpdate<"custom_exercises">>({});
-  const [exerciseTypes, setExerciseTypes] = useState<ExerciseType[]>([]);
-  const [isFetchingTypes, setIsFetchingTypes] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
-  const [confirmOpen, setConfirmOpen] = useState<boolean>(false);
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const { exerciseTypes, isFetchingTypes } = useExerciseTypes();
   const router = useRouter();
 
   const selectedExerciseTypeId =
@@ -42,37 +41,9 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
     [exercise?.exercise_type_label]
   );
 
-  useEffect(() => {
-    const fetchExerciseTypes = async () => {
-      try {
-        setIsFetchingTypes(true);
-        const res = await fetch("/api/exercise-types");
-        const result = await res.json();
-
-        if (!res.ok) throw new Error(result.error);
-
-        const UNSUPPORTED_KEYS = new Set([
-          "duration",
-          "distance_duration",
-          "weight_duration",
-          "weight_distance",
-          "duration_weight",
-        ]);
-        setExerciseTypes(
-          (result.data ?? []).filter(
-            (t: ExerciseType) => !UNSUPPORTED_KEYS.has(t.key)
-          )
-        );
-      } catch (err) {
-        console.error("Error fetching exercise types:", err);
-        toast.error("Failed to load exercise types. Please refresh the page.");
-      } finally {
-        setIsFetchingTypes(false);
-      }
-    };
-
-    fetchExerciseTypes();
-  }, []);
+  const baseEndpoint = isPublic
+    ? `/api/public-exercises/${resourceId ?? exercise?.id}`
+    : `/api/exercises/${resourceId ?? exercise?.id}`;
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,8 +57,7 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
 
     try {
       setIsLoading(true);
-
-      const res = await fetch(`/api/exercises/${targetId}`, {
+      const res = await fetch(baseEndpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedExercise),
@@ -111,9 +81,7 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
     if (!exercise || !targetId) return;
     try {
       setIsDeleting(true);
-      const res = await fetch(`/api/exercises/${targetId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(baseEndpoint, { method: "DELETE" });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j?.error || `Request failed with ${res.status}`);
@@ -140,135 +108,106 @@ const EditExerciseForm = ({ exercise, resourceId }: Props) => {
           <span>Back to exercises</span>
         </Link>
       </div>
-    <form
-      onSubmit={handleSubmit}
-      className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
-    >
-      <InputField
-        id="exerciseName"
-        label="Exercise Name"
-        type="text"
-        defaultValue={exercise?.name ?? ""}
-        placeholder="e.g., Bench Press (Barbell)"
-        autoComplete="off"
-        onChange={(e) =>
-          setUpdatedExercise((prev) => ({
-            ...prev,
-            name: (e.target as HTMLInputElement).value,
-          }))
-        }
-      />
-      <InputField
-        id="primaryMuscle"
-        label="Primary Muscle Group"
-        type="text"
-        defaultValue={exercise?.primary_muscle ?? ""}
-        placeholder="e.g., Chest"
-        autoComplete="off"
-        onChange={(e) =>
-          setUpdatedExercise((prev) => ({
-            ...prev,
-            primary_muscle: (e.target as HTMLInputElement).value,
-          }))
-        }
-      />
-      <InputField
-        id="otherMuscles"
-        label="Other Muscles"
-        type="text"
-        defaultValue={exercise?.other_muscles ?? ""}
-        placeholder="e.g., Triceps, Shoulders"
-        autoComplete="off"
-        onChange={(e) =>
-          setUpdatedExercise((prev) => ({
-            ...prev,
-            other_muscles: (e.target as HTMLInputElement).value,
-          }))
-        }
-      />
-      <p className="text-xs text-gray-500 dark:text-gray-400">
-        Optional. Separate multiple muscles with commas.
-      </p>
-      <SelectField
-        id="exerciseType"
-        label="Exercise Type"
-        value={selectedExerciseTypeId}
-        onChange={(e) => {
-          const selectedId = e.target.value;
-          setUpdatedExercise((prev) => ({
-            ...prev,
-            exercise_type_id: selectedId || undefined,
-          }));
-        }}
-        disabled={isFetchingTypes || exerciseTypes.length === 0}
+      <form
+        onSubmit={handleSubmit}
+        className="w-full space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
       >
-        <option value="">
-          {isFetchingTypes ? "Loading types..." : "Select an exercise type"}
-        </option>
-        {shouldRenderFallbackOption && fallbackExerciseTypeLabel ? (
-          <option
-            value={selectedExerciseTypeId}
-            style={{
-              backgroundColor: "#2563eb",
-              color: "#f8fafc",
-            }}
-          >
-            {fallbackExerciseTypeLabel}
+        <InputField
+          id="exerciseName"
+          label="Exercise Name"
+          type="text"
+          defaultValue={exercise?.name ?? ""}
+          placeholder="e.g., Bench Press (Barbell)"
+          autoComplete="off"
+          onChange={(e) =>
+            setUpdatedExercise((prev) => ({ ...prev, name: e.target.value }))
+          }
+        />
+        <InputField
+          id="primaryMuscle"
+          label="Primary Muscle Group"
+          type="text"
+          defaultValue={exercise?.primary_muscle ?? ""}
+          placeholder="e.g., Chest"
+          autoComplete="off"
+          onChange={(e) =>
+            setUpdatedExercise((prev) => ({ ...prev, primary_muscle: e.target.value }))
+          }
+        />
+        <InputField
+          id="otherMuscles"
+          label="Other Muscles"
+          type="text"
+          defaultValue={exercise?.other_muscles ?? ""}
+          placeholder="e.g., Triceps, Shoulders"
+          autoComplete="off"
+          onChange={(e) =>
+            setUpdatedExercise((prev) => ({ ...prev, other_muscles: e.target.value }))
+          }
+        />
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Optional. Separate multiple muscles with commas.
+        </p>
+        <SelectField
+          id="exerciseType"
+          label="Exercise Type"
+          value={selectedExerciseTypeId}
+          onChange={(e) =>
+            setUpdatedExercise((prev) => ({
+              ...prev,
+              exercise_type_id: e.target.value || undefined,
+            }))
+          }
+          disabled={isFetchingTypes || exerciseTypes.length === 0}
+        >
+          <option value="">
+            {isFetchingTypes ? "Loading types..." : "Select an exercise type"}
           </option>
-        ) : null}
-        {exerciseTypes.map((exerciseType) => (
-          <option
-            key={exerciseType.id}
-            value={exerciseType.id}
-            style={
-              exerciseType.id === selectedExerciseTypeId
-                ? {
-                    backgroundColor: "#2563eb",
-                    color: "#f8fafc",
-                  }
-                : undefined
-            }
-          >
-            {exerciseType.label}
-          </option>
-        ))}
-      </SelectField>
+          {shouldRenderFallbackOption && fallbackExerciseTypeLabel && (
+            <option value={selectedExerciseTypeId}>
+              {fallbackExerciseTypeLabel}
+            </option>
+          )}
+          {exerciseTypes.map((exerciseType) => (
+            <option key={exerciseType.id} value={exerciseType.id}>
+              {exerciseType.label}
+            </option>
+          ))}
+        </SelectField>
 
-      <div className="pt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button
-          type="button"
-          variant="danger"
-          size="lg"
-          onClick={() => setConfirmOpen(true)}
-          disabled={isDeleting}
-          className="w-full sm:w-auto"
-        >
-          Delete
-        </Button>
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          isLoading={isLoading}
-          className="w-full sm:w-auto"
-        >
-          Save Changes
-        </Button>
-      </div>
-      <ConfirmDialog
-        open={confirmOpen}
-        title="Delete exercise?"
-        description="This action is permanent and cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        destructive
-        confirmLoading={isDeleting}
-        onCancel={() => {
-          if (!isDeleting) setConfirmOpen(false);
-        }}
-        onConfirm={confirmDelete}
-      />
-    </form>
+        <div className="pt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="danger"
+            size="lg"
+            onClick={() => setConfirmOpen(true)}
+            disabled={isDeleting}
+            className="w-full sm:w-auto"
+          >
+            Delete
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            isLoading={isLoading}
+            className="w-full sm:w-auto"
+          >
+            Save Changes
+          </Button>
+        </div>
+        <ConfirmDialog
+          open={confirmOpen}
+          title="Delete exercise?"
+          description="This action is permanent and cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          destructive
+          confirmLoading={isDeleting}
+          onCancel={() => { if (!isDeleting) setConfirmOpen(false); }}
+          onConfirm={confirmDelete}
+        />
+      </form>
     </div>
   );
 };

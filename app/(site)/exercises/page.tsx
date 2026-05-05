@@ -10,6 +10,7 @@ const Page = async () => {
     data: { user },
   } = await supabase.auth.getUser();
   const { items, count } = await getInitialExercises();
+  const isAdmin = user?.email === process.env.ADMIN_EMAIL;
 
   return (
     <ExercisesListClient
@@ -17,6 +18,7 @@ const Page = async () => {
       initialCount={count}
       initialQuery=""
       isAuthenticated={!!user}
+      isAdmin={isAdmin}
     />
   );
 };

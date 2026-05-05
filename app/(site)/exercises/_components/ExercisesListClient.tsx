@@ -23,6 +23,7 @@ type Props = {
   initialCount: number;
   initialQuery?: string;
   isAuthenticated: boolean;
+  isAdmin?: boolean;
 };
 
 const ExercisesListClient = ({
@@ -30,6 +31,7 @@ const ExercisesListClient = ({
   initialCount,
   initialQuery = "",
   isAuthenticated,
+  isAdmin = false,
 }: Props) => {
   const [exercises, setExercises] = useState<AvailableExercise[]>(
     initialExercises
@@ -208,7 +210,13 @@ const ExercisesListClient = ({
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
           Exercises
         </h1>
-        <div className="hidden sm:block">
+        <div className="hidden sm:flex sm:items-center sm:gap-2">
+          {isAdmin && (
+            <ButtonLink href="/exercises/new/public" variant="secondary" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              New Public Exercise
+            </ButtonLink>
+          )}
           <ButtonLink href="/exercises/new" variant="primary" className="gap-1.5">
             <Plus className="h-4 w-4" />
             New Exercise
@@ -219,7 +227,13 @@ const ExercisesListClient = ({
       <div className="mt-4">
         <SearchBar query={query} setQuery={setQuery} />
       </div>
-      <div className="mt-3 sm:hidden">
+      <div className="mt-3 flex flex-col gap-2 sm:hidden">
+        {isAdmin && (
+          <ButtonLink href="/exercises/new/public" variant="secondary" className="w-full gap-1.5">
+            <Plus className="h-4 w-4" />
+            New Public Exercise
+          </ButtonLink>
+        )}
         <ButtonLink href="/exercises/new" variant="primary" className="w-full gap-1.5">
           <Plus className="h-4 w-4" />
           New Exercise
@@ -232,7 +246,7 @@ const ExercisesListClient = ({
         <>
           <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
             {exercises.map((exercise) => (
-              <ExerciseCard exercise={exercise} key={exercise.id} />
+              <ExerciseCard exercise={exercise} key={exercise.id} isAdmin={isAdmin} />
             ))}
           </ul>
 
