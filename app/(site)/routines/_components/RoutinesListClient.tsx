@@ -62,9 +62,6 @@ export default function RoutinesListClient({
       )
       .subscribe();
 
-    // initial load
-    fetchRoutines();
-
     return () => {
       supabase.removeChannel(channel);
     };

@@ -147,6 +147,12 @@ const ExercisesListClient = ({
   );
 
   useEffect(() => {
+    return () => {
+      hasInitializedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true;
       return;
