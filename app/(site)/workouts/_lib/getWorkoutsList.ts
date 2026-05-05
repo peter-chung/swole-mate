@@ -61,6 +61,11 @@ export async function getWorkoutsList(userId?: string): Promise<WorkoutWithOwner
   }
 
   return data
+    .filter((row: any) => {
+      if (userId) return true;
+      const owner = Array.isArray(row.user) ? row.user[0] : row.user;
+      return owner?.username != null;
+    })
     .map((row: any) => {
       const { user: rawUser, workout_exercises: rawExercises, ...rest } = row;
       const owner = Array.isArray(rawUser) ? rawUser[0] ?? null : rawUser ?? null;

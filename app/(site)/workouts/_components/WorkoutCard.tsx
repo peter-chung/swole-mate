@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { Calendar, User } from "lucide-react";
 import { prettyDate } from "@/utils/format";
 import type { WorkoutWithOwner } from "../_lib/getWorkoutsList";
 
@@ -24,31 +25,42 @@ const WorkoutCard = ({ workout }: { workout: WorkoutWithOwner }) => {
             <h3 className="text-base font-semibold text-gray-900 transition group-hover:text-[#3ecf8e] dark:text-gray-100 dark:group-hover:text-[#3ecf8e]">
               {name || "Untitled workout"}
             </h3>
-            {date && (
-              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                {prettyDate(date)}
-              </p>
-            )}
-            {ownerName && (
-              <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
-                By {ownerName}
-              </p>
-            )}
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+              {date && (
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  {prettyDate(date)}
+                </span>
+              )}
+              {ownerName && (
+                <span className="inline-flex items-center gap-1">
+                  <User className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  {ownerName}
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
-        {exerciseCount > 0 && (
-          <div className="mt-3 border-t border-gray-100 pt-3 dark:border-neutral-800">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-              {exerciseCount} {exerciseCount === 1 ? "exercise" : "exercises"}
-            </p>
-            {preview && (
-              <p className="mt-0.5 truncate text-xs text-gray-400 dark:text-gray-500">
-                {preview}{overflow > 0 ? ` +${overflow} more` : ""}
+        <div className="mt-3 border-t border-gray-100 pt-3 dark:border-neutral-800">
+          {exerciseCount > 0 ? (
+            <>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                {exerciseCount} {exerciseCount === 1 ? "exercise" : "exercises"}
               </p>
-            )}
-          </div>
-        )}
+              {preview && (
+                <p className="mt-0.5 truncate text-xs text-gray-400 dark:text-gray-500">
+                  {preview}{overflow > 0 ? ` +${overflow} more` : ""}
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">0 exercises</p>
+              <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">No exercises added yet</p>
+            </>
+          )}
+        </div>
       </Link>
     </li>
   );

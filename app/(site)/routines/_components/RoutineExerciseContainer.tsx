@@ -15,14 +15,14 @@ export default function RoutineExerciseContainer({ routine }: Props) {
       </div>
 
       {exercises.length > 0 ? (
-        <ul className="grid grid-cols-1 gap-3">
+        <ul className="-mx-4 divide-y divide-gray-100 dark:divide-neutral-800 sm:mx-0 sm:grid sm:grid-cols-1 sm:gap-3 sm:divide-y-0">
           {exercises
             .slice()
             .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
             .map((re) => (
               <li
                 key={re.id}
-                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+                className="px-4 py-4 sm:rounded-xl sm:border sm:border-gray-200 sm:bg-white sm:p-4 sm:shadow-sm sm:dark:border-neutral-800 sm:dark:bg-neutral-900"
               >
                 <div>
                   <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
