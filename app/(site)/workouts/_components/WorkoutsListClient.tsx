@@ -14,7 +14,7 @@ type Props = {
   mode: "feed" | "mine";
 };
 
-const WorkoutsListClient = ({ initialWorkouts, isAuthenticated, mode }: Props) => {
+const WorkoutsListClient = ({ initialWorkouts, mode }: Props) => {
   const [workouts, setWorkouts] = useState(initialWorkouts);
   const [loading, setLoading] = useState(false);
 
@@ -57,16 +57,10 @@ const WorkoutsListClient = ({ initialWorkouts, isAuthenticated, mode }: Props) =
           {title}
         </h1>
         {!isFeed && (
-          isAuthenticated ? (
-            <ButtonLink href="/workouts/new" variant="primary" className="gap-1.5">
-              <Plus className="h-4 w-4" />
-              New Workout
-            </ButtonLink>
-          ) : (
-            <ButtonLink href="/login" variant="primary">
-              🔐 Log In to Create a Workout
-            </ButtonLink>
-          )
+          <ButtonLink href="/workouts/new" variant="primary" className="w-full gap-1.5 sm:w-auto">
+            <Plus className="h-4 w-4" />
+            New Workout
+          </ButtonLink>
         )}
       </div>
 
@@ -102,24 +96,14 @@ const WorkoutsListClient = ({ initialWorkouts, isAuthenticated, mode }: Props) =
           <p className="font-medium">No workouts yet</p>
           <p className="text-sm">Be the first to log a workout!</p>
         </div>
-      ) : isAuthenticated ? (
+      ) : (
         <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
           <div className="text-3xl mb-2">🗓️</div>
           <p className="font-medium">No workouts yet</p>
           <p className="text-sm">Create your first workout to get started.</p>
           <div className="mt-4">
-            <ButtonLink href="/workouts/new" variant="secondary">
+            <ButtonLink href="/workouts/new" variant="primary">
               Create Workout
-            </ButtonLink>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
-          <p className="font-medium">Log in to track your workouts.</p>
-          <p className="text-sm">Your workouts are saved to your account and available anywhere.</p>
-          <div className="mt-4">
-            <ButtonLink href="/login" variant="primary">
-              Log In
             </ButtonLink>
           </div>
         </div>

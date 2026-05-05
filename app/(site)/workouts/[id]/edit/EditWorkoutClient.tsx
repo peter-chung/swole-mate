@@ -548,7 +548,7 @@ const EditWorkoutClient = ({
               </h2>
             </div>
 
-            <div className="rounded-lg border border-gray-200 bg-white/60 p-4 shadow-sm backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-900/40 sm:p-6">
+            <div className="-mx-4 px-4 py-4 sm:mx-0 sm:rounded-lg sm:border sm:border-gray-200 sm:bg-white/60 sm:p-6 sm:shadow-sm sm:backdrop-blur-sm sm:dark:border-neutral-800 sm:dark:bg-neutral-900/40">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <InputField
                   id="workoutName"
@@ -608,17 +608,17 @@ const EditWorkoutClient = ({
             </h2>
           </section>
 
-          {workout.workout_exercises && workout.workout_exercises.filter((we) => !pendingDeletedExerciseIds.includes(we.id)).length > 0 ? (
-            <div className="space-y-4">
+          {workout.workout_exercises && workout.workout_exercises.length > 0 ? (
+            <div className="-mx-4 divide-y divide-gray-100 dark:divide-neutral-800 sm:mx-0 sm:space-y-4 sm:divide-y-0">
               {workout.workout_exercises.map((we) => {
                 const isPendingDeletion = pendingDeletedExerciseIds.includes(we.id);
                 return (
                   <div
                     key={we.id}
-                    className={`rounded-lg border p-4 shadow-sm backdrop-blur-sm sm:p-5 transition-opacity ${
+                    className={`px-4 py-4 transition-opacity sm:rounded-lg sm:border sm:p-5 sm:shadow-sm sm:backdrop-blur-sm ${
                       isPendingDeletion
-                        ? "border-red-200 bg-red-50/60 opacity-60 dark:border-red-900/50 dark:bg-red-950/20"
-                        : "border-gray-200 bg-white/60 dark:border-neutral-800 dark:bg-neutral-900/40"
+                        ? "bg-red-50/60 dark:bg-red-950/20 opacity-60 sm:border-red-200 sm:dark:border-red-900/50"
+                        : "sm:bg-white/60 sm:dark:bg-neutral-900/40 sm:border-gray-200 sm:dark:border-neutral-800"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">

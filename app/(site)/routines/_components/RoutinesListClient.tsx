@@ -76,25 +76,13 @@ export default function RoutinesListClient({
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
           Routines
         </h1>
-        {isAuthenticated ? (
-          <ButtonLink href="/routines/new" variant="primary" className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            New Routine
-          </ButtonLink>
-        ) : null}
+        <ButtonLink href="/routines/new" variant="primary" className="w-full gap-1.5 sm:w-auto">
+          <Plus className="h-4 w-4" />
+          New Routine
+        </ButtonLink>
       </div>
 
-      {!isAuthenticated ? (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
-          <p className="font-medium">🔐 Log in or create an account to create routines.</p>
-          <p className="text-sm">💾 Your routines are saved to your account.</p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-            <ButtonLink href="/login" variant="primary">
-              Log in
-            </ButtonLink>
-          </div>
-        </div>
-      ) : loading ? (
+      {loading ? (
         <LoadingSpinner className="mt-6" />
       ) : routines.length > 0 ? (
         <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
@@ -108,7 +96,7 @@ export default function RoutinesListClient({
           <p className="font-medium">No routines yet</p>
           <p className="text-sm">Create your first routine to get started.</p>
           <div className="mt-4">
-            <ButtonLink href="/routines/new" variant="secondary">
+            <ButtonLink href="/routines/new" variant="primary">
               Create Routine
             </ButtonLink>
           </div>

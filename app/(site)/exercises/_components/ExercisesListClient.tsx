@@ -208,24 +208,22 @@ const ExercisesListClient = ({
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
           Exercises
         </h1>
-        {isAuthenticated ? (
-          <ButtonLink
-            href="/exercises/new"
-            variant="primary"
-            className="gap-1.5"
-          >
+        <div className="hidden sm:block">
+          <ButtonLink href="/exercises/new" variant="primary" className="gap-1.5">
             <Plus className="h-4 w-4" />
             New Exercise
           </ButtonLink>
-        ) : (
-          <ButtonLink href="/login" variant="primary">
-            🔐 Log In to Create an Exercise
-          </ButtonLink>
-        )}
+        </div>
       </div>
 
       <div className="mt-4">
         <SearchBar query={query} setQuery={setQuery} />
+      </div>
+      <div className="mt-3 sm:hidden">
+        <ButtonLink href="/exercises/new" variant="primary" className="w-full gap-1.5">
+          <Plus className="h-4 w-4" />
+          New Exercise
+        </ButtonLink>
       </div>
 
       {loading ? (
@@ -268,20 +266,11 @@ const ExercisesListClient = ({
         <div className="mt-8 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-600 dark:border-neutral-700 dark:text-gray-300">
           <div className="text-3xl mb-2">🕵️‍♀️</div>
           <p className="font-medium">No exercises found</p>
-          <p className="text-sm">
-            Try a different search or{" "}
-            {isAuthenticated ? "create a new exercise." : "log in to create one."}
-          </p>
+          <p className="text-sm">Try a different search or create a new exercise.</p>
           <div className="mt-4">
-            {isAuthenticated ? (
-              <ButtonLink href="/exercises/new" variant="secondary">
-                Create Exercise
-              </ButtonLink>
-            ) : (
-              <ButtonLink href="/login" variant="secondary">
-                🔐 Log In to Create an Exercise
-              </ButtonLink>
-            )}
+            <ButtonLink href="/exercises/new" variant="primary">
+              Create Exercise
+            </ButtonLink>
           </div>
         </div>
       )}

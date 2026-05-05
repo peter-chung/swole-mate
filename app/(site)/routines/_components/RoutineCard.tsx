@@ -2,13 +2,15 @@
 
 import React from "react";
 import Link from "next/link";
+import { Calendar, User } from "lucide-react";
+import { prettyDate } from "@/utils/format";
 import type { RoutineWithOwner } from "../_lib/getRoutinesList";
 
 const PREVIEW_LIMIT = 3;
 
 export default function RoutineCard({ routine }: { routine: RoutineWithOwner }) {
   const ownerName = routine.user?.username ?? routine.user?.full_name ?? null;
-  const { exerciseCount, exerciseNames } = routine;
+  const { date, exerciseCount, exerciseNames } = routine;
   const preview = exerciseNames.slice(0, PREVIEW_LIMIT).join(", ");
   const overflow = exerciseCount - PREVIEW_LIMIT;
 
@@ -23,11 +25,20 @@ export default function RoutineCard({ routine }: { routine: RoutineWithOwner }) 
             <h3 className="text-base font-semibold text-gray-900 transition group-hover:text-[#3ecf8e] dark:text-gray-100 dark:group-hover:text-[#3ecf8e]">
               {routine.name || "Untitled routine"}
             </h3>
-            {ownerName && (
-              <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
-                By {ownerName}
-              </p>
-            )}
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+              {date && (
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  {prettyDate(date)}
+                </span>
+              )}
+              {ownerName && (
+                <span className="inline-flex items-center gap-1">
+                  <User className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  {ownerName}
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
@@ -44,7 +55,10 @@ export default function RoutineCard({ routine }: { routine: RoutineWithOwner }) 
               )}
             </>
           ) : (
-            <p className="text-xs text-gray-400 dark:text-gray-500">No exercises yet</p>
+            <>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">0 exercises</p>
+              <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">No exercises added yet</p>
+            </>
           )}
         </div>
       </Link>

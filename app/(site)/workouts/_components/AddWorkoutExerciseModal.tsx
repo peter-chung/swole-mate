@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useTransition } from "react";
 import { useDebounce } from "react-use";
-import { X, BadgeCheck, User } from "lucide-react";
+import { X, BadgeCheck, User, Search } from "lucide-react";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import { addWorkoutExerciseAction } from "../actions";
 
@@ -129,15 +129,26 @@ const AddWorkoutExerciseModal = ({
           </button>
         </div>
 
-        <div className="mt-3">
+        <div className="relative mt-3">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search for exercises"
             autoFocus
-            className="w-full rounded-lg border border-gray-300 bg-transparent p-2 text-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700"
+            className="w-full rounded-lg border border-gray-300 bg-transparent py-2 pl-9 pr-8 text-sm outline-none transition focus:border-[#3ecf8e] focus:ring-2 focus:ring-[#3ecf8e]/20 dark:border-neutral-700"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         <div className="mt-3">

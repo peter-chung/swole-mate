@@ -72,21 +72,11 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
   return (
     <>
       <div>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
             {routine.name || "Untitled routine"}
           </h1>
           <div className="flex shrink-0 items-center gap-2">
-            <Button
-              type="button"
-              variant="primary"
-              isLoading={isPending}
-              onClick={handleStartWorkout}
-              className="gap-1.5"
-            >
-              <Play className="h-4 w-4" aria-hidden="true" />
-              <span>Start Workout</span>
-            </Button>
             <div className="relative" data-routine-actions-menu>
               <button
                 type="button"
@@ -146,6 +136,18 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
             {routine.notes}
           </p>
         )}
+        <div className="mt-4">
+          <Button
+            type="button"
+            variant="primary"
+            isLoading={isPending}
+            onClick={handleStartWorkout}
+            className="w-full gap-1.5"
+          >
+            <Play className="h-4 w-4" aria-hidden="true" />
+            <span>Start Workout</span>
+          </Button>
+        </div>
       </div>
 
       <ConfirmDialog
