@@ -9,13 +9,9 @@ type Exercise = Tables<"available_exercises">;
 
 const ExerciseCard = ({ exercise, isAdmin = false }: { exercise: Exercise; isAdmin?: boolean }) => {
   const muscle = exercise.primary_muscle?.trim() || null;
-  const secondaryMuscles = exercise.other_muscles?.trim();
   const typeLabel = exercise.exercise_type_label?.trim();
-  const otherMuscleBadges = secondaryMuscles
-    ? secondaryMuscles
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean)
+  const otherMuscleBadges = Array.isArray(exercise.other_muscles)
+    ? exercise.other_muscles.filter(Boolean)
     : [];
   const isCustom = exercise.source === "custom";
   const isAdminPublic = isAdmin && exercise.source === "public";

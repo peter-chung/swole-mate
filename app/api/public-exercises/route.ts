@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     name: body.name.trim(),
     exercise_type_id: body.exercise_type_id,
     primary_muscle: body.primary_muscle?.trim() || null,
-    other_muscles: body.other_muscles?.trim() || null,
+    other_muscles: Array.isArray(body.other_muscles) && body.other_muscles.length > 0 ? body.other_muscles : null,
   };
 
   const { data, error } = await serviceClient

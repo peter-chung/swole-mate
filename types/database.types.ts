@@ -21,7 +21,7 @@ export type Database = {
           exercise_type_id: string
           id: string
           name: string
-          other_muscles: string | null
+          other_muscles: string[] | null
           primary_muscle: string | null
           user_id: string
         }
@@ -30,7 +30,7 @@ export type Database = {
           exercise_type_id: string
           id?: string
           name: string
-          other_muscles?: string | null
+          other_muscles?: string[] | null
           primary_muscle?: string | null
           user_id: string
         }
@@ -39,7 +39,7 @@ export type Database = {
           exercise_type_id?: string
           id?: string
           name?: string
-          other_muscles?: string | null
+          other_muscles?: string[] | null
           primary_muscle?: string | null
           user_id?: string
         }
@@ -186,7 +186,7 @@ export type Database = {
           exercise_type_id: string
           id: string
           name: string
-          other_muscles: string | null
+          other_muscles: string[] | null
           primary_muscle: string | null
         }
         Insert: {
@@ -194,7 +194,7 @@ export type Database = {
           exercise_type_id: string
           id?: string
           name: string
-          other_muscles?: string | null
+          other_muscles?: string[] | null
           primary_muscle?: string | null
         }
         Update: {
@@ -202,7 +202,7 @@ export type Database = {
           exercise_type_id?: string
           id?: string
           name?: string
-          other_muscles?: string | null
+          other_muscles?: string[] | null
           primary_muscle?: string | null
         }
         Relationships: [
@@ -491,7 +491,7 @@ export type Database = {
           is_assisted: boolean | null
           is_bodyweight: boolean | null
           name: string | null
-          other_muscles: string | null
+          other_muscles: string[] | null
           primary_muscle: string | null
           source: string | null
           user_id: string | null

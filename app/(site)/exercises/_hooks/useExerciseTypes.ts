@@ -12,6 +12,8 @@ const UNSUPPORTED_KEYS = new Set([
   "weight_duration",
   "weight_distance",
   "duration_weight",
+  "weighted_bodyweight",   // superseded by bodyweight_reps with signed weight support
+  "assisted_bodyweight",   // superseded by bodyweight_reps with signed weight support
 ]);
 
 export function useExerciseTypes() {

@@ -7,8 +7,11 @@ import { InputField, SelectField } from "@/app/_components/FormFields";
 import type { TablesInsert } from "@/types/database.types";
 import Button from "@/app/_components/Button";
 import { useExerciseTypes } from "../_hooks/useExerciseTypes";
+import { MUSCLE_GROUPS } from "@/app/constants/muscles";
 
-type ExerciseInsert = TablesInsert<"custom_exercises">;
+type ExerciseInsert = Omit<TablesInsert<"custom_exercises">, "other_muscles"> & {
+  other_muscles?: string[] | null;
+};
 
 type ErrorKey = "name" | "type" | "general";
 type FormErrors = Partial<Record<ErrorKey, string>>;
@@ -23,6 +26,8 @@ const CreateExerciseForm = ({ isPublic = false }: Props) => {
   const router = useRouter();
 
   const selectedExerciseTypeId = exercise.exercise_type_id ?? "";
+  const selectedType = exerciseTypes.find((t) => t.id === selectedExerciseTypeId);
+  const isBodyweightSelected = selectedType?.is_bodyweight === true;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -127,30 +132,54 @@ const CreateExerciseForm = ({ isPublic = false }: Props) => {
           </p>
         )}
 
-        <InputField
+        <SelectField
           id="primaryMuscle"
           label="Primary Muscle Group"
-          type="text"
-          placeholder="e.g., Chest"
-          autoComplete="off"
+          value={exercise.primary_muscle ?? ""}
           onChange={(e) =>
-            setExercise((prev) => ({ ...prev, primary_muscle: e.target.value }))
+            setExercise((prev) => ({ ...prev, primary_muscle: e.target.value || null }))
           }
-        />
+        >
+          <option value="">Select primary muscle</option>
+          {MUSCLE_GROUPS.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </SelectField>
 
-        <InputField
-          id="otherMuscles"
-          label="Other Muscles"
-          type="text"
-          placeholder="e.g., Triceps, Shoulders"
-          autoComplete="off"
-          onChange={(e) =>
-            setExercise((prev) => ({ ...prev, other_muscles: e.target.value }))
-          }
-        />
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Optional. Separate multiple muscles with commas.
-        </p>
+        <div>
+          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Other Muscles
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {MUSCLE_GROUPS.map((muscle) => {
+              const selected = (exercise.other_muscles as string[] | null | undefined ?? []).includes(muscle);
+              return (
+                <button
+                  key={muscle}
+                  type="button"
+                  onClick={() =>
+                    setExercise((prev) => {
+                      const current = (prev.other_muscles as string[] | null | undefined) ?? [];
+                      return {
+                        ...prev,
+                        other_muscles: selected
+                          ? current.filter((m) => m !== muscle)
+                          : [...current, muscle],
+                      };
+                    })
+                  }
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset transition-colors ${
+                    selected
+                      ? "bg-[#3ecf8e]/10 text-[#3ecf8e] ring-[#3ecf8e]/40 dark:bg-[#3ecf8e]/10 dark:text-[#3ecf8e] dark:ring-[#3ecf8e]/30"
+                      : "bg-gray-100 text-gray-600 ring-gray-200 hover:bg-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:ring-neutral-700 dark:hover:bg-neutral-700"
+                  }`}
+                >
+                  {muscle}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <SelectField
           id="exerciseType"
@@ -185,6 +214,11 @@ const CreateExerciseForm = ({ isPublic = false }: Props) => {
             </option>
           ))}
         </SelectField>
+        {isBodyweightSelected && (
+          <p className="text-xs text-blue-600 dark:text-blue-400">
+            Supports all variants: negative weight = assisted, 0 = bodyweight, positive = weighted.
+          </p>
+        )}
         {typeHasError && (
           <p id="exercise-type-error" className="text-xs text-red-600 dark:text-red-300">
             {errors.type}

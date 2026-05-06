@@ -7,9 +7,10 @@ import {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { Plus, X } from "lucide-react";
+import { Info, Plus, X } from "lucide-react";
 import type { Tables } from "@/types/database.types";
 import { toast } from "react-hot-toast";
+import { formatBodyweightWeight } from "@/utils/format";
 import {
   deleteExerciseSetAction,
   saveExerciseSetAction,
@@ -267,7 +268,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
             id: newId,
             set_number: nextSetNumber,
             reps: previousSet?.reps ?? null,
-            weight: previousSet?.weight ?? null,
+            weight: previousSet?.weight ?? (isBodyweight ? 0 : null),
             duration: null,
             distance: null,
             notes: null,
@@ -417,6 +418,9 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
     useImperativeHandle(ref, () => ({ save, replaceWithSets }));
 
+    const isBodyweight = exerciseType?.is_bodyweight === true;
+    const [bwBannerDismissed, setBwBannerDismissed] = useState(false);
+
     const [isMobile, setIsMobile] = useState(false);
     useEffect(() => {
       const mq = window.matchMedia("(max-width: 639px)");
@@ -438,6 +442,24 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
     return (
       <div className="mb-1">
+        {/* Bodyweight info banner */}
+        {isBodyweight && !bwBannerDismissed && (
+          <div className="mb-3 flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span className="flex-1">
+              Enter weight as: <strong>negative</strong> = assisted (e.g. -15), <strong>0</strong> = bodyweight, <strong>positive</strong> = weighted (e.g. +30)
+            </span>
+            <button
+              type="button"
+              onClick={() => setBwBannerDismissed(true)}
+              className="shrink-0 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200"
+              aria-label="Dismiss"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Column headers */}
         <div
           className="mb-1.5 grid items-center gap-x-2 sm:gap-x-4 px-0.5 text-center text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
@@ -445,7 +467,21 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         >
           <span>Set</span>
           <span>Prev</span>
-          {showWeight && <span>lbs</span>}
+          {showWeight && (
+            <span className="flex items-center justify-center gap-1">
+              {isBodyweight ? "wt" : "lbs"}
+              {isBodyweight && bwBannerDismissed && (
+                <button
+                  type="button"
+                  onClick={() => setBwBannerDismissed(false)}
+                  className="text-gray-400 hover:text-blue-500 dark:text-gray-600 dark:hover:text-blue-400"
+                  aria-label="Show bodyweight weight info"
+                >
+                  <Info className="h-3 w-3" />
+                </button>
+              )}
+            </span>
+          )}
           {showReps && <span>reps</span>}
           <span />
         </div>
@@ -454,11 +490,19 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         <div className="space-y-1.5">
           {sets.map((set, idx) => {
             const ref = referenceSets[idx];
-            const prevParts = [
-              ref?.weight != null ? `${ref.weight}` : null,
-              ref?.reps != null ? `${ref.reps}` : null,
-            ].filter(Boolean);
-            const prevLabel = prevParts.length > 0 ? prevParts.join(" x ") : "—";
+            const prevLabel = (() => {
+              if (isBodyweight) {
+                const wt = formatBodyweightWeight(ref?.weight ?? null);
+                const reps = ref?.reps != null ? `${ref.reps}` : null;
+                const parts = [wt, reps].filter(Boolean);
+                return parts.length > 0 ? parts.join(" x ") : "—";
+              }
+              const parts = [
+                ref?.weight != null ? `${ref.weight}` : null,
+                ref?.reps != null ? `${ref.reps}` : null,
+              ].filter(Boolean);
+              return parts.length > 0 ? parts.join(" x ") : "—";
+            })();
             return (
               <div
                 key={set.id}

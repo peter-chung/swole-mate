@@ -80,8 +80,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       updatePayload.primary_muscle = value ? value : null;
     }
     if (body.other_muscles !== undefined) {
-      const value = body.other_muscles?.trim();
-      updatePayload.other_muscles = value ? value : null;
+      updatePayload.other_muscles = Array.isArray(body.other_muscles) && body.other_muscles.length > 0 ? body.other_muscles : null;
     }
     if (body.exercise_type_id !== undefined) {
       updatePayload.exercise_type_id = body.exercise_type_id;

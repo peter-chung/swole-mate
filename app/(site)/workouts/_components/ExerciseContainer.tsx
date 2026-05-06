@@ -1,5 +1,6 @@
 import React from "react";
 import type { WorkoutWithRelations } from "../_lib/getWorkout";
+import { formatBodyweightWeight } from "@/utils/format";
 
 type Props = {
   workout: WorkoutWithRelations;
@@ -59,8 +60,12 @@ const WorkoutExercisesDetails = ({ workout }: Props) => {
                       .slice()
                       .sort((a, b) => (a.set_number ?? 0) - (b.set_number ?? 0))
                       .map((set) => {
+                        const isBodyweight = we.exercise?.is_bodyweight === true;
+                        const weightStr = isBodyweight
+                          ? formatBodyweightWeight(set.weight)
+                          : set.weight != null ? `${set.weight} lbs` : null;
                         const value = [
-                          set.weight != null ? `${set.weight} lbs` : null,
+                          weightStr,
                           set.reps != null ? `${set.reps} reps` : set.duration != null ? `${set.duration}s` : set.distance != null ? `${set.distance}m` : null,
                         ].filter(Boolean).join(" × ");
                         return (

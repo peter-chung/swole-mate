@@ -48,7 +48,6 @@ export async function GET(req: Request) {
         `exercise_type_label.ilike.%${term}%`,
         `exercise_type_key.ilike.%${term}%`,
         `primary_muscle.ilike.%${term}%`,
-        `other_muscles.ilike.%${term}%`,
       ].join(",")
     );
   }
@@ -101,7 +100,7 @@ export async function POST(req: Request) {
     name: body.name.trim(),
     exercise_type_id: body.exercise_type_id,
     primary_muscle: body.primary_muscle?.trim() || null,
-    other_muscles: body.other_muscles?.trim() || null,
+    other_muscles: Array.isArray(body.other_muscles) && body.other_muscles.length > 0 ? body.other_muscles : null,
     user_id: user.id,
   };
 
