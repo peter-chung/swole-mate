@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { resolveExerciseForUser } from "@/app/_lib/resolveExercise";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -23,24 +24,27 @@ export async function POST(req: Request) {
 
     const { workoutId, title } = body;
 
-    // fetch workout with nested exercises and sets
+    // fetch workout with nested exercises and sets — allow any visible workout, not just own
     const { data: workoutData, error: workoutError } = await supabase
       .from("workouts")
       .select(
         `id, user_id, date, name, notes,
-        workout_exercises ( id, public_exercise_id, custom_exercise_id, equipment_brand, order_index, notes,
+        workout_exercises ( id, public_exercise_id, custom_exercise_id, user_id, equipment_brand, order_index, notes,
+          custom_exercise:custom_exercises ( name, exercise_type_id, primary_muscle, other_muscles ),
           exercise_sets ( id, set_number, reps, weight, duration, distance, notes )
         )`
       )
       .eq("id", workoutId)
-      .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (workoutError)
       return NextResponse.json(
         { error: workoutError.message },
         { status: 400 }
       );
+
+    if (!workoutData)
+      return NextResponse.json({ error: "Workout not found" }, { status: 404 });
 
     const workout = workoutData as any;
 
@@ -62,7 +66,9 @@ export async function POST(req: Request) {
 
     const routineId = (createdRoutine as any).id;
 
-    const exercises = workout?.workout_exercises ?? [];
+    const exercises = (workout as any)?.workout_exercises ?? [];
+    let skippedExercises = 0;
+    let duplicatedAsCustom = 0;
 
     // helper to cleanup partial state if something fails mid-copy
     async function cleanupRoutine(routineIdToClean: string) {
@@ -87,19 +93,30 @@ export async function POST(req: Request) {
 
         await supabase.from("routines").delete().eq("id", routineIdToClean);
       } catch (cleanupErr) {
-        // swallow cleanup errors but log to console server-side
-        // logging is intentional for debugging but not returned to client
-        // eslint-disable-next-line no-console
         console.error("cleanupRoutine error:", cleanupErr);
       }
     }
 
     for (const ex of exercises) {
+      const result = await resolveExerciseForUser(supabase, user.id, {
+        public_exercise_id: ex.public_exercise_id ?? null,
+        custom_exercise_id: ex.custom_exercise_id ?? null,
+        user_id: ex.user_id ?? null,
+        custom_exercise: ex.custom_exercise ?? null,
+      });
+
+      if (!result) {
+        skippedExercises += 1;
+        continue;
+      }
+
+      if (result.duplicated) duplicatedAsCustom += 1;
+
       const { data: createdRoutineExercise, error: reError } = await supabase
         .from("routine_exercises")
         .insert({
-          public_exercise_id: ex.public_exercise_id ?? null,
-          custom_exercise_id: ex.custom_exercise_id ?? null,
+          public_exercise_id: result.resolved.public_exercise_id,
+          custom_exercise_id: result.resolved.custom_exercise_id,
           equipment_brand: ex.equipment_brand ?? null,
           order_index: ex.order_index ?? null,
           notes: ex.notes ?? null,
@@ -131,15 +148,12 @@ export async function POST(req: Request) {
 
         if (setError) {
           await cleanupRoutine(routineId);
-          return NextResponse.json(
-            { error: setError.message },
-            { status: 500 }
-          );
+          return NextResponse.json({ error: setError.message }, { status: 500 });
         }
       }
     }
 
-    return NextResponse.json({ id: routineId }, { status: 201 });
+    return NextResponse.json({ id: routineId, skippedExercises, duplicatedAsCustom }, { status: 201 });
   } catch (err) {
     if (err instanceof Error)
       return NextResponse.json({ error: err.message }, { status: 500 });

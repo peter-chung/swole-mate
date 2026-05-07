@@ -7,11 +7,10 @@ import {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { Info, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { Tables } from "@/types/database.types";
 import { toast } from "react-hot-toast";
 import { saveRoutineSetAction, deleteRoutineSetAction } from "../actions";
-import { formatBodyweightWeight } from "@/utils/format";
 
 type RoutineSet = Tables<"routine_sets">;
 
@@ -25,6 +24,7 @@ type ExerciseTypeFlags = {
   has_duration: boolean | null;
   has_distance: boolean | null;
   is_bodyweight: boolean | null;
+  is_assisted: boolean | null;
 };
 
 type Props = {
@@ -268,7 +268,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
             id: `new-${Date.now()}`,
             set_number: nextSetNumber,
             reps: previousSet?.reps ?? null,
-            weight: previousSet?.weight ?? (isBodyweight ? 0 : null),
+            weight: previousSet?.weight ?? null,
             duration: null,
             distance: null,
             notes: null,
@@ -363,8 +363,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
     useImperativeHandle(ref, () => ({ save }));
 
-    const isBodyweight = exerciseType?.is_bodyweight === true;
-    const [bwBannerDismissed, setBwBannerDismissed] = useState(false);
+    const isAssisted = exerciseType?.is_assisted === true;
 
     const [isMobile, setIsMobile] = useState(false);
     useEffect(() => {
@@ -389,24 +388,6 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
 
     return (
       <div>
-        {/* Bodyweight info banner */}
-        {isBodyweight && !bwBannerDismissed && (
-          <div className="mb-3 flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span className="flex-1">
-              Enter weight as: <strong>negative</strong> = assisted (e.g. -15), <strong>0</strong> = bodyweight, <strong>positive</strong> = weighted (e.g. +30)
-            </span>
-            <button
-              type="button"
-              onClick={() => setBwBannerDismissed(true)}
-              className="shrink-0 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200"
-              aria-label="Dismiss"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
-
         {/* Column headers */}
         <div
           className="mb-1.5 grid items-center gap-x-2 sm:gap-x-4 px-0.5 text-center text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
@@ -414,21 +395,7 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
         >
           <span>Set</span>
           <span>Prev</span>
-          {showWeight && (
-            <span className="flex items-center justify-center gap-1">
-              {isBodyweight ? "wt" : "lbs"}
-              {isBodyweight && bwBannerDismissed && (
-                <button
-                  type="button"
-                  onClick={() => setBwBannerDismissed(false)}
-                  className="text-gray-400 hover:text-blue-500 dark:text-gray-600 dark:hover:text-blue-400"
-                  aria-label="Show bodyweight weight info"
-                >
-                  <Info className="h-3 w-3" />
-                </button>
-              )}
-            </span>
-          )}
+          {showWeight && <span>{isAssisted ? "assist" : "lbs"}</span>}
           {showReps && <span>reps</span>}
           <span />
         </div>
@@ -437,19 +404,11 @@ const RoutineSetForm = forwardRef<RoutineSetFormHandle, Props>(
         <div className="space-y-1.5">
           {sets.map((set, idx) => {
             const ref = referenceSets[idx];
-            const prevLabel = (() => {
-              if (isBodyweight) {
-                const wt = formatBodyweightWeight(ref?.weight ?? null);
-                const reps = ref?.reps != null ? `${ref.reps}` : null;
-                const parts = [wt, reps].filter(Boolean);
-                return parts.length > 0 ? parts.join(" x ") : "—";
-              }
-              const parts = [
-                ref?.weight != null ? `${ref.weight}` : null,
-                ref?.reps != null ? `${ref.reps}` : null,
-              ].filter(Boolean);
-              return parts.length > 0 ? parts.join(" x ") : "—";
-            })();
+            const prevParts = [
+              ref?.weight != null ? `${ref.weight}` : null,
+              ref?.reps != null ? `${ref.reps}` : null,
+            ].filter(Boolean);
+            const prevLabel = prevParts.length > 0 ? prevParts.join(" x ") : "—";
             return set._status === "deleted" ? null : (
               <div
                 key={set.id}

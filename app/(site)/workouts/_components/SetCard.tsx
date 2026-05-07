@@ -1,5 +1,4 @@
 import React from "react";
-import { formatBodyweightWeight } from "@/utils/format";
 
 type Props = {
   set: {
@@ -11,16 +10,9 @@ type Props = {
     distance: number | null;
     notes: string | null;
   };
-  isBodyweight?: boolean;
 };
 
-const SetCard = ({ set, isBodyweight = false }: Props) => {
-  const weightStr = isBodyweight
-    ? formatBodyweightWeight(set.weight)
-    : set.weight != null
-    ? `${set.weight} lbs`
-    : null;
-
+const SetCard = ({ set }: Props) => {
   return (
     <li
       key={set.id}
@@ -38,7 +30,7 @@ const SetCard = ({ set, isBodyweight = false }: Props) => {
             : set.distance != null
             ? `${set.distance}m`
             : ""}
-          {weightStr ? ` @ ${weightStr}` : ""}
+          {set.weight != null ? ` @ ${set.weight} lbs` : ""}
         </span>
       </div>
       {set.notes && (

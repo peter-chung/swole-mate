@@ -28,12 +28,21 @@ async function seedDemoData(userId: string) {
   const { data: exercises } = await supabase
     .from("public_exercises")
     .select("id, name")
-    .limit(9);
+    .in("name", [
+      "Bench Press (Barbell)",
+      "Overhead Press (Dumbbell)",
+      "Triceps Pushdown (Cable)",
+      "Bent-Over Row (Barbell)",
+      "Lat Pulldown (Machine)",
+      "Bicep Curl (Dumbbell)",
+      "Back Squat (Barbell)",
+      "Romanian Deadlift (Barbell)",
+      "Leg Press (Machine)",
+    ]);
 
   if (!exercises || exercises.length === 0) return;
 
-  const pick = (start: number, count: number) =>
-    Array.from({ length: count }, (_, i) => exercises[(start + i) % exercises.length]);
+  const byName = Object.fromEntries(exercises.map((e) => [e.name, e]));
 
   const today = new Date();
   const dateOffset = (days: number) => {
@@ -47,33 +56,45 @@ async function seedDemoData(userId: string) {
       name: "Push Day 💪",
       date: dateOffset(1),
       notes: "Felt strong today!",
-      exercises: pick(0, 3),
+      exercises: [
+        byName["Bench Press (Barbell)"],
+        byName["Overhead Press (Dumbbell)"],
+        byName["Triceps Pushdown (Cable)"],
+      ].filter(Boolean),
       sets: [
-        [{ set_number: 1, reps: 12, weight: 135 }, { set_number: 2, reps: 10, weight: 145 }, { set_number: 3, reps: 8, weight: 155 }],
-        [{ set_number: 1, reps: 15, weight: 45 }, { set_number: 2, reps: 12, weight: 50 }, { set_number: 3, reps: 10, weight: 55 }],
-        [{ set_number: 1, reps: 12, weight: 60 }, { set_number: 2, reps: 10, weight: 65 }, { set_number: 3, reps: 8, weight: 70 }],
+        [{ set_number: 1, reps: 10, weight: 135 }, { set_number: 2, reps: 8, weight: 145 }, { set_number: 3, reps: 6, weight: 155 }],
+        [{ set_number: 1, reps: 10, weight: 65 }, { set_number: 2, reps: 8, weight: 70 }, { set_number: 3, reps: 8, weight: 75 }],
+        [{ set_number: 1, reps: 15, weight: 50 }, { set_number: 2, reps: 12, weight: 55 }, { set_number: 3, reps: 12, weight: 60 }],
       ],
     },
     {
       name: "Pull Day 🏋️",
       date: dateOffset(3),
       notes: null,
-      exercises: pick(3, 3),
+      exercises: [
+        byName["Bent-Over Row (Barbell)"],
+        byName["Lat Pulldown (Machine)"],
+        byName["Bicep Curl (Dumbbell)"],
+      ].filter(Boolean),
       sets: [
-        [{ set_number: 1, reps: 8, weight: 185 }, { set_number: 2, reps: 6, weight: 205 }, { set_number: 3, reps: 5, weight: 215 }],
+        [{ set_number: 1, reps: 8, weight: 135 }, { set_number: 2, reps: 8, weight: 145 }, { set_number: 3, reps: 6, weight: 155 }],
         [{ set_number: 1, reps: 12, weight: 100 }, { set_number: 2, reps: 10, weight: 110 }, { set_number: 3, reps: 8, weight: 120 }],
-        [{ set_number: 1, reps: 15, weight: 35 }, { set_number: 2, reps: 12, weight: 40 }, { set_number: 3, reps: 10, weight: 45 }],
+        [{ set_number: 1, reps: 12, weight: 30 }, { set_number: 2, reps: 10, weight: 35 }, { set_number: 3, reps: 10, weight: 35 }],
       ],
     },
     {
       name: "Leg Day 🦵",
       date: dateOffset(5),
       notes: "PRs all around!",
-      exercises: pick(6, 3),
+      exercises: [
+        byName["Back Squat (Barbell)"],
+        byName["Romanian Deadlift (Barbell)"],
+        byName["Leg Press (Machine)"],
+      ].filter(Boolean),
       sets: [
-        [{ set_number: 1, reps: 10, weight: 225 }, { set_number: 2, reps: 8, weight: 245 }, { set_number: 3, reps: 6, weight: 265 }],
-        [{ set_number: 1, reps: 12, weight: 180 }, { set_number: 2, reps: 10, weight: 190 }, { set_number: 3, reps: 8, weight: 200 }],
-        [{ set_number: 1, reps: 15, weight: 90 }, { set_number: 2, reps: 12, weight: 100 }, { set_number: 3, reps: 10, weight: 110 }],
+        [{ set_number: 1, reps: 8, weight: 185 }, { set_number: 2, reps: 6, weight: 205 }, { set_number: 3, reps: 5, weight: 225 }],
+        [{ set_number: 1, reps: 10, weight: 135 }, { set_number: 2, reps: 10, weight: 145 }, { set_number: 3, reps: 8, weight: 155 }],
+        [{ set_number: 1, reps: 12, weight: 270 }, { set_number: 2, reps: 10, weight: 310 }, { set_number: 3, reps: 8, weight: 360 }],
       ],
     },
   ];

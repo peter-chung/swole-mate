@@ -38,10 +38,14 @@ const WorkoutDetailCard = ({
     startCopy(async () => {
       try {
         const result = await copyWorkoutAction(workout.id);
-        if (result?.skippedExercises && result.skippedExercises > 0) {
-          toast.success(`Workout copied — ${result.skippedExercises} exercise(s) could not be copied.`);
-        }
         setIsMenuOpen(false);
+        if (result?.skippedExercises && result.skippedExercises > 0) {
+          toast.error(`Workout copied — ${result.skippedExercises} exercise(s) couldn't be transferred.`);
+        } else if (result?.duplicatedAsCustom && result.duplicatedAsCustom > 0) {
+          toast.success(`Workout copied — ${result.duplicatedAsCustom} exercise(s) saved to your custom list.`);
+        } else {
+          toast.success("Workout copied!");
+        }
         if (result?.id) {
           router.push(`/workouts/${result.id}/edit`);
         }

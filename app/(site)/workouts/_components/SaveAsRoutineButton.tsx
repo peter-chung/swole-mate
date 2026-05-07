@@ -35,8 +35,14 @@ export default function SaveAsRoutineButton({
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload?.error || "Failed to save routine");
-      toast.success("Routine created");
       setOpen(false);
+      if (payload.skippedExercises > 0) {
+        toast.error(`Routine created — ${payload.skippedExercises} exercise(s) couldn't be transferred.`);
+      } else if (payload.duplicatedAsCustom > 0) {
+        toast.success(`Routine created — ${payload.duplicatedAsCustom} exercise(s) saved to your custom list.`);
+      } else {
+        toast.success("Routine created!");
+      }
       router.push(`/routines/${payload.id}`);
     } catch (err: any) {
       toast.error(err?.message ?? "Error");
