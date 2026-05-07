@@ -273,6 +273,7 @@ export async function addRoutineExerciseAction({
   }
 
   // Copy sets from last workout performance, fall back to previous routine
+  let setsInserted = false;
   if (previousWorkoutExercise?.id) {
     const { data: previousSets, error: previousSetsError } = await supabase
       .from("exercise_sets")
@@ -296,7 +297,8 @@ export async function addRoutineExerciseAction({
       const { error: insertSetsError } = await supabase
         .from("routine_sets")
         .insert(setsPayload);
-      if (insertSetsError) console.error(insertSetsError);
+      if (!insertSetsError) setsInserted = true;
+      else console.error(insertSetsError);
     }
   } else {
     // Fall back to previous routine sets
@@ -343,9 +345,23 @@ export async function addRoutineExerciseAction({
         const { error: insertSetsError } = await supabase
           .from("routine_sets")
           .insert(setsPayload);
-        if (insertSetsError) console.error(insertSetsError);
+        if (!insertSetsError) setsInserted = true;
+        else console.error(insertSetsError);
       }
     }
+  }
+
+  if (!setsInserted) {
+    await supabase.from("routine_sets").insert({
+      routine_exercise_id: data.id,
+      user_id: user.id,
+      set_number: 1,
+      reps: null,
+      weight: null,
+      duration: null,
+      distance: null,
+      notes: null,
+    });
   }
 
   revalidatePath(`${ROUTINES_PATH}/${routineId}`);

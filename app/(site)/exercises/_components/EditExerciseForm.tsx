@@ -208,11 +208,6 @@ const EditExerciseForm = ({ exercise, resourceId, isPublic = false }: Props) => 
             </option>
           ))}
         </SelectField>
-        {isBodyweightSelected && (
-          <p className="text-xs text-blue-600 dark:text-blue-400">
-            Supports all variants: negative weight = assisted, 0 = bodyweight, positive = weighted.
-          </p>
-        )}
 
         <div className="pt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
