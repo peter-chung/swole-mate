@@ -214,11 +214,6 @@ const CreateExerciseForm = ({ isPublic = false }: Props) => {
             </option>
           ))}
         </SelectField>
-        {isBodyweightSelected && (
-          <p className="text-xs text-blue-600 dark:text-blue-400">
-            Supports all variants: negative weight = assisted, 0 = bodyweight, positive = weighted.
-          </p>
-        )}
         {typeHasError && (
           <p id="exercise-type-error" className="text-xs text-red-600 dark:text-red-300">
             {errors.type}

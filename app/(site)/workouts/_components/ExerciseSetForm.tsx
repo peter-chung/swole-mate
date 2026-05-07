@@ -496,6 +496,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
                 )}
                 <button
                   type="button"
+                  tabIndex={-1}
                   onClick={() => deleteSet(idx)}
                   disabled={set._status === "saving"}
                   className="inline-flex items-center justify-center rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 dark:text-gray-600 dark:hover:text-red-400 dark:hover:bg-red-950/30"

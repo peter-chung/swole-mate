@@ -181,7 +181,7 @@ export async function deleteWorkoutAction(workoutId: string) {
   return { success: true };
 }
 
-export async function copyWorkoutAction(workoutId: string) {
+export async function copyWorkoutAction(workoutId: string, localDate?: string) {
   const { supabase, user } = await ensureUser();
 
   if (!workoutId) {
@@ -217,11 +217,9 @@ export async function copyWorkoutAction(workoutId: string) {
     .from("workouts")
     .insert({
       user_id: user.id,
-      name: workoutSource.name
-        ? `${workoutSource.name} (Copy)`
-        : "Copied workout",
+      name: workoutSource.name ?? null,
       notes: workoutSource.notes ?? null,
-      date: new Date().toISOString().slice(0, 10),
+      date: localDate ?? new Date().toISOString().slice(0, 10),
     })
     .select("id")
     .single();
@@ -411,6 +409,7 @@ export async function addWorkoutExerciseAction({
   }
 
   // Attempt to copy the most recent sets for this exercise so the user starts with familiar values.
+  let setsInserted = false;
   if (previousWorkoutExercise?.id) {
     const { data: previousSets, error: previousSetsError } = await supabase
       .from("exercise_sets")
@@ -436,10 +435,22 @@ export async function addWorkoutExerciseAction({
         .from("exercise_sets")
         .insert(setsPayload);
 
-      if (insertSetsError) {
-        console.error(insertSetsError);
-      }
+      if (!insertSetsError) setsInserted = true;
+      else console.error(insertSetsError);
     }
+  }
+
+  if (!setsInserted) {
+    await supabase.from("exercise_sets").insert({
+      workout_exercise_id: data.id,
+      user_id: user.id,
+      set_number: 1,
+      reps: null,
+      weight: null,
+      duration: null,
+      distance: null,
+      notes: null,
+    });
   }
 
   revalidatePath(`${WORKOUTS_PATH}/${workoutId}`);

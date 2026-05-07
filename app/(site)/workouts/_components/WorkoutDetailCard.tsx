@@ -35,9 +35,10 @@ const WorkoutDetailCard = ({
   const showActions = canEdit || canCopy || canSaveAsRoutine;
 
   const handleCopy = () => {
+    const localDate = new Date().toLocaleDateString("en-CA");
     startCopy(async () => {
       try {
-        const result = await copyWorkoutAction(workout.id);
+        const result = await copyWorkoutAction(workout.id, localDate);
         setIsMenuOpen(false);
         if (result?.skippedExercises && result.skippedExercises > 0) {
           toast.error(`Workout copied — ${result.skippedExercises} exercise(s) couldn't be transferred.`);

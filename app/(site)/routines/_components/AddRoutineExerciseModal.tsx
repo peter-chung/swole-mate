@@ -36,6 +36,13 @@ const AddRoutineExerciseModal = ({
   useDebounce(() => setDebouncedQuery(query), 500, [query]);
 
   useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setDebouncedQuery("");
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
 
     const fetchExercises = async () => {
