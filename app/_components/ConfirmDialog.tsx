@@ -32,7 +32,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   useEffect(() => {
     if (!open) return;
-    cancelBtnRef.current?.focus();
+    modalRef.current?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!modalRef.current) return;
@@ -90,7 +90,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       />
       <div
         ref={modalRef}
-        className="relative z-10 w-full max-w-sm mx-4 rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-neutral-800 dark:bg-neutral-900"
+        tabIndex={-1}
+        className="relative z-10 w-full max-w-sm mx-4 rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-neutral-800 dark:bg-neutral-900 outline-none"
       >
         <h3 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
           {title}

@@ -640,7 +640,7 @@ const ManageExercisesClient = ({
       />
 
       {/* Sticky save/cancel bar */}
-      <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/80">
+      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] sm:bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/80">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <span className={`text-sm ${anyDirty ? "text-amber-600 dark:text-amber-400" : "text-gray-500 dark:text-gray-400"}`}>
             {anyDirty ? "Unsaved changes" : "All changes saved"}
