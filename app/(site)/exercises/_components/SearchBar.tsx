@@ -29,7 +29,7 @@ const SearchBar = ({ query, setQuery }: SearchBarProps) => {
           type="button"
           onClick={() => setQuery("")}
           aria-label="Clear search"
-          className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-2 text-gray-500 hover:text-gray-700 hover:opacity-80 active:translate-y-px transition cursor-pointer dark:text-gray-400 dark:hover:text-gray-200"
+          className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-2 text-gray-500 hover:text-gray-700 hover:opacity-80 transition cursor-pointer dark:text-gray-400 dark:hover:text-gray-200"
           title="Clear"
         >
           <X className="h-4 w-4" />

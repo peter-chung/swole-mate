@@ -31,7 +31,6 @@ export async function getInitialExercises(searchTerm = ""): Promise<{
         `exercise_type_label.ilike.%${term}%`,
         `exercise_type_key.ilike.%${term}%`,
         `primary_muscle.ilike.%${term}%`,
-        `other_muscles.ilike.%${term}%`,
       ].join(",")
     );
   }

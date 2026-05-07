@@ -1,3 +1,10 @@
+export function formatBodyweightWeight(weight: number | null): string | null {
+  if (weight === null) return null;
+  if (weight === 0) return "BW ";
+  if (weight < 0) return `-${Math.abs(weight)} lbs`;
+  return `+${weight} lbs`;
+}
+
 export function prettyDate(date?: string | null, locale?: string): string {
   if (!date) return "";
   // Handle plain YYYY-MM-DD safely in local time to avoid timezone shifts
@@ -10,4 +17,3 @@ export function prettyDate(date?: string | null, locale?: string): string {
   const dt = new Date(date);
   return Number.isNaN(dt.getTime()) ? date : dt.toLocaleDateString(locale);
 }
-

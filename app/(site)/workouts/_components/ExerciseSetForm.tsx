@@ -34,6 +34,7 @@ type ExerciseTypeFlags = {
   has_duration: boolean | null;
   has_distance: boolean | null;
   is_bodyweight: boolean | null;
+  is_assisted: boolean | null;
 };
 
 type Props = {
@@ -417,6 +418,8 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
     useImperativeHandle(ref, () => ({ save, replaceWithSets }));
 
+    const isAssisted = exerciseType?.is_assisted === true;
+
     const [isMobile, setIsMobile] = useState(false);
     useEffect(() => {
       const mq = window.matchMedia("(max-width: 639px)");
@@ -445,7 +448,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         >
           <span>Set</span>
           <span>Prev</span>
-          {showWeight && <span>lbs</span>}
+          {showWeight && <span>{isAssisted ? "assist" : "lbs"}</span>}
           {showReps && <span>reps</span>}
           <span />
         </div>

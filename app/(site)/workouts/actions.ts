@@ -8,6 +8,7 @@ import type {
   TablesUpdate,
 } from "@/types/database.types";
 import { assertWorkoutExerciseOwnership } from "./_lib/ownership";
+import { resolveExerciseForUser } from "@/app/_lib/resolveExercise";
 
 type WorkoutRow = Tables<"workouts">;
 type WorkoutInsert = TablesInsert<"workouts">;
@@ -194,6 +195,7 @@ export async function copyWorkoutAction(workoutId: string) {
         id, name, date, notes,
         workout_exercises (
           id, notes, equipment_brand, order_index, public_exercise_id, custom_exercise_id, user_id,
+          custom_exercise:custom_exercises ( name, exercise_type_id, primary_muscle, other_muscles ),
           exercise_sets ( set_number, reps, weight, duration, distance, notes )
         )
       `
@@ -209,7 +211,7 @@ export async function copyWorkoutAction(workoutId: string) {
     throw new Error("Workout not found");
   }
 
-  const workoutSource = source as WorkoutWithRelations;
+  const workoutSource = source as any;
 
   const { data: created, error: insertWorkoutError } = await supabase
     .from("workouts")
@@ -228,19 +230,24 @@ export async function copyWorkoutAction(workoutId: string) {
     throw new Error(insertWorkoutError?.message ?? "Failed to copy workout");
   }
 
-  const workoutExercises = workoutSource.workout_exercises ?? [];
+  const workoutExercises: any[] = workoutSource.workout_exercises ?? [];
   let skippedExercises = 0;
+  let duplicatedAsCustom = 0;
 
   for (const workoutExercise of workoutExercises) {
-    const ownsCustomExercise =
-      workoutExercise.custom_exercise_id === null ||
-      workoutExercise.user_id === null ||
-      workoutExercise.user_id === user.id;
+    const result = await resolveExerciseForUser(supabase, user.id, {
+      public_exercise_id: workoutExercise.public_exercise_id ?? null,
+      custom_exercise_id: workoutExercise.custom_exercise_id ?? null,
+      user_id: (workoutExercise as any).user_id ?? null,
+      custom_exercise: (workoutExercise as any).custom_exercise ?? null,
+    });
 
-    if (!ownsCustomExercise) {
+    if (!result) {
       skippedExercises += 1;
       continue;
     }
+
+    if (result.duplicated) duplicatedAsCustom += 1;
 
     const { data: createdExercise, error: insertExerciseError } =
       await supabase
@@ -248,10 +255,8 @@ export async function copyWorkoutAction(workoutId: string) {
         .insert({
           workout_id: created.id,
           user_id: user.id,
-          public_exercise_id: workoutExercise.public_exercise_id,
-          custom_exercise_id: ownsCustomExercise
-            ? workoutExercise.custom_exercise_id
-            : null,
+          public_exercise_id: result.resolved.public_exercise_id,
+          custom_exercise_id: result.resolved.custom_exercise_id,
           equipment_brand: workoutExercise.equipment_brand ?? null,
           notes: workoutExercise.notes ?? null,
           order_index: workoutExercise.order_index,
@@ -266,11 +271,9 @@ export async function copyWorkoutAction(workoutId: string) {
     }
 
     const sets = workoutExercise.exercise_sets ?? [];
-    if (!sets || sets.length === 0) {
-      continue;
-    }
+    if (!sets || sets.length === 0) continue;
 
-    const setsPayload = sets.map((set) => ({
+    const setsPayload = sets.map((set: any) => ({
       workout_exercise_id: createdExercise.id,
       user_id: user.id,
       set_number: set.set_number,
@@ -285,16 +288,14 @@ export async function copyWorkoutAction(workoutId: string) {
       .from("exercise_sets")
       .insert(setsPayload);
 
-    if (insertSetsError) {
-      throw new Error(insertSetsError.message);
-    }
+    if (insertSetsError) throw new Error(insertSetsError.message);
   }
 
   revalidatePath(WORKOUTS_PATH);
   revalidatePath(`${WORKOUTS_PATH}/${created.id}`);
   revalidatePath(`${WORKOUTS_PATH}/${created.id}/edit`);
 
-  return { id: created.id, skippedExercises };
+  return { id: created.id, skippedExercises, duplicatedAsCustom };
 }
 
 export async function addWorkoutExerciseAction({

@@ -60,6 +60,7 @@ export async function GET(req: Request, { params }: Params) {
     has_duration: boolean | null;
     has_distance: boolean | null;
     is_bodyweight: boolean | null;
+    is_assisted: boolean | null;
     primary_muscle: string | null;
   };
 

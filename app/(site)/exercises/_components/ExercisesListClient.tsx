@@ -7,7 +7,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Plus } from "lucide-react";
 import { useDebounce } from "react-use";
 
 import { createClient } from "@/utils/supabase/client";
@@ -23,6 +22,7 @@ type Props = {
   initialCount: number;
   initialQuery?: string;
   isAuthenticated: boolean;
+  isAdmin?: boolean;
 };
 
 const ExercisesListClient = ({
@@ -30,6 +30,7 @@ const ExercisesListClient = ({
   initialCount,
   initialQuery = "",
   isAuthenticated,
+  isAdmin = false,
 }: Props) => {
   const [exercises, setExercises] = useState<AvailableExercise[]>(
     initialExercises
@@ -145,6 +146,12 @@ const ExercisesListClient = ({
   );
 
   useEffect(() => {
+    return () => {
+      hasInitializedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true;
       return;
@@ -203,27 +210,9 @@ const ExercisesListClient = ({
   const totalLabel = totalCount > 0 ? totalCount : loadedCount;
 
   return (
-    <div className="py-6">
-      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-          Exercises
-        </h1>
-        <div className="hidden sm:block">
-          <ButtonLink href="/exercises/new" variant="primary" className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            New Exercise
-          </ButtonLink>
-        </div>
-      </div>
-
+    <>
       <div className="mt-4">
         <SearchBar query={query} setQuery={setQuery} />
-      </div>
-      <div className="mt-3 sm:hidden">
-        <ButtonLink href="/exercises/new" variant="primary" className="w-full gap-1.5">
-          <Plus className="h-4 w-4" />
-          New Exercise
-        </ButtonLink>
       </div>
 
       {loading ? (
@@ -232,7 +221,7 @@ const ExercisesListClient = ({
         <>
           <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
             {exercises.map((exercise) => (
-              <ExerciseCard exercise={exercise} key={exercise.id} />
+              <ExerciseCard exercise={exercise} key={exercise.id} isAdmin={isAdmin} />
             ))}
           </ul>
 
@@ -274,7 +263,7 @@ const ExercisesListClient = ({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

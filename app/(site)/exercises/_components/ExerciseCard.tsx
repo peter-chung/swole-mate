@@ -7,17 +7,14 @@ import type { Tables } from "@/types/database.types";
 
 type Exercise = Tables<"available_exercises">;
 
-const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
+const ExerciseCard = ({ exercise, isAdmin = false }: { exercise: Exercise; isAdmin?: boolean }) => {
   const muscle = exercise.primary_muscle?.trim() || null;
-  const secondaryMuscles = exercise.other_muscles?.trim();
   const typeLabel = exercise.exercise_type_label?.trim();
-  const otherMuscleBadges = secondaryMuscles
-    ? secondaryMuscles
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean)
+  const otherMuscleBadges = Array.isArray(exercise.other_muscles)
+    ? exercise.other_muscles.filter(Boolean)
     : [];
   const isCustom = exercise.source === "custom";
+  const isAdminPublic = isAdmin && exercise.source === "public";
   const cardBaseClasses =
     "flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3ecf8e]/60 dark:border-neutral-800 dark:bg-neutral-900";
 
@@ -64,9 +61,13 @@ const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
 
   return (
     <li className="h-full">
-      {isCustom ? (
+      {isCustom || isAdminPublic ? (
         <Link
-          href={`/exercises/${exercise.id}`}
+          href={
+            isAdminPublic
+              ? `/exercises/${exercise.id}/edit/public`
+              : `/exercises/${exercise.id}`
+          }
           className={`${cardBaseClasses} group transition hover:-translate-y-0.5 hover:shadow-md`}
         >
           {content}
