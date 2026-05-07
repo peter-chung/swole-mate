@@ -36,11 +36,17 @@ export async function signup(formData: FormData) {
 
     if (updateError) return { error: updateError.message };
 
-    await supabase.from("profiles").upsert({
-      id: existingUser.id,
-      username,
-      updated_at: new Date().toISOString(),
-    });
+    const { data: { user: updatedUser } } = await supabase.auth.getUser();
+
+    if (updatedUser?.email_confirmed_at) {
+      await supabase.from("profiles").upsert({
+        id: existingUser.id,
+        username,
+        updated_at: new Date().toISOString(),
+      });
+      revalidatePath("/", "layout");
+      redirect("/workouts");
+    }
 
     revalidatePath("/", "layout");
     redirect("/login?notice=confirm-email");
