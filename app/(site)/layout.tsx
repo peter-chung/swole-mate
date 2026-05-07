@@ -17,7 +17,7 @@ export default async function SiteLayout({
       <NavBar />
       <DemoBanner />
       <TryDemoBanner />
-      <main className={`flex-1 mx-auto w-full max-w-6xl px-4 sm:px-6 ${user ? "pb-20 sm:pb-0" : ""}`}>
+      <main className={`flex-1 mx-auto w-full max-w-6xl px-4 sm:px-6 ${user ? "pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0" : ""}`}>
         {children}
       </main>
       {user && <BottomNav />}
