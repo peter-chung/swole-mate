@@ -64,7 +64,9 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const workoutExercises = data?.workout_exercises ?? [];
+  const workoutExercises = (data?.workout_exercises ?? [])
+    .slice()
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
   const resolveExerciseId = (we: {
     public_exercise_id?: string | null;
     custom_exercise_id?: string | null;

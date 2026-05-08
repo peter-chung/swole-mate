@@ -11,7 +11,9 @@ import { useDebounce } from "react-use";
 
 import { createClient } from "@/utils/supabase/client";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
+import PullToRefresh from "@/app/_components/PullToRefresh";
 import ExerciseCard from "./ExerciseCard";
+import ExerciseCardSkeleton from "./ExerciseCardSkeleton";
 import SearchBar from "./SearchBar";
 import type { AvailableExercise } from "../_lib/types";
 import { EXERCISES_PAGE_SIZE } from "../_lib/constants";
@@ -209,14 +211,27 @@ const ExercisesListClient = ({
   const loadedCount = exercises.length;
   const totalLabel = totalCount > 0 ? totalCount : loadedCount;
 
+  const silentRefresh = useCallback(async () => {
+    setExercises([]);
+    setPage(0);
+    setHasMore(true);
+    setLoadingMore(false);
+    setTotalCount(0);
+    await loadExercises(currentQuery, 0, false);
+  }, [loadExercises, currentQuery]);
+
   return (
-    <>
+    <PullToRefresh onRefresh={silentRefresh}>
       <div className="mt-4">
         <SearchBar query={query} setQuery={setQuery} />
       </div>
 
       {loading ? (
-        <LoadingSpinner className="mt-6" />
+        <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ExerciseCardSkeleton key={i} />
+          ))}
+        </ul>
       ) : exercises.length > 0 ? (
         <>
           <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
@@ -263,7 +278,7 @@ const ExercisesListClient = ({
           </div>
         </div>
       )}
-    </>
+    </PullToRefresh>
   );
 };
 

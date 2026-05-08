@@ -12,7 +12,10 @@
       "Bash(Select-Object Name)",
       "Bash(node -e ' *)",
       "Bash(npx supabase *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\pchun\\\\Workspace\\\\swole-mate\\\\app\" -Recurse -Filter \"*.tsx\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(findstr /i \"card\\\\|navbar\\\\|nav\\\\|header\\\\|profile\")"
     ]
   }
 }

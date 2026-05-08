@@ -91,15 +91,15 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
               {isMenuOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 z-20 mt-2 min-w-44 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
+                  className="absolute right-0 z-20 mt-2 min-w-52 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 sm:min-w-44"
                 >
                   <Link
                     href={`/routines/${routine.id}/edit`}
                     role="menuitem"
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-neutral-800"
+                    className="flex w-full items-center gap-2 rounded px-3 py-3 text-left text-base text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-neutral-800 sm:gap-1.5 sm:px-2 sm:py-1.5 sm:text-sm"
                   >
-                    <Pencil className="h-4 w-4" aria-hidden="true" />
+                    <Pencil className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
                     <span>Edit routine</span>
                   </Link>
                   <div className="my-1 h-px bg-gray-200 dark:bg-neutral-700" />
@@ -111,9 +111,9 @@ export default function RoutineDetailCard({ routine, ownerName }: Props) {
                       setConfirmDeleteOpen(true);
                     }}
                     disabled={isDeleting}
-                    className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-500/10"
+                    className="flex w-full items-center gap-2 rounded px-3 py-3 text-left text-base text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-500/10 sm:gap-1.5 sm:px-2 sm:py-1.5 sm:text-sm"
                   >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    <Trash2 className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
                     <span>{isDeleting ? "Deleting..." : "Delete routine"}</span>
                   </button>
                 </div>

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
+import PullToRefresh from "@/app/_components/PullToRefresh";
 import RoutineCard from "./RoutineCard";
 import type { RoutineWithOwner } from "../_lib/getRoutinesList";
 import { ButtonLink } from "@/app/_components/Button";
@@ -39,6 +40,17 @@ export default function RoutinesListClient({
     }
   };
 
+  const silentRefresh = useCallback(async () => {
+    try {
+      const res = await fetch("/api/routines", { method: "GET" });
+      const result = await res.json();
+      if (!res.ok || res.status === 401) return;
+      setRoutines(result.data ?? []);
+    } catch (error) {
+      console.error("Error fetching routines:", error);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -67,7 +79,7 @@ export default function RoutinesListClient({
   }, [isAuthenticated, supabase]);
 
   return (
-    <>
+    <PullToRefresh onRefresh={silentRefresh}>
       {loading ? (
         <LoadingSpinner className="mt-4" />
       ) : routines.length > 0 ? (
@@ -88,6 +100,6 @@ export default function RoutinesListClient({
           </div>
         </div>
       )}
-    </>
+    </PullToRefresh>
   );
 }
