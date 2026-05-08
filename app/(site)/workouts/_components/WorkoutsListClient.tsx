@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
+import PullToRefresh from "@/app/_components/PullToRefresh";
 import WorkoutCard from "./WorkoutCard";
 import type { WorkoutWithOwner } from "../_lib/getWorkoutsList";
 import { ButtonLink } from "@/app/_components/Button";
@@ -35,6 +36,18 @@ const WorkoutsListClient = ({ initialWorkouts, mode }: Props) => {
     }
   };
 
+  const silentRefresh = useCallback(async () => {
+    try {
+      const url = mode === "mine" ? "/api/workouts?mine=true" : "/api/workouts";
+      const res = await fetch(url, { method: "GET" });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      setWorkouts(result.data);
+    } catch (error) {
+      console.error("Error fetching workouts:", error);
+    }
+  }, [mode]);
+
   useEffect(() => {
     const channel = supabase
       .channel(`${mode}-workouts-changes`)
@@ -49,7 +62,7 @@ const WorkoutsListClient = ({ initialWorkouts, mode }: Props) => {
   const isFeed = mode === "feed";
 
   return (
-    <>
+    <PullToRefresh onRefresh={silentRefresh}>
       {loading ? (
         <LoadingSpinner className="mt-4" />
       ) : workouts.length > 0 ? (
@@ -94,7 +107,7 @@ const WorkoutsListClient = ({ initialWorkouts, mode }: Props) => {
           </div>
         </div>
       )}
-    </>
+    </PullToRefresh>
   );
 };
 

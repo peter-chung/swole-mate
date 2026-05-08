@@ -130,13 +130,15 @@ export async function getWorkoutWithRelations(
     }
   }
 
-  const enrichedExercises = workoutExercises.map((we) => {
-    const exerciseId = resolveExerciseId(we);
-    return {
-      ...we,
-      exercise: exerciseId ? exerciseLookup.get(exerciseId) ?? null : null,
-    };
-  });
+  const enrichedExercises = workoutExercises
+    .map((we) => {
+      const exerciseId = resolveExerciseId(we);
+      return {
+        ...we,
+        exercise: exerciseId ? exerciseLookup.get(exerciseId) ?? null : null,
+      };
+    })
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 
   const normalizedUser = Array.isArray(rawUser)
     ? rawUser[0] ?? null

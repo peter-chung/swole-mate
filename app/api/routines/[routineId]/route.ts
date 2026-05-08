@@ -39,7 +39,9 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const routineExercises = (data as any)?.routine_exercises ?? [];
+  const routineExercises = ((data as any)?.routine_exercises ?? [])
+    .slice()
+    .sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0));
   const resolveExerciseId = (re: any) =>
     re.public_exercise_id ?? re.custom_exercise_id ?? null;
 

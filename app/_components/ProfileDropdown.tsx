@@ -48,9 +48,9 @@ export default function ProfileDropdown({ email }: Props) {
             <Link
               href="/profile"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-neutral-800"
+              className="flex items-center gap-2 rounded-md px-3 py-3 text-base text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-neutral-800 sm:py-2 sm:text-sm"
             >
-              <User size={14} />
+              <User className="h-4 w-4 shrink-0 sm:h-3.5 sm:w-3.5" />
               My Profile
             </Link>
           </div>
@@ -59,9 +59,9 @@ export default function ProfileDropdown({ email }: Props) {
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
-                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                className="flex w-full items-center gap-2 rounded-md px-3 py-3 text-base text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 sm:py-2 sm:text-sm"
               >
-                <LogOut size={14} />
+                <LogOut className="h-4 w-4 shrink-0 sm:h-3.5 sm:w-3.5" />
                 Sign out
               </button>
             </form>

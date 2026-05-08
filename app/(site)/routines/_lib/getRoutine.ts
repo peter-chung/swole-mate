@@ -132,13 +132,15 @@ export async function getRoutineWithRelations(
     }
   }
 
-  const enrichedExercises = routineExercises.map((re) => {
-    const exerciseId = resolveExerciseId(re);
-    return {
-      ...re,
-      exercise: exerciseId ? exerciseLookup.get(exerciseId) ?? null : null,
-    };
-  });
+  const enrichedExercises = routineExercises
+    .map((re) => {
+      const exerciseId = resolveExerciseId(re);
+      return {
+        ...re,
+        exercise: exerciseId ? exerciseLookup.get(exerciseId) ?? null : null,
+      };
+    })
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 
   const normalizedUser = Array.isArray(rawUser)
     ? rawUser[0] ?? null

@@ -1,8 +1,13 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
 import { ButtonLink } from "@/app/_components/Button";
 import DemoButton from "@/app/_components/DemoButton";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect("/workouts");
+
   return (
     <div>
 
