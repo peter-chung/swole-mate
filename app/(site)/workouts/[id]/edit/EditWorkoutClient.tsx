@@ -411,7 +411,11 @@ const EditWorkoutClient = ({
       }
 
       const exerciseMetaSaves = (workout.workout_exercises ?? [])
-        .filter((we) => exerciseMetaDirtyIds.includes(we.id))
+        .filter(
+          (we) =>
+            exerciseMetaDirtyIds.includes(we.id) &&
+            !deletionSucceededIds.has(we.id),
+        )
         .map((we) =>
           updateWorkoutExerciseAction({
             workoutId,
