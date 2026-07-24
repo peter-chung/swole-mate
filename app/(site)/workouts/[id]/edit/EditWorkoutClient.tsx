@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, MoreVertical, Plus, RotateCcw, Tag, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, Loader2, MoreVertical, Plus, Tag, Trash2, X } from "lucide-react";
 import Button from "@/app/_components/Button";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { useDebounce, useNetworkState } from "react-use";
 import { InputField, TextAreaField } from "@/app/_components/FormFields";
-import ConfirmDialog from "@/app/_components/ConfirmDialog";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
 import AddWorkoutExerciseModal from "../../_components/AddWorkoutExerciseModal";
 import ExerciseSetForm, {
@@ -78,15 +77,12 @@ const EditWorkoutClient = ({
   >({});
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [savingAll, setSavingAll] = useState(false);
-  const [pendingDeletedExerciseIds, setPendingDeletedExerciseIds] = useState<
-    number[]
-  >([]);
-  const [pendingAddedExerciseIds, setPendingAddedExerciseIds] = useState<number[]>([]);
+  type AutosaveState = "idle" | "saving" | "saved" | "error";
+  const [autosaveState, setAutosaveState] = useState<AutosaveState>("saved");
+  const [showSavingIndicator, setShowSavingIndicator] = useState(false);
   const [editingBrandMap, setEditingBrandMap] = useState<
     Record<number, boolean>
   >({});
-  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
   const [openActionsExerciseId, setOpenActionsExerciseId] = useState<
     number | null
   >(null);
@@ -94,9 +90,16 @@ const EditWorkoutClient = ({
   const router = useRouter();
   const formRefs = useRef<Record<number, ExerciseSetFormHandle | null>>({});
   const [dirtyMap, setDirtyMap] = useState<Record<number, boolean>>({});
-  const pendingDeletedExerciseIdsRef = useRef<number[]>([]);
   const dirtyMapRef = useRef<Record<number, boolean>>({});
   const workoutExercisesRef = useRef<WorkoutWithRelations["workout_exercises"]>([]);
+  const detailsDraftRef = useRef<WorkoutDraft>(detailsDraft);
+  const detailsDirtyRef = useRef(false);
+  const exerciseMetaDraftsRef = useRef(exerciseMetaDrafts);
+  const exerciseMetaDirtyIdsRef = useRef<number[]>([]);
+  const anyDirtyRef = useRef(false);
+  const autosaveInFlightRef = useRef(false);
+  const autosaveQueuedRef = useRef(false);
+  const cancelAutosaveDebounceRef = useRef<() => void>(() => {});
 
   const workoutId = String(workout.id);
   const detailsDirty =
@@ -119,17 +122,11 @@ const EditWorkoutClient = ({
   const anyDirty = Boolean(
     detailsDirty ||
       hasExerciseMetaDirty ||
-      pendingDeletedExerciseIds.length > 0 ||
-      pendingAddedExerciseIds.length > 0 ||
       workout.workout_exercises?.some((we) => !!dirtyMap[we.id]),
   );
 
   // Keep refs in sync so fetchWorkout can read current values without
   // needing them in its dependency array (avoids stale closure issues).
-  useEffect(() => {
-    pendingDeletedExerciseIdsRef.current = pendingDeletedExerciseIds;
-  }, [pendingDeletedExerciseIds]);
-
   useEffect(() => {
     dirtyMapRef.current = dirtyMap;
   }, [dirtyMap]);
@@ -137,6 +134,26 @@ const EditWorkoutClient = ({
   useEffect(() => {
     workoutExercisesRef.current = workout.workout_exercises;
   }, [workout.workout_exercises]);
+
+  useEffect(() => {
+    detailsDraftRef.current = detailsDraft;
+  }, [detailsDraft]);
+
+  useEffect(() => {
+    detailsDirtyRef.current = detailsDirty;
+  }, [detailsDirty]);
+
+  useEffect(() => {
+    exerciseMetaDraftsRef.current = exerciseMetaDrafts;
+  }, [exerciseMetaDrafts]);
+
+  useEffect(() => {
+    exerciseMetaDirtyIdsRef.current = exerciseMetaDirtyIds;
+  }, [exerciseMetaDirtyIds]);
+
+  useEffect(() => {
+    anyDirtyRef.current = anyDirty;
+  }, [anyDirty]);
 
   const fetchWorkout = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -169,7 +186,6 @@ const EditWorkoutClient = ({
         setAutoSuggestedSetMap({});
         setEditingBrandMap({});
         if (!silent) {
-          setPendingDeletedExerciseIds([]);
           setDirtyMap({});
         }
       } catch (err) {
@@ -184,42 +200,6 @@ const EditWorkoutClient = ({
     [workoutId],
   );
 
-  const stageDeleteExercise = useCallback((workoutExerciseId: number) => {
-    if (!workoutExerciseId) return;
-    setPendingDeletedExerciseIds((prev) =>
-      prev.includes(workoutExerciseId) ? prev : [...prev, workoutExerciseId],
-    );
-    setDirtyMap((prev) => {
-      const next = { ...prev };
-      delete next[workoutExerciseId];
-      return next;
-    });
-    setExerciseMetaDrafts((prev) => {
-      const next = { ...prev };
-      delete next[workoutExerciseId];
-      return next;
-    });
-    setAppliedExerciseMetaDrafts((prev) => {
-      const next = { ...prev };
-      delete next[workoutExerciseId];
-      return next;
-    });
-    setAutoSuggestedSetMap((prev) => {
-      const next = { ...prev };
-      delete next[workoutExerciseId];
-      return next;
-    });
-    setEditingBrandMap((prev) => {
-      const next = { ...prev };
-      delete next[workoutExerciseId];
-      return next;
-    });
-  }, []);
-
-  const unstageDeleteExercise = useCallback((workoutExerciseId: number) => {
-    setPendingDeletedExerciseIds((prev) => prev.filter((id) => id !== workoutExerciseId));
-  }, []);
-
   const persistDeleteExercise = useCallback(
     async (workoutExerciseId: number) => {
       const res = await fetch(
@@ -232,6 +212,55 @@ const EditWorkoutClient = ({
       if (!res.ok) throw new Error(data?.error || "Failed to delete exercise");
     },
     [workoutId],
+  );
+
+  const handleDeleteExercise = useCallback(
+    async (workoutExerciseId: number) => {
+      setWorkout((prev) => ({
+        ...prev,
+        workout_exercises: (prev.workout_exercises ?? []).filter(
+          (we) => we.id !== workoutExerciseId,
+        ),
+      }));
+      setDirtyMap((prev) => {
+        const next = { ...prev };
+        delete next[workoutExerciseId];
+        return next;
+      });
+      setExerciseMetaDrafts((prev) => {
+        const next = { ...prev };
+        delete next[workoutExerciseId];
+        return next;
+      });
+      setAppliedExerciseMetaDrafts((prev) => {
+        const next = { ...prev };
+        delete next[workoutExerciseId];
+        return next;
+      });
+      setAutoSuggestedSetMap((prev) => {
+        const next = { ...prev };
+        delete next[workoutExerciseId];
+        return next;
+      });
+      setEditingBrandMap((prev) => {
+        const next = { ...prev };
+        delete next[workoutExerciseId];
+        return next;
+      });
+      delete formRefs.current[workoutExerciseId];
+
+      try {
+        await persistDeleteExercise(workoutExerciseId);
+        toast.success("Exercise removed");
+      } catch (err) {
+        console.error(err);
+        toast.error(
+          err instanceof Error ? err.message : "Failed to delete exercise",
+        );
+        await fetchWorkout({ silent: false });
+      }
+    },
+    [fetchWorkout, persistDeleteExercise],
   );
 
   const handleExerciseBrandBlur = useCallback(
@@ -353,31 +382,30 @@ const EditWorkoutClient = ({
     setEditingBrandMap((prev) => ({ ...prev, [workoutExerciseId]: false }));
   }, [appliedExerciseMetaDrafts]);
 
-  const handleSaveAll = useCallback(async () => {
-    if (
-      !anyDirty &&
-      !workout.workout_exercises?.length &&
-      pendingDeletedExerciseIds.length === 0
-    ) {
-      return true;
+  type PersistResult = { ok: true } | { ok: false; message: string };
+
+  const runPersist = useCallback(async (): Promise<PersistResult> => {
+    const workoutExercises = workoutExercisesRef.current ?? [];
+
+    if (!anyDirtyRef.current && !workoutExercises.length) {
+      return { ok: true };
     }
 
     try {
-      setSavingAll(true);
-
-      if (detailsDirty) {
-        const trimmedName = detailsDraft.name.trim();
+      if (detailsDirtyRef.current) {
+        const draft = detailsDraftRef.current;
+        const trimmedName = draft.name.trim();
         if (!trimmedName) {
           throw new Error("Workout name is required");
         }
-        if (!detailsDraft.date) {
+        if (!draft.date) {
           throw new Error("Workout date is required");
         }
 
         const payload = {
           name: trimmedName,
-          date: detailsDraft.date,
-          notes: detailsDraft.notes,
+          date: draft.date,
+          notes: draft.notes,
         };
 
         await updateWorkoutAction(workoutId, payload);
@@ -388,48 +416,23 @@ const EditWorkoutClient = ({
         });
       }
 
-      const deletionsToPersist = [...pendingDeletedExerciseIds];
-      const deletionResults = await Promise.allSettled(
-        deletionsToPersist.map((id) => persistDeleteExercise(id)),
-      );
-      const deletionSucceededIds = new Set<number>(
-        deletionResults.flatMap((result, idx) =>
-          result.status === "fulfilled" ? [deletionsToPersist[idx]] : [],
-        ),
-      );
-      const deletionFailed = deletionResults.some(
-        (result) => result.status === "rejected",
-      );
-      setPendingDeletedExerciseIds((prev) =>
-        prev.filter((id) => !deletionSucceededIds.has(id)),
-      );
-      if (!deletionFailed) {
-        setPendingAddedExerciseIds([]);
-      }
-      if (deletionFailed) {
-        throw new Error("Failed to delete some exercises");
-      }
-
-      const exerciseMetaSaves = (workout.workout_exercises ?? [])
-        .filter(
-          (we) =>
-            exerciseMetaDirtyIds.includes(we.id) &&
-            !deletionSucceededIds.has(we.id),
-        )
+      const exerciseMetaDrafts = exerciseMetaDraftsRef.current;
+      const exerciseMetaDirtyIds = exerciseMetaDirtyIdsRef.current;
+      const exerciseMetaSaves = workoutExercises
+        .filter((we) => exerciseMetaDirtyIds.includes(we.id))
         .map((we) =>
           updateWorkoutExerciseAction({
             workoutId,
             workoutExerciseId: we.id,
             equipmentBrand: exerciseMetaDrafts[we.id]?.equipmentBrand ?? "",
             notes: exerciseMetaDrafts[we.id]?.notes ?? "",
+            // autosave must never trigger the expensive fillPreviousSets path
             fillPreviousSets: false,
           }),
         );
       await Promise.all(exerciseMetaSaves);
 
-      const saves = (workout.workout_exercises ?? [])
-        .filter((we) => !pendingDeletedExerciseIds.includes(we.id))
-        .map(async (we) => {
+      const saves = workoutExercises.map(async (we) => {
         const handle = formRefs.current[we.id];
         if (handle?.save) {
           try {
@@ -443,52 +446,53 @@ const EditWorkoutClient = ({
       });
       await Promise.all(saves);
 
-      await fetchWorkout({ silent: true });
-      toast.success("All changes saved");
-      return true;
+      const shouldRefetch =
+        detailsDirtyRef.current || exerciseMetaDirtyIds.length > 0;
+      if (shouldRefetch) {
+        await fetchWorkout({ silent: true });
+      }
+
+      return { ok: true };
     } catch (err) {
       console.error(err);
-      toast.error(
-        err instanceof Error ? err.message : "Failed to save some changes",
-      );
-      return false;
+      return {
+        ok: false,
+        message: err instanceof Error ? err.message : "Failed to save some changes",
+      };
+    }
+  }, [fetchWorkout, workoutId]);
+
+  const triggerAutosave = useCallback(async () => {
+    if (autosaveInFlightRef.current) {
+      autosaveQueuedRef.current = true;
+      return;
+    }
+    autosaveInFlightRef.current = true;
+    setAutosaveState("saving");
+    try {
+      const result = await runPersist();
+      if (result.ok) {
+        setAutosaveState("saved");
+      } else {
+        setAutosaveState("error");
+        toast.error(result.message);
+      }
     } finally {
-      setSavingAll(false);
+      autosaveInFlightRef.current = false;
+      if (autosaveQueuedRef.current) {
+        autosaveQueuedRef.current = false;
+        void triggerAutosave();
+      }
     }
-  }, [
-    anyDirty,
-    detailsDirty,
-    detailsDraft.date,
-    detailsDraft.name,
-    detailsDraft.notes,
-    dirtyMap,
-    exerciseMetaDirtyIds,
-    exerciseMetaDrafts,
-    fetchWorkout,
-    pendingDeletedExerciseIds,
-    persistDeleteExercise,
-    workout.workout_exercises,
-    workoutId,
-  ]);
+  }, [runPersist]);
 
-  const handleCancel = useCallback(() => {
-    if (!anyDirty) {
-      router.push(`/workouts/${String(workout.id)}`);
-      return;
+  const handleBack = useCallback(async () => {
+    cancelAutosaveDebounceRef.current();
+    if (anyDirtyRef.current) {
+      await triggerAutosave();
     }
-    setConfirmDiscardOpen(true);
-  }, [anyDirty, router, workout.id]);
-
-  const handleSaveAndExit = useCallback(async () => {
-    if (!anyDirty) {
-      router.push(`/workouts/${String(workout.id)}`);
-      return;
-    }
-    const ok = await handleSaveAll();
-    if (ok) {
-      router.push(`/workouts/${String(workout.id)}`);
-    }
-  }, [anyDirty, handleSaveAll, router, workout.id]);
+    router.push(`/workouts/${String(workout.id)}`);
+  }, [router, triggerAutosave, workout.id]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -499,6 +503,55 @@ const EditWorkoutClient = ({
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [anyDirty]);
+
+  const [, cancelAutosaveDebounce] = useDebounce(
+    () => {
+      if (!anyDirty) return;
+      void triggerAutosave();
+    },
+    3000,
+    [detailsDraft, exerciseMetaDrafts, dirtyMap],
+  );
+  useEffect(() => {
+    cancelAutosaveDebounceRef.current = cancelAutosaveDebounce;
+  }, [cancelAutosaveDebounce]);
+
+  useEffect(() => {
+    const flushOnHide = () => {
+      if (document.visibilityState === "hidden") {
+        cancelAutosaveDebounceRef.current();
+        if (anyDirtyRef.current) void triggerAutosave();
+      }
+    };
+    const flushOnPageHide = () => {
+      cancelAutosaveDebounceRef.current();
+      if (anyDirtyRef.current) void triggerAutosave();
+    };
+    document.addEventListener("visibilitychange", flushOnHide);
+    window.addEventListener("pagehide", flushOnPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", flushOnHide);
+      window.removeEventListener("pagehide", flushOnPageHide);
+    };
+  }, [triggerAutosave]);
+
+  const { online } = useNetworkState();
+  const prevOnlineRef = useRef(online);
+  useEffect(() => {
+    if (online && !prevOnlineRef.current && autosaveState === "error") {
+      void triggerAutosave();
+    }
+    prevOnlineRef.current = online;
+  }, [online, autosaveState, triggerAutosave]);
+
+  useEffect(() => {
+    if (autosaveState !== "saving") {
+      setShowSavingIndicator(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowSavingIndicator(true), 400);
+    return () => clearTimeout(timer);
+  }, [autosaveState]);
 
   useEffect(() => {
     if (openActionsExerciseId == null) return;
@@ -525,16 +578,17 @@ const EditWorkoutClient = ({
   }, [openActionsExerciseId]);
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 pb-28 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:px-8">
       <header className="mb-4 sm:mb-6">
         <div className="mb-2">
-          <Link
-            href={`/workouts/${String(workout.id)}`}
+          <button
+            type="button"
+            onClick={() => void handleBack()}
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             <span>Back to workout</span>
-          </Link>
+          </button>
         </div>
         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
           Edit Workout
@@ -619,28 +673,18 @@ const EditWorkoutClient = ({
                 .slice()
                 .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
                 .map((we) => {
-                const isPendingDeletion = pendingDeletedExerciseIds.includes(we.id);
                 return (
                   <div
                     key={we.id}
-                    className={`px-4 py-4 transition-opacity sm:rounded-lg sm:border sm:p-5 sm:shadow-sm sm:backdrop-blur-sm ${
-                      isPendingDeletion
-                        ? "bg-red-50/60 dark:bg-red-950/20 opacity-60 sm:border-red-200 sm:dark:border-red-900/50"
-                        : "sm:bg-white/60 sm:dark:bg-neutral-900/40 sm:border-gray-200 sm:dark:border-neutral-800"
-                    }`}
+                    className="px-4 py-4 sm:rounded-lg sm:border sm:p-5 sm:shadow-sm sm:backdrop-blur-sm sm:bg-white/60 sm:dark:bg-neutral-900/40 sm:border-gray-200 sm:dark:border-neutral-800"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex min-w-0 flex-1 flex-col gap-2">
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <h3 className={`truncate text-sm font-medium ${isPendingDeletion ? "line-through text-gray-500 dark:text-gray-500" : "text-gray-900 dark:text-white"}`}>
+                          <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">
                             {we.exercise?.name ?? "Exercise"}
                           </h3>
-                          {isPendingDeletion && (
-                            <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                              Removed on save
-                            </span>
-                          )}
-                          {!isPendingDeletion && appliedExerciseMetaDrafts[we.id]?.equipmentBrand?.trim() && (
+                          {appliedExerciseMetaDrafts[we.id]?.equipmentBrand?.trim() && (
                             <button
                               type="button"
                               onClick={() => openBrandEditor(we.id)}
@@ -650,106 +694,91 @@ const EditWorkoutClient = ({
                             </button>
                           )}
                         </div>
-                        {!isPendingDeletion && (
-                          <div className="relative">
-                            <input
-                              type="text"
-                              placeholder="Add a note..."
-                              value={exerciseMetaDrafts[we.id]?.notes ?? ""}
-                              onChange={(e) =>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Add a note..."
+                            value={exerciseMetaDrafts[we.id]?.notes ?? ""}
+                            onChange={(e) =>
+                              setExerciseMetaDrafts((prev) => ({
+                                ...prev,
+                                [we.id]: { ...prev[we.id], notes: e.target.value },
+                              }))
+                            }
+                            className="w-full bg-transparent text-base text-gray-400 placeholder-gray-300 outline-none border-b border-transparent focus:border-[#3ecf8e] pb-0.5 pr-5 transition-colors dark:text-gray-500 dark:placeholder-gray-600 dark:focus:border-[#3ecf8e] sm:text-xs"
+                          />
+                          {exerciseMetaDrafts[we.id]?.notes && (
+                            <button
+                              type="button"
+                              onClick={() =>
                                 setExerciseMetaDrafts((prev) => ({
                                   ...prev,
-                                  [we.id]: { ...prev[we.id], notes: e.target.value },
+                                  [we.id]: { ...prev[we.id], notes: "" },
                                 }))
                               }
-                              className="w-full bg-transparent text-base text-gray-400 placeholder-gray-300 outline-none border-b border-transparent focus:border-[#3ecf8e] pb-0.5 pr-5 transition-colors dark:text-gray-500 dark:placeholder-gray-600 dark:focus:border-[#3ecf8e] sm:text-xs"
-                            />
-                            {exerciseMetaDrafts[we.id]?.notes && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setExerciseMetaDrafts((prev) => ({
-                                    ...prev,
-                                    [we.id]: { ...prev[we.id], notes: "" },
-                                  }))
-                                }
-                                aria-label="Clear note"
-                                className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-300 transition-colors hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            )}
+                              aria-label="Clear note"
+                              className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-300 transition-colors hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="relative shrink-0" data-exercise-actions-menu>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenActionsExerciseId((prev) =>
+                              prev === we.id ? null : we.id,
+                            )
+                          }
+                          disabled={loading}
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-400 dark:hover:bg-neutral-800 dark:hover:text-gray-200"
+                          aria-label="Exercise actions"
+                          aria-haspopup="menu"
+                          aria-expanded={openActionsExerciseId === we.id}
+                        >
+                          <MoreVertical className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        {openActionsExerciseId === we.id && (
+                          <div
+                            className="absolute right-0 top-11 z-20 min-w-56 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 sm:min-w-40"
+                            role="menu"
+                          >
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenActionsExerciseId(null);
+                                openBrandEditor(we.id);
+                              }}
+                              className="flex w-full items-center gap-2 rounded px-3 py-3 text-left text-base text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-neutral-800 sm:gap-1.5 sm:px-2 sm:py-1.5 sm:text-sm"
+                            >
+                              <Tag className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
+                              <span>
+                                {appliedExerciseMetaDrafts[we.id]?.equipmentBrand?.trim()
+                                  ? "Edit brand"
+                                  : "Set brand"}
+                              </span>
+                            </button>
+                            <div className="my-1 h-px bg-gray-200 dark:bg-neutral-700" />
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenActionsExerciseId(null);
+                                void handleDeleteExercise(we.id);
+                              }}
+                              className="flex w-full items-center gap-2 rounded px-3 py-3 text-left text-base text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 sm:gap-1.5 sm:px-2 sm:py-1.5 sm:text-sm"
+                            >
+                              <Trash2 className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
+                              <span>Remove exercise</span>
+                            </button>
                           </div>
                         )}
                       </div>
-                      {isPendingDeletion ? (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => unstageDeleteExercise(we.id)}
-                          className="gap-1.5"
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" />
-                          Undo
-                        </Button>
-                      ) : (
-                        <div className="relative shrink-0" data-exercise-actions-menu>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setOpenActionsExerciseId((prev) =>
-                                prev === we.id ? null : we.id,
-                              )
-                            }
-                            disabled={loading}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-400 dark:hover:bg-neutral-800 dark:hover:text-gray-200"
-                            aria-label="Exercise actions"
-                            aria-haspopup="menu"
-                            aria-expanded={openActionsExerciseId === we.id}
-                          >
-                            <MoreVertical className="h-4 w-4" aria-hidden="true" />
-                          </button>
-                          {openActionsExerciseId === we.id && (
-                            <div
-                              className="absolute right-0 top-11 z-20 min-w-56 rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 sm:min-w-40"
-                              role="menu"
-                            >
-                              <button
-                                type="button"
-                                role="menuitem"
-                                onClick={() => {
-                                  setOpenActionsExerciseId(null);
-                                  openBrandEditor(we.id);
-                                }}
-                                className="flex w-full items-center gap-2 rounded px-3 py-3 text-left text-base text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-neutral-800 sm:gap-1.5 sm:px-2 sm:py-1.5 sm:text-sm"
-                              >
-                                <Tag className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
-                                <span>
-                                  {appliedExerciseMetaDrafts[we.id]?.equipmentBrand?.trim()
-                                    ? "Edit brand"
-                                    : "Set brand"}
-                                </span>
-                              </button>
-                              <div className="my-1 h-px bg-gray-200 dark:bg-neutral-700" />
-                              <button
-                                type="button"
-                                role="menuitem"
-                                onClick={() => {
-                                  setOpenActionsExerciseId(null);
-                                  stageDeleteExercise(we.id);
-                                }}
-                                className="flex w-full items-center gap-2 rounded px-3 py-3 text-left text-base text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 sm:gap-1.5 sm:px-2 sm:py-1.5 sm:text-sm"
-                              >
-                                <Trash2 className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
-                                <span>Remove exercise</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
-                    {!isPendingDeletion && editingBrandMap[we.id] && (
+                    {editingBrandMap[we.id] && (
                       <div className="mt-2 max-w-sm space-y-2">
                         <InputField
                           id={`workout-exercise-brand-${we.id}`}
@@ -790,26 +819,24 @@ const EditWorkoutClient = ({
                         </div>
                       </div>
                     )}
-                    {!isPendingDeletion && (
-                      <div className="mt-2 border-t border-gray-100 pt-3 dark:border-neutral-800">
-                        <ExerciseSetForm
-                          workoutId={workoutId}
-                          workoutExerciseId={we.id}
-                          exerciseSets={we.exercise_sets ?? []}
-                          exerciseType={we.exercise ?? null}
-                          onSaved={() => void fetchWorkout({ silent: true })}
-                          onDirtyChange={(dirty) =>
-                            setDirtyMap((prev) => ({ ...prev, [we.id]: dirty }))
-                          }
-                          onManualEdit={() =>
-                            setAutoSuggestedSetMap((prev) => ({ ...prev, [we.id]: false }))
-                          }
-                          ref={(handle) => {
-                            formRefs.current[we.id] = handle;
-                          }}
-                        />
-                      </div>
-                    )}
+                    <div className="mt-2 border-t border-gray-100 pt-3 dark:border-neutral-800">
+                      <ExerciseSetForm
+                        workoutId={workoutId}
+                        workoutExerciseId={we.id}
+                        exerciseSets={we.exercise_sets ?? []}
+                        exerciseType={we.exercise ?? null}
+                        onSaved={() => void fetchWorkout({ silent: true })}
+                        onDirtyChange={(dirty) =>
+                          setDirtyMap((prev) => ({ ...prev, [we.id]: dirty }))
+                        }
+                        onManualEdit={() =>
+                          setAutoSuggestedSetMap((prev) => ({ ...prev, [we.id]: false }))
+                        }
+                        ref={(handle) => {
+                          formRefs.current[we.id] = handle;
+                        }}
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -830,6 +857,22 @@ const EditWorkoutClient = ({
             <Plus className="h-4 w-4" />
             Add Exercise
           </Button>
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => void handleBack()}
+            disabled={loading}
+            className="mt-3 w-full gap-1.5"
+          >
+            {showSavingIndicator ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4" />
+            )}
+            Save & Exit
+          </Button>
         </>
       )}
 
@@ -837,60 +880,8 @@ const EditWorkoutClient = ({
         open={isAddModalOpen}
         workoutId={workoutId}
         onClose={() => setIsAddModalOpen(false)}
-        onAdded={(newId) => {
-          setPendingAddedExerciseIds((prev) => [...prev, newId]);
-          void fetchWorkout({ silent: true });
-        }}
+        onAdded={() => void fetchWorkout({ silent: true })}
       />
-
-      <ConfirmDialog
-        open={confirmDiscardOpen}
-        title="Discard unsaved changes?"
-        description="All unsaved edits on this page will be lost."
-        destructive
-        confirmLabel="Discard"
-        onCancel={() => setConfirmDiscardOpen(false)}
-        onConfirm={() => {
-          setConfirmDiscardOpen(false);
-          void (async () => {
-            if (pendingAddedExerciseIds.length > 0) {
-              await Promise.allSettled(
-                pendingAddedExerciseIds.map((id) => persistDeleteExercise(id)),
-              );
-            }
-            router.push(`/workouts/${String(workout.id)}`);
-          })();
-        }}
-      />
-
-      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] sm:bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/80">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
-          <span className={`text-sm ${anyDirty ? "text-amber-600 dark:text-amber-400" : "text-gray-500 dark:text-gray-400"}`}>
-            {anyDirty ? "Unsaved changes" : "All changes saved"}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={handleCancel}
-              disabled={savingAll || loading}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              isLoading={savingAll}
-              disabled={loading}
-              onClick={() => void handleSaveAndExit()}
-            >
-              Save
-            </Button>
-          </div>
-        </div>
-      </div>
 
     </div>
   );
