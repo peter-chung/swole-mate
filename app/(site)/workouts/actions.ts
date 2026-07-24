@@ -696,6 +696,62 @@ export async function updateWorkoutExerciseAction({
   };
 }
 
+export async function reorderWorkoutExercisesAction({
+  workoutId,
+  orderedWorkoutExerciseIds,
+}: {
+  workoutId: string;
+  orderedWorkoutExerciseIds: number[];
+}) {
+  const { supabase, user } = await ensureUser();
+
+  if (orderedWorkoutExerciseIds.length === 0) {
+    return { success: true };
+  }
+
+  const { data: existingExercises, error: existingExercisesError } =
+    await supabase
+      .from("workout_exercises")
+      .select("id")
+      .eq("workout_id", workoutId)
+      .eq("user_id", user.id);
+
+  if (existingExercisesError) {
+    throw new Error(existingExercisesError.message);
+  }
+
+  const existingIds = new Set((existingExercises ?? []).map((row) => row.id));
+  const requestedIds = new Set(orderedWorkoutExerciseIds);
+  const isExactMatch =
+    existingIds.size === requestedIds.size &&
+    orderedWorkoutExerciseIds.every((id) => existingIds.has(id));
+
+  if (!isExactMatch) {
+    throw new Error("Invalid exercise set");
+  }
+
+  const results = await Promise.all(
+    orderedWorkoutExerciseIds.map((id, index) =>
+      supabase
+        .from("workout_exercises")
+        .update({ order_index: index + 1 })
+        .eq("id", id)
+        .eq("workout_id", workoutId)
+        .eq("user_id", user.id)
+    )
+  );
+
+  const failed = results.find((result) => result.error);
+  if (failed?.error) {
+    throw new Error(failed.error.message ?? "Failed to save exercise order");
+  }
+
+  revalidatePath(`${WORKOUTS_PATH}/${workoutId}`);
+  revalidatePath(`${WORKOUTS_PATH}/${workoutId}/edit`);
+
+  return { success: true };
+}
+
 export async function getWorkoutExerciseBrandSuggestionsAction({
   workoutId,
   workoutExerciseId,
