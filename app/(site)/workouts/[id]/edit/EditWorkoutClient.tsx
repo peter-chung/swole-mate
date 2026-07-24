@@ -1,13 +1,40 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check, Loader2, MoreVertical, Plus, Tag, Trash2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  GripVertical,
+  Loader2,
+  MoreVertical,
+  Plus,
+  Tag,
+  Trash2,
+  X,
+} from "lucide-react";
 import Button from "@/app/_components/Button";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useDebounce, useNetworkState } from "react-use";
 import { InputField, TextAreaField } from "@/app/_components/FormFields";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
+import SortableListItem from "@/app/_components/SortableListItem";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import AddWorkoutExerciseModal from "../../_components/AddWorkoutExerciseModal";
 import ExerciseSetForm, {
   ExerciseSetDraftValue,
@@ -15,6 +42,7 @@ import ExerciseSetForm, {
 } from "../../_components/ExerciseSetForm";
 import {
   getWorkoutExerciseBrandSuggestionsAction,
+  reorderWorkoutExercisesAction,
   updateWorkoutAction,
   updateWorkoutExerciseAction,
 } from "../../actions";
@@ -86,6 +114,9 @@ const EditWorkoutClient = ({
   const [openActionsExerciseId, setOpenActionsExerciseId] = useState<
     number | null
   >(null);
+  const [activeDragId, setActiveDragId] = useState<number | null>(null);
+  const [reorderSaving, setReorderSaving] = useState(false);
+  const isAnyDragActive = activeDragId !== null;
 
   const router = useRouter();
   const formRefs = useRef<Record<number, ExerciseSetFormHandle | null>>({});
@@ -118,6 +149,13 @@ const EditWorkoutClient = ({
     [exerciseMetaDrafts, workout.workout_exercises],
   );
   const hasExerciseMetaDirty = exerciseMetaDirtyIds.length > 0;
+  const sortedExercises = useMemo(
+    () =>
+      (workout.workout_exercises ?? [])
+        .slice()
+        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
+    [workout.workout_exercises],
+  );
 
   const anyDirty = Boolean(
     detailsDirty ||
@@ -381,6 +419,62 @@ const EditWorkoutClient = ({
     }));
     setEditingBrandMap((prev) => ({ ...prev, [workoutExerciseId]: false }));
   }, [appliedExerciseMetaDrafts]);
+
+  const sensors = useSensors(
+    // Delay (not distance) activation: a touch that starts on the handle but
+    // moves quickly (a scroll-through) is released back to native scrolling
+    // before the delay elapses, instead of hijacking the scroll into a drag.
+    useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragId(Number(event.active.id));
+  }, []);
+
+  const handleDragCancel = useCallback(() => {
+    setActiveDragId(null);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      setActiveDragId(null);
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = sortedExercises.findIndex((we) => we.id === active.id);
+      const newIndex = sortedExercises.findIndex((we) => we.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const reordered = arrayMove(sortedExercises, oldIndex, newIndex);
+
+      setWorkout((prev) => ({
+        ...prev,
+        workout_exercises: reordered.map((we, index) => ({
+          ...we,
+          order_index: index + 1,
+        })),
+      }));
+
+      setReorderSaving(true);
+      try {
+        await reorderWorkoutExercisesAction({
+          workoutId,
+          orderedWorkoutExerciseIds: reordered.map((we) => we.id),
+        });
+        toast.success("Exercise order updated", { duration: 1500 });
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to reorder exercises. Refreshed to latest order.");
+        await fetchWorkout({ silent: true });
+      } finally {
+        setReorderSaving(false);
+      }
+    },
+    [sortedExercises, workoutId, fetchWorkout],
+  );
 
   type PersistResult = { ok: true } | { ok: false; message: string };
 
@@ -667,21 +761,44 @@ const EditWorkoutClient = ({
             </h2>
           </section>
 
-          {workout.workout_exercises && workout.workout_exercises.length > 0 ? (
-            <div className="-mx-4 divide-y divide-gray-100 dark:divide-neutral-800 sm:mx-0 sm:space-y-4 sm:divide-y-0">
-              {workout.workout_exercises
-                .slice()
-                .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-                .map((we) => {
-                return (
-                  <div
-                    key={we.id}
-                    className="px-4 py-4 sm:rounded-lg sm:border sm:p-5 sm:shadow-sm sm:backdrop-blur-sm sm:bg-white/60 sm:dark:bg-neutral-900/40 sm:border-gray-200 sm:dark:border-neutral-800"
-                  >
+          {sortedExercises.length > 0 ? (
+            <DndContext
+              id="workout-exercises-dnd"
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragCancel={handleDragCancel}
+              onDragEnd={(event) => void handleDragEnd(event)}
+            >
+              <SortableContext
+                items={sortedExercises.map((we) => we.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="-mx-4 divide-y divide-gray-100 dark:divide-neutral-800 sm:mx-0 sm:space-y-4 sm:divide-y-0">
+                  {sortedExercises.map((we) => (
+                    <SortableListItem key={we.id} id={we.id}>
+                      {({ setNodeRef, style, dragHandleProps, isDragging }) => (
+                        <div
+                          ref={setNodeRef}
+                          style={style}
+                          className={`px-4 py-4 sm:rounded-lg sm:border sm:p-5 sm:shadow-sm sm:backdrop-blur-sm sm:bg-white/60 sm:dark:bg-neutral-900/40 sm:border-gray-200 sm:dark:border-neutral-800${isDragging ? " relative z-10 shadow-md" : ""}`}
+                        >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <div className="flex min-w-0 flex-1 items-start gap-2">
+                        {sortedExercises.length > 1 && (
+                          <button
+                            type="button"
+                            {...dragHandleProps}
+                            disabled={reorderSaving}
+                            aria-label={`Drag to reorder ${we.exercise?.name ?? "exercise"}`}
+                            className="mt-0.5 inline-flex h-8 w-8 shrink-0 touch-none select-none [-webkit-touch-callout:none] cursor-grab items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-500 dark:hover:bg-neutral-800 dark:hover:text-gray-300"
+                          >
+                            <GripVertical className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                        )}
+                        <div className="flex min-w-0 flex-1 flex-col gap-2">
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                          <h3 className="truncate select-none text-sm font-medium text-gray-900 [-webkit-touch-callout:none] dark:text-white">
                             {we.exercise?.name ?? "Exercise"}
                           </h3>
                           {appliedExerciseMetaDrafts[we.id]?.equipmentBrand?.trim() && (
@@ -694,6 +811,7 @@ const EditWorkoutClient = ({
                             </button>
                           )}
                         </div>
+                        {!isAnyDragActive && (
                         <div className="relative">
                           <input
                             type="text"
@@ -723,7 +841,10 @@ const EditWorkoutClient = ({
                             </button>
                           )}
                         </div>
+                        )}
+                        </div>
                       </div>
+                      {!isAnyDragActive && (
                       <div className="relative shrink-0" data-exercise-actions-menu>
                         <button
                           type="button"
@@ -777,8 +898,9 @@ const EditWorkoutClient = ({
                           </div>
                         )}
                       </div>
+                      )}
                     </div>
-                    {editingBrandMap[we.id] && (
+                    {!isAnyDragActive && editingBrandMap[we.id] && (
                       <div className="mt-2 max-w-sm space-y-2">
                         <InputField
                           id={`workout-exercise-brand-${we.id}`}
@@ -819,6 +941,7 @@ const EditWorkoutClient = ({
                         </div>
                       </div>
                     )}
+                    {!isAnyDragActive && (
                     <div className="mt-2 border-t border-gray-100 pt-3 dark:border-neutral-800">
                       <ExerciseSetForm
                         workoutId={workoutId}
@@ -837,10 +960,14 @@ const EditWorkoutClient = ({
                         }}
                       />
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                    )}
+                        </div>
+                      )}
+                    </SortableListItem>
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           ) : (
             <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-600 dark:border-neutral-700 dark:text-gray-400">
               No exercises yet. Add your first exercise below.
