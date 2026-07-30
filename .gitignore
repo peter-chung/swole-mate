@@ -43,6 +43,7 @@ next-env.d.ts
 #claude
 CLAUDE.local.md
 .claude/settings.local.json
+AGENTS.md
 
 # supabase
 supabase/.temp
