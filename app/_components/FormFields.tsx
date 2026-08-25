@@ -10,7 +10,8 @@ type BaseProps = {
   labelClassName?: string;
 };
 
-type InputFieldProps = React.InputHTMLAttributes<HTMLInputElement> & BaseProps;
+type InputFieldProps = React.InputHTMLAttributes<HTMLInputElement> &
+  BaseProps & { onClear?: () => void };
 type TextAreaFieldProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
   BaseProps & { onClear?: () => void };
 type SelectFieldProps = React.SelectHTMLAttributes<HTMLSelectElement> & BaseProps;
@@ -27,6 +28,7 @@ export function InputField({
   containerClassName,
   labelClassName,
   className,
+  onClear,
   ...rest
 }: InputFieldProps) {
   return (
@@ -34,7 +36,23 @@ export function InputField({
       <label htmlFor={id} className={`${baseLabelClasses} ${labelClassName ?? ""}`}>
         {label}
       </label>
-      <input id={id} className={`${baseInputClasses} ${className ?? ""}`} {...rest} />
+      <div className="relative">
+        <input
+          id={id}
+          className={`${baseInputClasses} ${onClear ? "pr-8" : ""} ${className ?? ""}`}
+          {...rest}
+        />
+        {onClear && rest.value && (
+          <button
+            type="button"
+            onClick={onClear}
+            aria-label="Clear"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

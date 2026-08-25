@@ -915,6 +915,12 @@ const EditWorkoutClient = ({
                               [we.id]: { ...prev[we.id], equipmentBrand: value },
                             }));
                           }}
+                          onClear={() =>
+                            setExerciseMetaDrafts((prev) => ({
+                              ...prev,
+                              [we.id]: { ...prev[we.id], equipmentBrand: "" },
+                            }))
+                          }
                         />
                         <div className="flex items-center gap-2">
                           <Button
