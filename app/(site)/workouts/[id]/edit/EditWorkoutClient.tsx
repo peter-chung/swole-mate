@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  ArrowUpDown,
   Check,
-  GripVertical,
   Loader2,
   MoreVertical,
   Plus,
@@ -18,31 +18,14 @@ import { toast } from "react-hot-toast";
 import { useDebounce, useNetworkState } from "react-use";
 import { InputField, TextAreaField } from "@/app/_components/FormFields";
 import LoadingSpinner from "@/app/_components/LoadingSpinner";
-import SortableListItem from "@/app/_components/SortableListItem";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import AddWorkoutExerciseModal from "../../_components/AddWorkoutExerciseModal";
+import ReorderExercisesModal from "../../_components/ReorderExercisesModal";
 import ExerciseSetForm, {
   ExerciseSetDraftValue,
   ExerciseSetFormHandle,
 } from "../../_components/ExerciseSetForm";
 import {
   getWorkoutExerciseBrandSuggestionsAction,
-  reorderWorkoutExercisesAction,
   updateWorkoutAction,
   updateWorkoutExerciseAction,
 } from "../../actions";
@@ -114,9 +97,7 @@ const EditWorkoutClient = ({
   const [openActionsExerciseId, setOpenActionsExerciseId] = useState<
     number | null
   >(null);
-  const [activeDragId, setActiveDragId] = useState<number | null>(null);
-  const [reorderSaving, setReorderSaving] = useState(false);
-  const isAnyDragActive = activeDragId !== null;
+  const [reorderModalOpen, setReorderModalOpen] = useState(false);
 
   const router = useRouter();
   const formRefs = useRef<Record<number, ExerciseSetFormHandle | null>>({});
@@ -218,12 +199,25 @@ const EditWorkoutClient = ({
         });
         const filteredWorkout = { ...fetched, workout_exercises: filteredExercises };
 
+        const freshMetaDrafts = buildExerciseMetaDrafts(filteredExercises);
+        let nextMetaDrafts = freshMetaDrafts;
+        if (silent) {
+          const currentMetaDrafts = exerciseMetaDraftsRef.current;
+          const currentMetaDirtyIds = new Set(exerciseMetaDirtyIdsRef.current);
+          nextMetaDrafts = { ...freshMetaDrafts };
+          for (const id of currentMetaDirtyIds) {
+            if (currentMetaDrafts[id]) {
+              nextMetaDrafts[id] = currentMetaDrafts[id];
+            }
+          }
+        }
+
         setWorkout(filteredWorkout);
-        setExerciseMetaDrafts(buildExerciseMetaDrafts(filteredExercises));
-        setAppliedExerciseMetaDrafts(buildExerciseMetaDrafts(filteredExercises));
+        setExerciseMetaDrafts(nextMetaDrafts);
+        setAppliedExerciseMetaDrafts(nextMetaDrafts);
         setAutoSuggestedSetMap({});
-        setEditingBrandMap({});
         if (!silent) {
+          setEditingBrandMap({});
           setDirtyMap({});
         }
       } catch (err) {
@@ -420,62 +414,6 @@ const EditWorkoutClient = ({
     setEditingBrandMap((prev) => ({ ...prev, [workoutExerciseId]: false }));
   }, [appliedExerciseMetaDrafts]);
 
-  const sensors = useSensors(
-    // Delay (not distance) activation: a touch that starts on the handle but
-    // moves quickly (a scroll-through) is released back to native scrolling
-    // before the delay elapses, instead of hijacking the scroll into a drag.
-    useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveDragId(Number(event.active.id));
-  }, []);
-
-  const handleDragCancel = useCallback(() => {
-    setActiveDragId(null);
-  }, []);
-
-  const handleDragEnd = useCallback(
-    async (event: DragEndEvent) => {
-      setActiveDragId(null);
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const oldIndex = sortedExercises.findIndex((we) => we.id === active.id);
-      const newIndex = sortedExercises.findIndex((we) => we.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const reordered = arrayMove(sortedExercises, oldIndex, newIndex);
-
-      setWorkout((prev) => ({
-        ...prev,
-        workout_exercises: reordered.map((we, index) => ({
-          ...we,
-          order_index: index + 1,
-        })),
-      }));
-
-      setReorderSaving(true);
-      try {
-        await reorderWorkoutExercisesAction({
-          workoutId,
-          orderedWorkoutExerciseIds: reordered.map((we) => we.id),
-        });
-        toast.success("Exercise order updated", { duration: 1500 });
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to reorder exercises. Refreshed to latest order.");
-        await fetchWorkout({ silent: true });
-      } finally {
-        setReorderSaving(false);
-      }
-    },
-    [sortedExercises, workoutId, fetchWorkout],
-  );
-
   type PersistResult = { ok: true } | { ok: false; message: string };
 
   const runPersist = useCallback(async (): Promise<PersistResult> => {
@@ -502,12 +440,20 @@ const EditWorkoutClient = ({
           notes: draft.notes,
         };
 
-        await updateWorkoutAction(workoutId, payload);
+        const saved = await updateWorkoutAction(workoutId, payload);
         setDetailsDraft({
           name: payload.name,
           date: payload.date,
           notes: payload.notes ?? "",
         });
+        if (saved) {
+          setWorkout((prev) => ({
+            ...prev,
+            name: saved.name,
+            date: saved.date,
+            notes: saved.notes,
+          }));
+        }
       }
 
       const exerciseMetaDrafts = exerciseMetaDraftsRef.current;
@@ -522,9 +468,46 @@ const EditWorkoutClient = ({
             notes: exerciseMetaDrafts[we.id]?.notes ?? "",
             // autosave must never trigger the expensive fillPreviousSets path
             fillPreviousSets: false,
-          }),
+          }).then((data) => ({
+            id: we.id,
+            equipmentBrand: data.equipment_brand ?? "",
+            notes: (exerciseMetaDrafts[we.id]?.notes ?? "").trim() || null,
+          })),
         );
-      await Promise.all(exerciseMetaSaves);
+      const savedExerciseMeta = await Promise.all(exerciseMetaSaves);
+
+      if (savedExerciseMeta.length > 0) {
+        const savedById = new Map(savedExerciseMeta.map((s) => [s.id, s]));
+
+        setWorkout((prev) => ({
+          ...prev,
+          workout_exercises: (prev.workout_exercises ?? []).map((we) => {
+            const saved = savedById.get(we.id);
+            if (!saved) return we;
+            return {
+              ...we,
+              equipment_brand: saved.equipmentBrand,
+              notes: saved.notes,
+            };
+          }),
+        }));
+
+        const applyConfirmed = (
+          prev: Record<number, ExerciseMetaDraft>,
+        ): Record<number, ExerciseMetaDraft> => {
+          const next = { ...prev };
+          for (const saved of savedExerciseMeta) {
+            next[saved.id] = {
+              ...next[saved.id],
+              equipmentBrand: saved.equipmentBrand,
+              notes: saved.notes ?? "",
+            };
+          }
+          return next;
+        };
+        setExerciseMetaDrafts(applyConfirmed);
+        setAppliedExerciseMetaDrafts(applyConfirmed);
+      }
 
       const saves = workoutExercises.map(async (we) => {
         const handle = formRefs.current[we.id];
@@ -540,12 +523,6 @@ const EditWorkoutClient = ({
       });
       await Promise.all(saves);
 
-      const shouldRefetch =
-        detailsDirtyRef.current || exerciseMetaDirtyIds.length > 0;
-      if (shouldRefetch) {
-        await fetchWorkout({ silent: true });
-      }
-
       return { ok: true };
     } catch (err) {
       console.error(err);
@@ -554,7 +531,7 @@ const EditWorkoutClient = ({
         message: err instanceof Error ? err.message : "Failed to save some changes",
       };
     }
-  }, [fetchWorkout, workoutId]);
+  }, [workoutId]);
 
   const triggerAutosave = useCallback(async () => {
     if (autosaveInFlightRef.current) {
@@ -762,90 +739,27 @@ const EditWorkoutClient = ({
           </section>
 
           {sortedExercises.length > 0 ? (
-            <DndContext
-              id="workout-exercises-dnd"
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDragStart}
-              onDragCancel={handleDragCancel}
-              onDragEnd={(event) => void handleDragEnd(event)}
-            >
-              <SortableContext
-                items={sortedExercises.map((we) => we.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="-mx-4 divide-y divide-gray-100 dark:divide-neutral-800 sm:mx-0 sm:space-y-4 sm:divide-y-0">
-                  {sortedExercises.map((we) => (
-                    <SortableListItem key={we.id} id={we.id}>
-                      {({ setNodeRef, style, dragHandleProps, isDragging }) => (
-                        <div
-                          ref={setNodeRef}
-                          style={style}
-                          className={`px-4 py-4 sm:rounded-lg sm:border sm:p-5 sm:shadow-sm sm:backdrop-blur-sm sm:bg-white/60 sm:dark:bg-neutral-900/40 sm:border-gray-200 sm:dark:border-neutral-800${isDragging ? " relative z-10 shadow-md" : ""}`}
-                        >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex min-w-0 flex-1 items-start gap-2">
-                        {sortedExercises.length > 1 && (
+            <div className="-mx-4 divide-y divide-gray-100 dark:divide-neutral-800 sm:mx-0 sm:space-y-4 sm:divide-y-0">
+              {sortedExercises.map((we) => (
+                <div
+                  key={we.id}
+                  className="px-4 py-4 sm:rounded-lg sm:border sm:p-5 sm:shadow-sm sm:backdrop-blur-sm sm:bg-white/60 sm:dark:bg-neutral-900/40 sm:border-gray-200 sm:dark:border-neutral-800"
+                >
+                    <div className="flex min-w-0 flex-col gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <h3 className="truncate select-none text-sm font-medium text-gray-900 [-webkit-touch-callout:none] dark:text-white">
+                          {we.exercise?.name ?? "Exercise"}
+                        </h3>
+                        {appliedExerciseMetaDrafts[we.id]?.equipmentBrand?.trim() && (
                           <button
                             type="button"
-                            {...dragHandleProps}
-                            disabled={reorderSaving}
-                            aria-label={`Drag to reorder ${we.exercise?.name ?? "exercise"}`}
-                            className="mt-0.5 inline-flex h-8 w-8 shrink-0 touch-none select-none [-webkit-touch-callout:none] cursor-grab items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-500 dark:hover:bg-neutral-800 dark:hover:text-gray-300"
+                            onClick={() => openBrandEditor(we.id)}
+                            className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium leading-tight text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40 dark:hover:bg-blue-500/20"
                           >
-                            <GripVertical className="h-4 w-4" aria-hidden="true" />
+                            {appliedExerciseMetaDrafts[we.id]?.equipmentBrand?.trim()}
                           </button>
                         )}
-                        <div className="flex min-w-0 flex-1 flex-col gap-2">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <h3 className="truncate select-none text-sm font-medium text-gray-900 [-webkit-touch-callout:none] dark:text-white">
-                            {we.exercise?.name ?? "Exercise"}
-                          </h3>
-                          {appliedExerciseMetaDrafts[we.id]?.equipmentBrand?.trim() && (
-                            <button
-                              type="button"
-                              onClick={() => openBrandEditor(we.id)}
-                              className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium leading-tight text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/40 dark:hover:bg-blue-500/20"
-                            >
-                              {appliedExerciseMetaDrafts[we.id]?.equipmentBrand?.trim()}
-                            </button>
-                          )}
-                        </div>
-                        {!isAnyDragActive && (
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Add a note..."
-                            value={exerciseMetaDrafts[we.id]?.notes ?? ""}
-                            onChange={(e) =>
-                              setExerciseMetaDrafts((prev) => ({
-                                ...prev,
-                                [we.id]: { ...prev[we.id], notes: e.target.value },
-                              }))
-                            }
-                            className="w-full bg-transparent text-base text-gray-400 placeholder-gray-300 outline-none border-b border-transparent focus:border-[#3ecf8e] pb-0.5 pr-5 transition-colors dark:text-gray-500 dark:placeholder-gray-600 dark:focus:border-[#3ecf8e] sm:text-xs"
-                          />
-                          {exerciseMetaDrafts[we.id]?.notes && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExerciseMetaDrafts((prev) => ({
-                                  ...prev,
-                                  [we.id]: { ...prev[we.id], notes: "" },
-                                }))
-                              }
-                              aria-label="Clear note"
-                              className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-300 transition-colors hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                        )}
-                        </div>
-                      </div>
-                      {!isAnyDragActive && (
-                      <div className="relative shrink-0" data-exercise-actions-menu>
+                        <div className="relative ml-auto shrink-0" data-exercise-actions-menu>
                         <button
                           type="button"
                           onClick={() =>
@@ -882,6 +796,20 @@ const EditWorkoutClient = ({
                                   : "Set brand"}
                               </span>
                             </button>
+                            {sortedExercises.length > 1 && (
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenActionsExerciseId(null);
+                                  setReorderModalOpen(true);
+                                }}
+                                className="flex w-full items-center gap-2 rounded px-3 py-3 text-left text-base text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-neutral-800 sm:gap-1.5 sm:px-2 sm:py-1.5 sm:text-sm"
+                              >
+                                <ArrowUpDown className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
+                                <span>Reorder exercises</span>
+                              </button>
+                            )}
                             <div className="my-1 h-px bg-gray-200 dark:bg-neutral-700" />
                             <button
                               type="button"
@@ -897,10 +825,39 @@ const EditWorkoutClient = ({
                             </button>
                           </div>
                         )}
+                        </div>
                       </div>
-                      )}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Add a note..."
+                          value={exerciseMetaDrafts[we.id]?.notes ?? ""}
+                          onChange={(e) =>
+                            setExerciseMetaDrafts((prev) => ({
+                              ...prev,
+                              [we.id]: { ...prev[we.id], notes: e.target.value },
+                            }))
+                          }
+                          className="w-full bg-transparent text-base text-gray-400 placeholder-gray-300 outline-none border-b border-transparent focus:border-[#3ecf8e] pb-0.5 pr-5 transition-colors dark:text-gray-500 dark:placeholder-gray-600 dark:focus:border-[#3ecf8e] sm:text-xs"
+                        />
+                        {exerciseMetaDrafts[we.id]?.notes && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExerciseMetaDrafts((prev) => ({
+                                ...prev,
+                                [we.id]: { ...prev[we.id], notes: "" },
+                              }))
+                            }
+                            aria-label="Clear note"
+                            className="absolute right-0 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-300 transition-colors hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    {!isAnyDragActive && editingBrandMap[we.id] && (
+                    {editingBrandMap[we.id] && (
                       <div className="mt-2 max-w-sm space-y-2">
                         <InputField
                           id={`workout-exercise-brand-${we.id}`}
@@ -947,7 +904,6 @@ const EditWorkoutClient = ({
                         </div>
                       </div>
                     )}
-                    {!isAnyDragActive && (
                     <div className="mt-2 border-t border-gray-100 pt-3 dark:border-neutral-800">
                       <ExerciseSetForm
                         workoutId={workoutId}
@@ -966,14 +922,9 @@ const EditWorkoutClient = ({
                         }}
                       />
                     </div>
-                    )}
-                        </div>
-                      )}
-                    </SortableListItem>
-                  ))}
                 </div>
-              </SortableContext>
-            </DndContext>
+              ))}
+            </div>
           ) : (
             <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-600 dark:border-neutral-700 dark:text-gray-400">
               No exercises yet. Add your first exercise below.
@@ -1014,6 +965,27 @@ const EditWorkoutClient = ({
         workoutId={workoutId}
         onClose={() => setIsAddModalOpen(false)}
         onAdded={() => void fetchWorkout({ silent: true })}
+      />
+
+      <ReorderExercisesModal
+        open={reorderModalOpen}
+        workoutId={workoutId}
+        exercises={sortedExercises}
+        onClose={() => setReorderModalOpen(false)}
+        onReordered={(orderedIds) => {
+          setWorkout((prev) => {
+            const byId = new Map(
+              (prev.workout_exercises ?? []).map((we) => [we.id, we]),
+            );
+            const next = orderedIds
+              .map((id, index) => {
+                const we = byId.get(id);
+                return we ? { ...we, order_index: index + 1 } : undefined;
+              })
+              .filter((we): we is WorkoutExerciseWithRelations => Boolean(we));
+            return { ...prev, workout_exercises: next };
+          });
+        }}
       />
 
     </div>
