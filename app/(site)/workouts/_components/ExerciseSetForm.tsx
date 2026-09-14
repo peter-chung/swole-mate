@@ -56,6 +56,7 @@ type Props = {
   onSaved?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   onManualEdit?: () => void;
+  onEdit?: () => void;
 };
 
 type LocalSet = {
@@ -89,6 +90,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       onSaved,
       onDirtyChange,
       onManualEdit,
+      onEdit,
     },
     ref
   ) => {
@@ -182,6 +184,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
       value: string
     ) => {
       onManualEdit?.();
+      onEdit?.();
       setSets((prev) => {
         const copy = [...prev];
         const current = copy[idx];
@@ -247,6 +250,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
     const addSet = () => {
       onManualEdit?.();
+      onEdit?.();
       const newId = `new-${Date.now()}`;
       setSets((prev) => {
         const sortedByNumber = [...prev].sort(
@@ -280,6 +284,7 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
     const deleteSet = (idx: number) => {
       onManualEdit?.();
+      onEdit?.();
       const target = sets[idx];
       if (!target) return;
 
@@ -363,13 +368,14 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
         const saveResults = await Promise.allSettled(
           indicesToPersist.map(async (idx) => {
             const target = sets[idx];
+            const sentSnapshot = buildPayload(target);
             const data = await saveExerciseSetAction({
               workoutId,
               workoutExerciseId,
               setId: typeof target.id === "number" ? target.id : undefined,
-              payload: buildPayload(target),
+              payload: sentSnapshot,
             });
-            return { idx, data };
+            return { originalId: target.id, sentSnapshot, data };
           })
         );
 
@@ -382,16 +388,26 @@ const ExerciseSetForm = forwardRef<ExerciseSetFormHandle, Props>(
 
         setSets((prev) => {
           const out = [...prev];
-          for (const { idx, data } of saveSucceeded) {
-            const normalized = normalizeApiSet(data);
-            const originalId = prev[idx]?.id;
+          for (const { originalId, sentSnapshot, data } of saveSucceeded) {
             const matchIndex = out.findIndex((s) => s.id === originalId);
+            if (matchIndex < 0) continue; // deleted concurrently — nothing to reconcile
 
-            if (matchIndex >= 0) {
-              out[matchIndex] = normalized;
-            } else {
-              out[idx] = normalized;
+            const current = out[matchIndex];
+            const unchangedSinceSend =
+              current.reps === sentSnapshot.reps &&
+              current.weight === sentSnapshot.weight &&
+              current.duration === sentSnapshot.duration &&
+              current.distance === sentSnapshot.distance &&
+              current.notes === sentSnapshot.notes;
+
+            if (unchangedSinceSend) {
+              out[matchIndex] = normalizeApiSet(data);
+            } else if (typeof originalId === "string") {
+              // Temp row got persisted but the user kept editing it — adopt the
+              // real id, keep the newer local values so they save next cycle.
+              out[matchIndex] = { ...current, id: data.id, _status: "dirty" };
             }
+            // else: already-numeric id, values changed since send — leave as-is (still "dirty").
           }
           out.sort((a, b) => a.set_number - b.set_number);
           return out;
