@@ -102,6 +102,7 @@ const EditWorkoutClient = ({
   const router = useRouter();
   const formRefs = useRef<Record<number, ExerciseSetFormHandle | null>>({});
   const [dirtyMap, setDirtyMap] = useState<Record<number, boolean>>({});
+  const [editTick, setEditTick] = useState(0);
   const dirtyMapRef = useRef<Record<number, boolean>>({});
   const workoutExercisesRef = useRef<WorkoutWithRelations["workout_exercises"]>([]);
   const detailsDraftRef = useRef<WorkoutDraft>(detailsDraft);
@@ -441,11 +442,18 @@ const EditWorkoutClient = ({
         };
 
         const saved = await updateWorkoutAction(workoutId, payload);
-        setDetailsDraft({
-          name: payload.name,
-          date: payload.date,
-          notes: payload.notes ?? "",
-        });
+
+        const unchangedSinceSend =
+          detailsDraftRef.current.name === draft.name &&
+          detailsDraftRef.current.date === draft.date &&
+          detailsDraftRef.current.notes === draft.notes;
+        if (unchangedSinceSend) {
+          setDetailsDraft({
+            name: payload.name,
+            date: payload.date,
+            notes: payload.notes ?? "",
+          });
+        }
         if (saved) {
           setWorkout((prev) => ({
             ...prev,
@@ -505,8 +513,25 @@ const EditWorkoutClient = ({
           }
           return next;
         };
-        setExerciseMetaDrafts(applyConfirmed);
         setAppliedExerciseMetaDrafts(applyConfirmed);
+        setExerciseMetaDrafts((prev) => {
+          const next = { ...prev };
+          for (const saved of savedExerciseMeta) {
+            const sent = exerciseMetaDrafts[saved.id];
+            const current = prev[saved.id];
+            const unchangedSinceSend =
+              current?.equipmentBrand === sent?.equipmentBrand &&
+              current?.notes === sent?.notes;
+            if (unchangedSinceSend) {
+              next[saved.id] = {
+                ...next[saved.id],
+                equipmentBrand: saved.equipmentBrand,
+                notes: saved.notes ?? "",
+              };
+            }
+          }
+          return next;
+        });
       }
 
       const saves = workoutExercises.map(async (we) => {
@@ -581,7 +606,7 @@ const EditWorkoutClient = ({
       void triggerAutosave();
     },
     3000,
-    [detailsDraft, exerciseMetaDrafts, dirtyMap],
+    [detailsDraft, exerciseMetaDrafts, dirtyMap, editTick],
   );
   useEffect(() => {
     cancelAutosaveDebounceRef.current = cancelAutosaveDebounce;
@@ -914,6 +939,7 @@ const EditWorkoutClient = ({
                         onDirtyChange={(dirty) =>
                           setDirtyMap((prev) => ({ ...prev, [we.id]: dirty }))
                         }
+                        onEdit={() => setEditTick((t) => t + 1)}
                         onManualEdit={() =>
                           setAutoSuggestedSetMap((prev) => ({ ...prev, [we.id]: false }))
                         }
